@@ -1,0 +1,13 @@
+[package]
+name = "rsa-cortex-m4"
+version = "0.1.0-wip"
+authors = ["Nicolas Stalder <n@stalder.io>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# heapless = { git = "https://github.com/japaric/heapless", branch = "const_generics" }
+# num-traits = { version = "0.2.14", default-features = false }
+rand_core = { version = "0.6", default-features = false }
+zeroize = { version = "1.2.0", default-features = false, features = ["zeroize_derive"] }
