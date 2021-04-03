@@ -11,7 +11,7 @@
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
-use crate::{NonZeroOdd, Prime, Product, Result};
+use crate::{NonZeroOdd, Prime, Square, Result};
 
 /// RSA public key.
 ///
@@ -20,7 +20,7 @@ use crate::{NonZeroOdd, Prime, Product, Result};
 #[allow(non_snake_case)]
 #[derive(Zeroize)]
 pub struct PublicKey<const L: usize> {
-    pub N: Product<L>,
+    pub N: Square<L>,
 }
 
 #[derive(Zeroize)]

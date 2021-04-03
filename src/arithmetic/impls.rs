@@ -1,28 +1,57 @@
-use core::{cmp::Ordering, convert::TryFrom, ops::{Deref, DerefMut, Index, IndexMut}};
+use core::{cmp::Ordering, convert::TryFrom, ops::{Deref, DerefMut}};
 
-use super::{Digit, NonZeroOdd, NormalizedLittleEndian, NormalizedLittleEndianMut, Prime, Product, Unsigned, UnsignedCarry};
+use super::{AsNormalizedLittleEndianWords, Digit, NonZeroOdd, Prime, Product, Unsigned, UnsignedCarry};
 use crate::{Error, Result};
 
 
-impl Deref for NormalizedLittleEndian<'_> {
+// Unfortunately, implementing Deref for <T: AsNormalizedLittleEndianWords>
+// leads to "conflicting implementations"
+impl<const L: usize> Deref for Unsigned<L> {
     type Target = [u32];
     fn deref(&self) -> &Self::Target {
-        self.0
+        self.words()
     }
 }
 
-impl Deref for NormalizedLittleEndianMut<'_> {
-    type Target = [u32];
-    fn deref(&self) -> &Self::Target {
-        self.0
-    }
-}
-
-impl DerefMut for NormalizedLittleEndianMut<'_> {
+impl<const L: usize> DerefMut for Unsigned<L> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.0
+        self.words_mut()
     }
 }
+
+impl<const M: usize, const N: usize> Deref for Product<M, N> {
+    type Target = [u32];
+    fn deref(&self) -> &Self::Target {
+        self.words()
+    }
+}
+
+impl<const M: usize, const N: usize> DerefMut for Product<M, N> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.words_mut()
+    }
+}
+
+// impl Deref for NormalizedLittleEndian<'_> {
+
+//     type Target = [u32];
+//     fn deref(&self) -> &Self::Target {
+//         self.0
+//     }
+// }
+
+// impl Deref for NormalizedLittleEndianMut<'_> {
+//     type Target = [u32];
+//     fn deref(&self) -> &Self::Target {
+//         self.0
+//     }
+// }
+
+// impl DerefMut for NormalizedLittleEndianMut<'_> {
+//     fn deref_mut(&mut self) -> &mut Self::Target {
+//         self.0
+//     }
+// }
 
 // impl<const L: usize> Deref for Unsigned<L> {
 //     type Target = [u32];
@@ -90,8 +119,9 @@ impl<const L: usize> DerefMut for Prime<L> {
 impl<const L: usize> TryFrom<Unsigned<L>> for NonZeroOdd<L> {
     type Error = Error;
     fn try_from(unsigned: Unsigned<L>) -> Result<Self> {
+        use super::Zero;
         // non-zero
-        if unsigned == Unsigned::zero() {
+        if unsigned.is_zero() {
             return Err(Error);
         }
         // odd
@@ -110,56 +140,81 @@ impl<const L: usize> From<NonZeroOdd<L>> for Unsigned<L> {
 
 // Since we store little-endian, comparison needs to start at the last
 // digit, instead of at the first as the derived / default implementation would.
-impl<'a> Ord for NormalizedLittleEndian<'a> {
-    /// This is *little endian* ordering, as opposed to the default
-    /// ordering on arrays and slices!
-    fn cmp(&self, other: &Self) -> Ordering {
-        let l_self = self.len();
-        let l_other = other.len();
-        match l_self.cmp(&l_other) {
-            Ordering::Equal => {}
-            not_equal => return not_equal,
-        }
-
-        for i in (0..l_self).rev() {
-            match self[i].cmp(&other[i]) {
-                Ordering::Equal => (),
-                not_equal => return not_equal
-            }
-        }
-        Ordering::Equal
-    }
-}
-
-impl PartialOrd for NormalizedLittleEndian<'_> {
-    /// This is *little endian* ordering, as opposed to the default
-    /// ordering on arrays and slices!
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-// Since we store little-endian, comparison needs to start at the last
-// limb, instead of at the first as the derived / default implementation would.
-impl<const L: usize> PartialOrd for Unsigned<L> {
-    /// This is *little endian* ordering, as opposed to the default
-    /// ordering on arrays and slices!
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 impl<const L: usize> Ord for Unsigned<L> {
     /// This is *little endian* ordering, as opposed to the default
     /// ordering on arrays and slices!
     fn cmp(&self, other: &Self) -> Ordering {
-        self.as_le_words().cmp(&other.as_le_words())
+        cmp_unsigned(self, other)
+        // self.partial_cmp(other).unwrap()
+        // let l_self = self.len();
+        // let l_other = other.len();
+        // match l_self.cmp(&l_other) {
+        //     Ordering::Equal => {}
+        //     not_equal => return not_equal,
+        // }
+
+        // for i in (0..l_self).rev() {
+        //     match self.words()[i].cmp(&other.words()[i]) {
+        //         Ordering::Equal => (),
+        //         not_equal => return not_equal
+        //     }
+        // }
+        // Ordering::Equal
+    }
+}
+
+fn cmp_unsigned<const M: usize, const N: usize>(m: &Unsigned<M>, n: &Unsigned<N>) -> Ordering {
+    let l_m = m.len();
+    let l_n = n.len();
+    match l_m.cmp(&l_n) {
+        Ordering::Equal => {}
+        not_equal => return not_equal,
+    }
+
+    for i in (0..l_m).rev() {
+        match m.words()[i].cmp(&n.words()[i]) {
+            Ordering::Equal => (),
+            not_equal => return not_equal
+        }
+    }
+    Ordering::Equal
+}
+
+impl<const M: usize, const N: usize> PartialOrd<Unsigned<N>> for Unsigned<M> {
+    /// This is *little endian* ordering, as opposed to the default
+    /// ordering on arrays and slices!
+    fn partial_cmp(&self, other: &Unsigned<N>) -> Option<Ordering> {
+        Some(cmp_unsigned(self, other))
+    }
+}
+
+// // Since we store little-endian, comparison needs to start at the last
+// // limb, instead of at the first as the derived / default implementation would.
+// impl<const L: usize> PartialOrd for Unsigned<L> {
+//     /// This is *little endian* ordering, as opposed to the default
+//     /// ordering on arrays and slices!
+//     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+//         Some(self.cmp(other))
+//     }
+// }
+
+// impl<const L: usize> Ord for Unsigned<L> {
+//     /// This is *little endian* ordering, as opposed to the default
+//     /// ordering on arrays and slices!
+//     fn cmp(&self, other: &Self) -> Ordering {
+//         self.as_le_words().cmp(&other.as_le_words())
+//     }
+// }
+
+impl<const M: usize, const N: usize> PartialEq<Unsigned<N>> for Unsigned<M> {
+    fn eq(&self, other: &Unsigned<N>) -> bool {
+        self.words() == other.words()
     }
 }
 
 impl<const L: usize> PartialEq<NonZeroOdd<L>> for Unsigned<L> {
     fn eq(&self, other: &NonZeroOdd<L>) -> bool {
-        *self == other.0
+        *self == *other//.words() == other.words()
     }
 }
 
@@ -199,39 +254,35 @@ impl<const L: usize> Default for Unsigned<L> {
 //     }
 // }
 
-impl<const L: usize> Index<usize> for Product<L> {
-    type Output = Digit;
-    fn index(&self, i: usize) -> &Self::Output {
-        &self.as_le_words().0[i]
-    }
-}
+// impl<const M: usize, const N: usize> Index<usize> for Product<M, N> {
+//     type Output = Digit;
+//     fn index(&self, i: usize) -> &Self::Output {
+//         &self.as_le_words().0[i]
+//     }
+// }
 
-impl<const L: usize> IndexMut<usize> for Product<L> {
-    fn index_mut(&mut self, i: usize) -> &mut Self::Output {
-        if i < L {
-            &mut self.lo.0[i]
-        } else {
-            &mut self.hi.0[i - L]
-        }
-    }
-}
+// impl<const M: usize, const N: usize> IndexMut<usize> for Product<M, N> {
+//     fn index_mut(&mut self, i: usize) -> &mut Self::Output {
+//         &mut self.as_le_words_mut()[i]
+//     }
+// }
 
-impl<const L: usize> Index<usize> for UnsignedCarry<L> {
-    type Output = Digit;
-    fn index(&self, i: usize) -> &Self::Output {
-        &self.as_le_words().0[i]
-    }
-}
+// impl<const L: usize> Index<usize> for UnsignedCarry<L> {
+//     type Output = Digit;
+//     fn index(&self, i: usize) -> &Self::Output {
+//         &self.as_le_words().0[i]
+//     }
+// }
 
-impl<const L: usize> IndexMut<usize> for UnsignedCarry<L> {
-    fn index_mut(&mut self, i: usize) -> &mut Self::Output {
-        if i < L {
-            &mut self.lo.0[i]
-        } else if i == L {
-            &mut self.carry
-        } else {
-            panic!("out of bounds");
-        }
-    }
-}
+// impl<const L: usize> IndexMut<usize> for UnsignedCarry<L> {
+//     fn index_mut(&mut self, i: usize) -> &mut Self::Output {
+//         if i < L {
+//             &mut self.lo.0[i]
+//         } else if i == L {
+//             &mut self.carry
+//         } else {
+//             panic!("out of bounds");
+//         }
+//     }
+// }
 

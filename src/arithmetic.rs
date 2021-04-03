@@ -34,14 +34,14 @@ impl Bits for DoubleDigit {
 mod impls;
 // use impls::*;
 
-/// Guaranteed to have last digit != 0.
-/// Useful for instance to avoid implementing PartialOrd for all possible combinations
-/// of Unsigned and workaround types.
-#[derive(Eq, PartialEq)]
-pub struct NormalizedLittleEndian<'a>(&'a [Digit]);
+// /// Guaranteed to have last digit != 0.
+// /// Useful for instance to avoid implementing PartialOrd for all possible combinations
+// /// of Unsigned and workaround types.
+// #[derive(Eq, PartialEq)]
+// pub struct NormalizedLittleEndian<'a>(&'a [Digit]);
 
-#[derive(Eq, PartialEq)]
-pub struct NormalizedLittleEndianMut<'a>(&'a mut [Digit]);
+// #[derive(Eq, PartialEq)]
+// pub struct NormalizedLittleEndianMut<'a>(&'a mut [Digit]);
 
 // #[derive(Eq, PartialEq)]
 // pub struct NormalizedBigEndian<'a>(&'a [u8]);
@@ -52,9 +52,11 @@ pub struct NormalizedLittleEndianMut<'a>(&'a mut [Digit]);
 //     }
 // }
 
-pub trait AsNormalizedLittleEndianWords {
-    fn as_le_words(&self) -> NormalizedLittleEndian<'_>;
-    fn as_le_words_mut(&mut self) -> NormalizedLittleEndianMut<'_>;
+/// Implementation must ensure self.len() == self.words().len() and underlying len == self.words_mut().len()
+pub unsafe trait AsNormalizedLittleEndianWords {
+    fn len(&self) -> usize;
+    fn words(&self) -> &[u32]; //NormalizedLittleEndian<'_>;
+    fn words_mut(&mut self) -> &mut [u32]; //NormalizedLittleEndianMut<'_>;
 }
 
 // pub trait AsNormalizedBigEndianBytes {
@@ -68,18 +70,27 @@ pub trait AsNormalizedLittleEndianWords {
 /// TODO: unify terminology (digits vs limbs)
 ///
 /// In our "heapless" situation, we have no multiplication nor addition.
-#[derive(Clone, Eq, PartialEq, Zeroize)]
+#[derive(Clone, Eq, Zeroize)]
 // pub struct Unsigned<const L: usize>(Vec<Digit, L>);
 pub struct Unsigned<const L: usize>(pub(crate) [Digit; L]);
 
-impl<const L: usize> AsNormalizedLittleEndianWords for Unsigned<L> {
-    fn as_le_words(&self) -> NormalizedLittleEndian<'_> {
-        let l = self.len();
-        NormalizedLittleEndian(&self.0[..l])
+unsafe impl<const L: usize> AsNormalizedLittleEndianWords for Unsigned<L> {
+    /// 0 if zero, else index + 1 of last non-zero digit
+    fn len(&self) -> usize {
+        self.0.iter()
+            .enumerate().rev()
+            .find(|(_, &x)| x != 0)
+            .map(|(i, _)| i + 1)
+            .unwrap_or(0)
     }
-    fn as_le_words_mut(&mut self) -> NormalizedLittleEndianMut<'_> {
+
+    fn words(&self) -> &[u32] {
         let l = self.len();
-        NormalizedLittleEndianMut(&mut self.0[..l])
+        &self.0[..l]
+    }
+    fn words_mut(&mut self) -> &mut [u32] {
+        let l = self.len();
+        &mut self.0//[..l]
     }
 }
 
@@ -90,12 +101,16 @@ impl<const L: usize> Unsigned<L> {
         x
     }
 
-    pub fn as_le_words(&self) -> NormalizedLittleEndian<'_> {
-        AsNormalizedLittleEndianWords::as_le_words(self)
-    }
+    // pub fn as_le_words(&self) -> &[u32],
+    //     AsNormalizedLittleEndianWords::as_le_words(self)
+    // }
+
+    // pub fn as_le_words_mut(&mut self) -> &[u32],
+    //     AsNormalizedLittleEndianWords::as_le_words_mut(self)
+    // }
 
     pub fn leading_digit(&self) -> Option<Digit> {
-        self.as_le_words().last().map(|&d| d)
+        self.last().map(|&d| d)
     }
 
     /// TODO: consider `into_be_bytes`, reusing the buffer.
@@ -121,9 +136,7 @@ impl<const L: usize> Unsigned<L> {
     pub fn try_into<const M: usize>(&self) -> Result<Unsigned<M>> {
         let l = self.len();
         if l <= M {
-            let mut m = Unsigned::<M>::default();
-            m.0[..l].copy_from_slice(&self.as_le_words());
-            Ok(m)
+            Ok(Unsigned::<M>::from_slice(&self.words()))
         } else {
             Err(Error)
         }
@@ -152,64 +165,97 @@ impl<const L: usize> fmt::Debug for Unsigned<L> {
 ///
 /// Due to limitations in const-generics on stable, we can't express
 /// `Unsigned<L + 1>`. This is a workaround type.
-pub struct UnsignedCarry<const L: usize> {
-    lo: Unsigned<L>,
-    carry: u32,
-}
+pub type UnsignedCarry<const L: usize> = Product<L, 1>;
 
 impl<const L: usize> UnsignedCarry<L> {
-    pub fn as_le_words(&self) -> NormalizedLittleEndian<'_> {
-        let l = if self.carry != 0 {
-            L + 1
-        } else {
-            self.lo.len()
-        };
-        NormalizedLittleEndian(unsafe {
-            core::slice::from_raw_parts(&self.lo.0[0], l)
-        })
+    pub fn from_array_and_carry(array: [u32; L], carry: u32) -> Self {
+        Self {
+            lo: Unsigned(array),
+            hi: Unsigned([carry]),
+        }
+    }
+    pub fn from_slice_and_carry(slice: &[u32], carry: u32) -> Self {
+        Self {
+            lo: Unsigned::from_slice(slice),
+            hi: Unsigned::from_slice(&[carry]),
+        }
     }
 }
+// pub struct UnsignedCarry<const L: usize> {
+//     lo: Unsigned<L>,
+//     carry: u32,
+// }
 
-/// Product of two unsigned integers.
+// impl<const L: usize> UnsignedCarry<L> {
+//     pub fn as_le_words(&self) -> NormalizedLittleEndian<'_> {
+//         let l = if self.carry != 0 {
+//             L + 1
+//         } else {
+//             self.lo.len()
+//         };
+//         NormalizedLittleEndian(unsafe {
+//             core::slice::from_raw_parts(&self.lo.0[0], l)
+//         })
+//     }
+// }
+
+/// Square of two unsigned integers.
 ///
 /// Due to limitations in const-generics on stable, we can't express
 /// something like `Unsigned<2*L>`. This is a workaround type.
 #[repr(C)]
 #[derive(Clone, Default, Eq, PartialEq, Zeroize)]
-pub struct Product<const L: usize> {
-    lo: Unsigned<L>,
-    hi: Unsigned<L>,
+pub struct Product<const M: usize, const N: usize> {
+    lo: Unsigned<M>,
+    hi: Unsigned<N>,
 }
 
-impl<const L: usize> Product<L> {
-    pub fn as_le_words(&self) -> NormalizedLittleEndian<'_> {
-        NormalizedLittleEndian(unsafe {
-            core::slice::from_raw_parts(&self.lo.0[0], self.len())
-        })
-    }
+pub type Square<const L: usize> = Product<L, L>;
 
-    pub fn len(&self) -> usize {
+unsafe impl<const M: usize, const N: usize> AsNormalizedLittleEndianWords for Product<M, N> {
+    fn len(&self) -> usize {
         let l_hi = self.hi.len();
         if l_hi > 0 {
-            L + l_hi
+            M + l_hi
         } else {
             self.lo.len()
         }
     }
 
-    pub fn try_into<const M: usize>(&self) -> Result<Unsigned<M>> {
+    fn words(&self) -> &[u32]{
         let l = self.len();
-        if l <= M {
-            let mut m = Unsigned::<M>::default();
-            m.0[..l].copy_from_slice(&self.as_le_words());
-            Ok(m)
+        unsafe { core::slice::from_raw_parts(&self.lo.0[0], l) }
+    }
+    fn words_mut(&mut self) -> &mut [u32] {
+        // let l = self.len();
+        let l = M + N;
+        unsafe { core::slice::from_raw_parts_mut(&mut self.lo.0[0], l) }
+    }
+}
+
+impl<const M: usize, const N: usize> Product<M, N> {
+    pub fn len(&self) -> usize {
+        AsNormalizedLittleEndianWords::len(self)
+    }
+
+    // pub fn as_le_words(&self) -> NormalizedLittleEndian<'_> {
+    //     AsNormalizedLittleEndianWords::as_le_words(self)
+    // }
+    // pub fn as_le_words_mut(&mut self) -> NormalizedLittleEndianMut<'_> {
+    //     AsNormalizedLittleEndianWords::as_le_words_mut(self)
+    // }
+
+    pub fn try_into<const L: usize>(&self) -> Result<Unsigned<L>> {
+        let l = self.len();
+        if l <= L {
+            Ok(Unsigned::<L>::from_slice(&self.words()))
         } else {
             Err(Error)
         }
     }
 }
 
-// fn prod<const L: unsigned>(a: &Unsigned<L>, b: &Unsigned<L>) -> Product<L> {
+// fn prod<const L: unsigned>(a: &Unsigned<L>, b: &Unsigned<L>) -> Square<L> {
 // }
 
 pub trait One: Sized + PartialEq {
@@ -292,15 +338,6 @@ impl<const L: usize> Zeroize for Modular<'_, L> {
 }
 
 impl<const L: usize> Unsigned<L> {
-    /// 0 if zero, else index + 1 of last non-zero digit
-    pub fn len(&self) -> usize {
-        self.0.iter()
-            .enumerate().rev()
-            .find(|(_, &x)| x != 0)
-            .map(|(i, _)| i + 1)
-            .unwrap_or(0)
-    }
-
     /// The associated residue class modulo n.
     ///
     /// Note that storage requirements of the residue class are the same
@@ -322,7 +359,7 @@ impl<const L: usize> Unsigned<L> {
 
 // pub fn chinese_remainder_theorem
 
-impl<const L: usize> Modular<'_, L> {
+impl<const N: usize> Modular<'_, N> {
     pub fn inverse(&self) -> Self {
         todo!();
     }
@@ -330,13 +367,15 @@ impl<const L: usize> Modular<'_, L> {
     /// The canonical representative of this residue class.
     ///
     /// This is like [`lift`][lift] in GP/PARI
+    ///
     /// [lift]: https://pari.math.u-bordeaux.fr/dochtml/html/Conversions_and_similar_elementary_functions_or_commands.html#se:lift
-    pub fn lift(self) -> Unsigned<L> {
-        self.x
+    pub fn lift<const L: usize>(self) -> Unsigned<L> {
+        /// TODO: if L < N (or rather, self.modulo.len()), then lift and project maybe? nah
+        self.x.try_into().unwrap()
     }
 
     // pub fn to_the(self, exponent: & impl Into<Unsigned<L>>) -> Self {
-    pub fn power(self, exponent: & impl Into<Unsigned<L>>) -> Self {
+    pub fn power(self, exponent: & impl Into<Unsigned<N>>) -> Self {
         todo!();
     }
 }
@@ -418,11 +457,11 @@ impl<'a, 'b, const L: usize> Add<&'b Unsigned<L>> for Modular<'a, L> {
 
 impl <'l, const L: usize> Mul<&'l Unsigned<L>> for &'l Unsigned<L> {
 
-    type Output = Product<L>;
+    type Output = Square<L>;
 
     /// product-scanning implementation of multiplication
     fn mul(self, other: Self) -> Self::Output {
-        let mut product = Product::default();
+        let mut product = Square::default();
         let mut accumulator = DoubleDigit::default();
 
         for k in 0..2*L {
@@ -430,7 +469,7 @@ impl <'l, const L: usize> Mul<&'l Unsigned<L>> for &'l Unsigned<L> {
             for i in 0..self.len() {
                 for j in 0..other.len() {
                     if i + j == k {
-                        accumulator += (self.as_le_words()[i] as u64) * (other.as_le_words()[j] as u64);
+                        accumulator += (self[i] as u64) * (other[j] as u64);
                     }
                 }
             }
@@ -442,7 +481,7 @@ impl <'l, const L: usize> Mul<&'l Unsigned<L>> for &'l Unsigned<L> {
 }
 
 // impl <'l, const L: usize> Mul<&'l Unsigned<L>> for &'l Unsigned<L> {
-//     type Output = Product<L>;
+//     type Output = Square<L>;
 //     fn mul(self, other: Self) -> Self::Output {
 
 
@@ -489,7 +528,7 @@ pub fn div_rem_assign_digit<const L: usize>(x: &mut Unsigned<L>, n: Digit) -> Di
 
     // run down the digits in x, dividing each by n, while carrying along the remainder
     let l = x.len();
-    for digit in x.as_le_words_mut().iter_mut().rev() {
+    for digit in x.iter_mut().rev() {
         let (q, r) = div_wide(remainder, *digit, n);
         *digit = q;
         remainder = r;
@@ -517,7 +556,7 @@ impl<const L: usize> ShlAssign<usize> for Unsigned<L> {
     #[inline]
     /// Compared to `num-bigint{,-dig}`, this is a truncating shift.
     ///
-    /// We could consider implementing this with Output UnsignedCarry or Product,
+    /// We could consider implementing this with Output UnsignedCarry or Square,
     /// if necessary.
     fn shl_assign(&mut self, bits: usize) {
         // biguint_shl(Cow::Owned(self), rhs)
@@ -703,7 +742,7 @@ pub fn add_assign(a: &mut [Digit], b: &[Digit]) {
 /// [num-bigint]: https://docs.rs/num-bigint/0.4.0/src/num_bigint/biguint/division.rs.html#111-156
 
 // this should really be: (m + n) / n --> ((m + 1), n)
-// pub fn div_rem<const M: usize, const N: usize>(x: &Product<M, N>, n: &Unsigned<N>) -> (UnsignedCarry<M>, Unsigned<N>) {
+// pub fn div_rem<const M: usize, const N: usize>(x: &Square<M, N>, n: &Unsigned<N>) -> (UnsignedCarry<M>, Unsigned<N>) {
 
 pub fn div_rem<const X: usize, const N: usize>(x: &Unsigned<X>, n: &Unsigned<N>) -> (Unsigned<X>, Unsigned<N>) {
     if n.is_zero() {
@@ -729,7 +768,7 @@ pub fn div_rem<const X: usize, const N: usize>(x: &Unsigned<X>, n: &Unsigned<N>)
 
     // Required or the q_len calculation below can underflow:
     // match x.as_le_words().cmp(&n.as_le_words()) {
-    match x.as_le_words().cmp(&n.as_le_words()) {
+    match x.partial_cmp(n).unwrap() {
         Ordering::Less => return (Zero::zero(), n.clone()),
         Ordering::Equal => return (One::one(), Zero::zero()),
         Ordering::Greater => {} // Do nothing
@@ -807,17 +846,17 @@ pub fn div_rem<const X: usize, const N: usize>(x: &Unsigned<X>, n: &Unsigned<N>)
         // if the product of the guess with the divisor is too big, replace the guess with one less
         // According to Knuth, this loop should only run 2 times max (or even just one time with a
         // smarter check).
-        while prod.as_le_words() > NormalizedLittleEndian(&r.as_le_words()[j..]) {
+        while prod > Unsigned::<X>::from_slice(&r.words()[j..]) {
             trial -= &One::one();
             prod -= &n;
         }
 
-        add_assign(&mut q.0[j..], &trial.as_le_words());
+        add_assign(&mut q.0[j..], &trial);
         // sub_assign(&mut r.0[j..], &prod.as_le_words());
-        sub_assign(&mut r.as_le_words_mut()[j..], &prod.as_le_words());
+        sub_assign(&mut r[j..], &prod);
     }
 
-    debug_assert!(r.as_le_words() < n.as_le_words());
+    debug_assert!(r < n);
 
     r >>= shift;
     // `a` and its shift are guaranteed to be smaller than the divisor, hence fit in `N` digits
@@ -916,14 +955,15 @@ mod test {
 
     #[test]
     fn product() {
-        let prod = Product { lo: Unsigned([1,2,3]), hi: Unsigned([4,5,6]) };
-        assert_eq!(&*prod.as_le_words(), &[1,2,3,4,5,6]);
+        let prod = Square { lo: Unsigned([1,2,3]), hi: Unsigned([4,5,6]) };
+        assert_eq!(prod.words().len(), 6);
+        assert_eq!(prod.words(), &[1,2,3,4,5,6]);
     }
 
     #[test]
     fn unsigned_carry() {
-        let uc = UnsignedCarry { lo: Unsigned([1,2,3]), carry: 4 };
-        assert_eq!(&*uc.as_le_words(), &[1,2,3,4]);
+        let uc = UnsignedCarry::from_array_and_carry([1,2,3], 4);
+        assert_eq!(uc.words(), &[1,2,3,4]);
     }
 
     pub const N1: u32 = -1i32 as u32;
@@ -999,7 +1039,7 @@ mod test {
 
             if !a.is_zero() {
                 assert_op!(c / a == b);
-                assert_op!(c % a == Unsigned::zero());
+                assert_op!(c % a == Unsigned::<7>::zero());
                 // assert_assign_op!(c /= a == b);
                 // assert_assign_op!(c %= a == Zero::zero());
                 // assert_eq!(c.div_rem(&a), (b.clone(), Zero::zero()));
@@ -1007,7 +1047,7 @@ mod test {
             }
             if !b.is_zero() {
                 assert_op!(c / b == a);
-                assert_op!(c % b == Unsigned::zero());
+                assert_op!(c % b == Unsigned::<7>::zero());
                 // assert_assign_op!(c /= b == a);
                 // assert_assign_op!(c %= b == Zero::zero());
                 // assert_eq!(c.div_rem(&b), (a.clone(), Zero::zero()));

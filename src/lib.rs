@@ -1,6 +1,6 @@
 #![cfg_attr(not(test), no_std)]
 mod arithmetic;
-pub use arithmetic::{Digit, Modular, NonZeroOdd, Prime, Product, Unsigned};
+pub use arithmetic::{Digit, Modular, NonZeroOdd, Prime, Product, Square, Unsigned};
 mod error;
 pub use error::{Error, Result};
 mod key;
