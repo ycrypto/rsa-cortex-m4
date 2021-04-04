@@ -1,0 +1,8 @@
+# Not sure how to do this - the problem if *not* running
+# `cargo doc --no-deps` is that dependencies won't find
+# the `docs-header.html` file.
+#
+# For now, using `.envrc` file instead.
+
+# [build]
+# rustdocflags = [ "--html-in-header", "./src/docs-header.html" ]

@@ -4,6 +4,10 @@ version = "0.1.0-wip"
 authors = ["Nicolas Stalder <n@stalder.io>"]
 edition = "2018"
 
+[package.metadata.docs.rs]
+# may not work: https://github.com/rust-lang/docs.rs/issues/302
+rustdoc-args = [ "--html-in-header", "./src/docs-header.html" ]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
