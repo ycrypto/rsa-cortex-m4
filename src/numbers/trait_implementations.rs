@@ -1,6 +1,6 @@
 use core::{cmp::Ordering, convert::TryFrom, fmt, ops::{Deref, DerefMut}};
 
-use super::{AsNormalizedLittleEndianWords, Digit, DoubleDigit, NonZeroOdd, Prime, Product, Unsigned};
+use super::{AsNormalizedLittleEndianWords, Digit, DoubleDigit, Odd, Prime, Product, Unsigned};
 use crate::{Error, Result};
 
 
@@ -40,21 +40,21 @@ impl<const M: usize, const N: usize> DerefMut for Product<M, N> {
     }
 }
 
-impl<const L: usize> Deref for NonZeroOdd<L> {
+impl<const L: usize> Deref for Odd<L> {
     type Target = Unsigned<L>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<const L: usize> DerefMut for NonZeroOdd<L> {
+impl<const L: usize> DerefMut for Odd<L> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
 impl<const L: usize> Deref for Prime<L> {
-    type Target = NonZeroOdd<L>;
+    type Target = Odd<L>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -66,32 +66,37 @@ impl<const L: usize> DerefMut for Prime<L> {
     }
 }
 
-impl<const L: usize> TryFrom<Unsigned<L>> for NonZeroOdd<L> {
+impl<const L: usize> TryFrom<Unsigned<L>> for Odd<L> {
     type Error = Error;
-    /// Enforces positivity and oddity.
+    /// Enforces odd parity.
     fn try_from(unsigned: Unsigned<L>) -> Result<Self> {
         use super::Zero;
-        // non-zero
+        // non-zero (so we can index in next step)
         if unsigned.is_zero() {
             return Err(Error);
         }
         // odd
-        if unsigned.0[0] & 1 == 0 {
+        if unsigned[0] & 1 == 0 {
             return Err(Error);
         }
         Ok(Self(unsigned))
     }
 }
 
-impl<const L: usize> From<NonZeroOdd<L>> for Unsigned<L> {
-    fn from(nonzero_odd: NonZeroOdd<L>) -> Self {
-        nonzero_odd.0
+impl<const L: usize> From<Odd<L>> for Unsigned<L> {
+    fn from(odd: Odd<L>) -> Self {
+        odd.0
     }
 }
 
 /// This is *little endian* ordering, as opposed to the default
 /// ordering on arrays and slices!
-fn cmp_unsigned<const M: usize, const N: usize>(m: &Unsigned<M>, n: &Unsigned<N>) -> Ordering {
+// fn cmp_unsigned<const M: usize, const N: usize>(m: &Unsigned<M>, n: &Unsigned<N>) -> Ordering {
+fn generic_cmp_unsigned<U, V>(m: &U, n: &V) -> Ordering
+where
+    U: AsNormalizedLittleEndianWords,
+    V: AsNormalizedLittleEndianWords,
+{
     let l_m = m.len();
     let l_n = n.len();
     match l_m.cmp(&l_n) {
@@ -100,7 +105,7 @@ fn cmp_unsigned<const M: usize, const N: usize>(m: &Unsigned<M>, n: &Unsigned<N>
     }
 
     for i in (0..l_m).rev() {
-        match m.words()[i].cmp(&n.words()[i]) {
+        match m[i].cmp(&n[i]) {
             Ordering::Equal => (),
             not_equal => return not_equal
         }
@@ -112,44 +117,69 @@ fn cmp_unsigned<const M: usize, const N: usize>(m: &Unsigned<M>, n: &Unsigned<N>
 // digit, instead of at the first as the derived / default implementation would.
 impl<const L: usize> Ord for Unsigned<L> {
     fn cmp(&self, other: &Self) -> Ordering {
-        cmp_unsigned(self, other)
+        generic_cmp_unsigned(self, other)
     }
 }
 
-impl<const M: usize, const N: usize> PartialOrd<Unsigned<N>> for Unsigned<M> {
+impl<T, const L: usize> PartialOrd<T> for Unsigned<L>
+where
+    T: AsNormalizedLittleEndianWords
+{
     /// This is *little endian* ordering, as opposed to the default
     /// ordering on arrays and slices!
-    fn partial_cmp(&self, other: &Unsigned<N>) -> Option<Ordering> {
-        Some(cmp_unsigned(self, other))
+    fn partial_cmp(&self, other: &T) -> Option<Ordering> {
+        Some(generic_cmp_unsigned(self, other))
     }
 }
 
-impl<const M: usize, const N: usize> PartialEq<Unsigned<N>> for Unsigned<M> {
-    fn eq(&self, other: &Unsigned<N>) -> bool {
-        // self.words() == other.words()
+impl<T, const M: usize, const N: usize> PartialOrd<T> for Product<M, N>
+where
+    T: AsNormalizedLittleEndianWords
+{
+    /// This is *little endian* ordering, as opposed to the default
+    /// ordering on arrays and slices!
+    fn partial_cmp(&self, other: &T) -> Option<Ordering> {
+        Some(generic_cmp_unsigned(self, other))
+    }
+}
+
+impl<T, const L: usize> PartialEq<T> for Unsigned<L>
+where
+    T: AsNormalizedLittleEndianWords
+{
+    fn eq(&self, other: &T) -> bool {
         **self == **other
     }
 }
 
-impl<const L: usize> PartialEq<NonZeroOdd<L>> for Unsigned<L> {
-    fn eq(&self, other: &NonZeroOdd<L>) -> bool {
+impl<T, const M: usize, const N: usize> PartialEq<T> for Product<M, N>
+where
+    T: AsNormalizedLittleEndianWords
+{
+    fn eq(&self, other: &T) -> bool {
+        **self == **other
+    }
+}
+
+impl<const L: usize> PartialEq<Odd<L>> for Unsigned<L> {
+    fn eq(&self, other: &Odd<L>) -> bool {
         *self == **other//.words() == other.words()
     }
 }
 
-impl<const L: usize> PartialEq<Unsigned<L>> for NonZeroOdd<L> {
+impl<const L: usize> PartialEq<Unsigned<L>> for Odd<L> {
     fn eq(&self, other: &Unsigned<L>) -> bool {
         **self == *other
     }
 }
 
-impl<const L: usize> PartialOrd<NonZeroOdd<L>> for Unsigned<L> {
-    fn partial_cmp(&self, other: &NonZeroOdd<L>) -> Option<core::cmp::Ordering> {
+impl<const L: usize> PartialOrd<Odd<L>> for Unsigned<L> {
+    fn partial_cmp(&self, other: &Odd<L>) -> Option<core::cmp::Ordering> {
         self.partial_cmp(&other.0)
     }
 }
 
-impl<const L: usize> PartialOrd<Unsigned<L>> for NonZeroOdd<L> {
+impl<const L: usize> PartialOrd<Unsigned<L>> for Odd<L> {
     fn partial_cmp(&self, other: &Unsigned<L>) -> Option<core::cmp::Ordering> {
         self.0.partial_cmp(other)
     }

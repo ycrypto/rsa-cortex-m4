@@ -1,11 +1,11 @@
 use core::{cmp::Ordering, ops::{Div, Rem}};
 
-use crate::{Digit, DoubleDigit, Unsigned};
+use crate::{AsNormalizedLittleEndianWords, Digit, DoubleDigit, FromSlice, Product, Unsigned, UnsignedCarry};
 use crate::numbers::{Bits, One, Zero};
 
 // /// Input:  x = (x_0,x_1,...,x_n), n = (n_0,n_1, ...n_t, 0, ...0), 1 <= t <= L, yt != 0
 // /// Output: q = (q_0,q_1,...,q_{n-t}), r = (r_0,r_1,...r_t) with x=qy+r, 0<=r<y
-// fn div_rem<const L: usize>(x: &mut Unsigned<L>, n: &NonZeroOdd<L>) -> (Unsigned<L>, Unsigned<L>) {
+// fn div_rem<const L: usize>(x: &mut Unsigned<L>, n: &Odd<L>) -> (Unsigned<L>, Unsigned<L>) {
 //     let mut q = Unsigned::default();
 //     let mut r = Unsigned::default();
 
@@ -41,7 +41,7 @@ pub fn div_digits(hi: Digit, lo: Digit, divisor: Digit) -> (Digit, Digit) {
 }
 
 /// Divides x in-place by digit n, returning the multiple of n and the remaining digit.
-pub fn div_rem_assign_digit<const L: usize>(x: &mut Unsigned<L>, n: Digit) -> Digit {
+pub fn div_rem_assign_digit(x: &mut impl AsNormalizedLittleEndianWords, n: Digit) -> Digit {
     let mut remainder = 0;
 
     // run down the digits in x, dividing each by n, while carrying along the remainder
@@ -55,21 +55,6 @@ pub fn div_rem_assign_digit<const L: usize>(x: &mut Unsigned<L>, n: Digit) -> Di
     remainder
 }
 
-// /// Divides x in-place by digit n, returning the multiple of n and the remaining digit.
-// pub fn div_rem_digit<const L: usize>(mut x: Unsigned<L>, n: Digit) -> (Unsigned<L>, Digit) {
-//     let mut remainder = 0;
-
-//     // run down the digits in x, dividing each by n, while carrying along the remainder
-//     let l = x.len();
-//     for digit in x.as_le_words_mut().iter_mut().rev() {
-//         let (q, r) = div_digits(remainder, *digit, n);
-//         *digit = q;
-//         remainder = r;
-//     }
-
-//     (x, remainder)
-// }
-
 /// "Multi-precision division of x by n".
 ///
 /// Meaning: Return unique values `(q, r)` with `x = q*n + r`, and `0 <= r < n`.
@@ -81,8 +66,10 @@ pub fn div_rem_assign_digit<const L: usize>(x: &mut Unsigned<L>, n: Digit) -> Di
 ///
 /// [num-bigint]: https://docs.rs/num-bigint/0.4.0/src/num_bigint/biguint/division.rs.html#111-156
 
-// this should really be: (m + n) / n --> ((m + 1), n)
+// this should really be: (m + n) / n --> ((m + 1), n) in terms of "places", to use Knuth's language
 // pub fn div_rem<const M: usize, const N: usize>(x: &Square<M, N>, n: &Unsigned<N>) -> (UnsignedCarry<M>, Unsigned<N>) {
+//
+// But, the `n` argument does not need to have N places, just because it fits into N words.
 
 // pub fn div_rem<const M: usize, const N: usize>(x: &Unsigned<M + N>, n: &Unsigned<N>) -> (Unsigned<M + 1>, Unsigned<N>) {
 // pub fn div_rem<const M: usize, const N: usize>(x: &Product<M, N>, n: &Unsigned<N>) -> (UnsignedCarry<M>, Unsigned<N>) {
@@ -183,13 +170,13 @@ pub fn div_rem<const X: usize, const N: usize>(x: &Unsigned<X>, n: &Unsigned<N>)
          */
 
         div_rem_assign_digit(&mut trial, n.leading_digit().unwrap());
-        let mut prod = (&n * &trial).into_unsigned();
+        let mut prod: Unsigned<X> = (&n * &trial).into_unsigned();
 
         // if the product of the guess with the divisor is too big, replace the guess with one less
         // According to Knuth, this loop should only run 2 times max (or even just one time with a
         // smarter check).
         while prod > Unsigned::<X>::from_slice(&r[j..]) {
-            trial -= &One::one();
+            trial -= &Unsigned::<X>::one();
             prod -= &n;
         }
 
@@ -199,9 +186,99 @@ pub fn div_rem<const X: usize, const N: usize>(x: &Unsigned<X>, n: &Unsigned<N>)
         super::subtract::sub_assign(&mut r[j..], &prod);
     }
 
+    debug_assert!(n > r);
     debug_assert!(r < n);
 
     r >>= shift;
+    // `a` and its shift are guaranteed to be smaller than the divisor, hence fit in `N` digits
+    (q, r.into_unsigned())
+}
+
+// N,M in "reversed" order in Product to cover UnsignedCarry case (M = 1).
+//
+// TODO: See if we can't set `x: &T` where `T: AsNormalizedLittleEndianWords`, and just
+// debug_assert that T::CAPACITY > N.
+pub fn div_rem_prod<T, const N: usize>(x: &T, n: &Unsigned<N>) -> (T, Unsigned<N>)
+where
+    T: AsNormalizedLittleEndianWords + Clone + One + Zero + FromSlice + PartialOrd + core::ops::ShrAssign<usize>,
+    T: core::ops::ShrAssign<usize>,
+    for<'a> &'a T: core::ops::Shl<usize, Output = T>,
+    for<'a> T: core::ops::SubAssign<&'a Unsigned<N>>,
+    for<'a> T: core::ops::SubAssign<&'a T>,
+{
+
+    if x.is_zero() {
+        return (Zero::zero(), Zero::zero());
+    }
+
+    if n.len() == 1 {
+        let n = n.0[0];
+
+        let mut div = x.clone();
+        if n == 1 {
+            return (div, Zero::zero());
+        } else {
+            let rem = div_rem_assign_digit(&mut div, n);
+            return (div, rem.into());
+        }
+    }
+
+    // let n = n.as_le_words();
+
+    // Required or the q_len calculation below can underflow:
+    // match x.as_le_words().cmp(&n.as_le_words()) {
+    match n.partial_cmp(x).unwrap() {
+        Ordering::Greater => return (Zero::zero(), n.clone()),
+        Ordering::Equal => return (One::one(), Zero::zero()),
+        Ordering::Less => {} // Do nothing
+    }
+
+    // Knuth, TAOCP vol 2 section 4.3, algorithm D(ivision)
+    //
+    // This shift has no influence on `q`, and will be reverted for `r` at the end.
+    // let shift = n.as_le_words().last().unwrap().leading_zeros() as usize;
+    let shift_bits = n.leading_digit().unwrap().leading_zeros() as usize;
+
+    let mut r: T = x << shift_bits;
+    // by the above, x >= n, so `n` and its shift `b` must fit into Unsigned::<X>, as `x` does
+    // let b: Unsigned<X> = (n << shift).try_into().unwrap();
+    let n: Unsigned<N> = n << shift_bits;
+
+    // we now want to calculate a/b, in the sense a = qb + r
+    // in this sense, a = r (starts at a, goes down to r by removing multiples of b, the
+    // multipliers summed into q, which starts at 0)
+
+    let q_len = x.len() - n.len() + 1;
+    let mut q: T = Zero::zero();
+
+    let mut trial: T = Zero::zero();
+
+    for j in (0..q_len).rev() {
+        let offset = j + n.len() - 1;
+        if offset >= r.len() {
+            continue;
+        }
+
+        trial.set_zero();
+        trial[..r.len() - offset].copy_from_slice(&r[offset..]);
+
+        div_rem_assign_digit(&mut trial, n.leading_digit().unwrap());
+        let mut prod = super::multiply::dropping_mul(&trial, &n);
+
+        while prod > T::from_slice(&r[j..]) {
+            trial -= &T::one();
+            prod -= &n;
+        }
+
+        // Unfortunately, don't see a way to use operators here (wrapped types don't work,
+        // and slices are foreign types).
+        super::add::add_assign(&mut q[j..], &trial);
+        super::subtract::sub_assign(&mut r[j..], &prod);
+    }
+
+    debug_assert!(n > r);
+
+    r >>= shift_bits;
     // `a` and its shift are guaranteed to be smaller than the divisor, hence fit in `N` digits
     (q, r.into_unsigned())
 }
@@ -266,6 +343,14 @@ impl<'a, const X: usize, const N: usize> Rem<Unsigned<N>> for Unsigned<X> {
     type Output = Unsigned<N>;
     fn rem(self, modulus: Unsigned<N>) -> Self::Output {
         let (_quotient, remainder) = div_rem(&self, &modulus);
+        remainder
+    }
+}
+
+impl<const L: usize, const M: usize, const N: usize> Rem<&Unsigned<L>> for Product<M, N> {
+    type Output = Unsigned<L>;
+    fn rem(self, modulus: &Self::Output) -> Self::Output {
+        let (_quotient, remainder) = div_rem_prod(&self, &modulus);
         remainder
     }
 }

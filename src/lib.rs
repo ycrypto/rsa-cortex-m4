@@ -1,12 +1,15 @@
 #![cfg_attr(not(test), no_std)]
 mod arithmetic;
-pub use arithmetic::Modular;
+pub use arithmetic::{Modular, Montgomery};
 mod error;
 pub use error::{Error, Result};
 mod key;
 pub use key::{Rsa, Rsa2k, Rsa3k, Rsa4k};
 pub mod numbers;
-pub use numbers::{AsNormalizedLittleEndianWords, Digit, DoubleDigit, NonZeroOdd, Prime, Product, SignedDoubleDigit, Square, Unsigned, UnsignedCarry};
+pub use numbers::{
+    AsNormalizedLittleEndianWords, Digit, DoubleDigit, FromSlice,
+    Odd, Prime, Product, SignedDoubleDigit, Square, Unsigned, UnsignedCarry,
+};
 
 // mod primitive;
 

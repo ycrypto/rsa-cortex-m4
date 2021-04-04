@@ -7,7 +7,7 @@
 
 use zeroize::Zeroize;
 
-use crate::{Digit, NonZeroOdd, Unsigned};
+use crate::{Digit, Odd, Unsigned};
 use crate::numbers::AsNormalizedLittleEndianWords;
 
 mod add;
@@ -32,7 +32,7 @@ mod divide;
 #[derive(Clone)]
 pub struct Modular<'n, const L: usize> {
     x: Unsigned<L>,
-    n: &'n NonZeroOdd<L>,
+    n: &'n Odd<L>,
 }
 
 impl<const L: usize> Zeroize for Modular<'_, L> {
@@ -41,21 +41,35 @@ impl<const L: usize> Zeroize for Modular<'_, L> {
     }
 }
 
+/// Montgomery representation of `x (mod n)`,
+/// as `x * (1/2^{32L}) (mod n)`
+///
+/// This is an additive isomorphism `Modular<L>(_, n) -> Montgomery<L>(_, n)`.
+/// "Montgomery multiplication" means the induced ring structure.
+///
+/// The "trick" is that reduction of excess summands after multiplication can
+/// be calculated by a simple right shift instead of an actual modular division.
+///
+/// This needs to be balanced by the overhead of applying the additive isomorphism
+/// and its inverse, which is negligible in certain situations, e.g., calculating
+/// powers with large exponents.
+pub struct Montgomery<'n, const L: usize> {
+    y: Unsigned<L>,
+    n: &'n Odd<L>,
+}
+
 impl<const L: usize> Unsigned<L> {
     /// The associated residue class modulo n.
     ///
     /// Note that storage requirements of the residue class are the same
     /// as the modulus (+ reference to it), not the original integer.
-    pub fn modulo<const N: usize>(self, n: &NonZeroOdd<N>) -> Modular<'_, N> {
+    pub fn modulo<const N: usize>(self, n: &Odd<N>) -> Modular<'_, N> {
         let reduced_residue_class_representative = &self % &**n;
         Modular { x: reduced_residue_class_representative, n }
-        // let mut modular = Modular { x: self, n };
-        // reduce_modulo(0, &mut modular.x, n);
-        // modular
     }
 
-    /// The canonical representative of the associated residue class modulo n.
-    pub fn reduce(self, n: &NonZeroOdd<L>) -> Self {
+    /// The canonical (reduced) representative of the associated residue class modulo n.
+    pub fn reduce(self, n: &Odd<L>) -> Self {
         self.modulo(n).lift()
     }
 
@@ -90,14 +104,14 @@ impl<const L: usize> From<Modular<'_, L>> for Unsigned<L> {
     }
 }
 
-fn reduce_modulo_once<const L: usize>(c: Digit, x: &mut Unsigned<L>, n: &NonZeroOdd<L>) {
+fn reduce_modulo_once<const L: usize>(c: Digit, x: &mut Unsigned<L>, n: &Odd<L>) {
     todo!();
     // if c > 0 || *x >= *n {
     //     sub_assign_unchecked(x, n);
     // }
 }
 
-fn reduce_modulo<const L: usize>(c: Digit, x: &mut Unsigned<L>, n: &NonZeroOdd<L>) {
+fn reduce_modulo<const L: usize>(c: Digit, x: &mut Unsigned<L>, n: &Odd<L>) {
     todo!();
 }
 

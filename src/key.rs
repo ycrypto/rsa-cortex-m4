@@ -11,7 +11,7 @@
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
-use crate::{NonZeroOdd, Prime, Square, Result};
+use crate::{Odd, Prime, Square, Result};
 
 /// RSA public key.
 ///
@@ -25,8 +25,8 @@ pub struct PublicKey<const L: usize> {
 
 #[derive(Zeroize)]
 pub struct Precomputed<const L: usize> {
-    dp: NonZeroOdd<L>,
-    dq: NonZeroOdd<L>,
+    dp: Odd<L>,
+    dq: Odd<L>,
 }
 
 /// RSA private key.

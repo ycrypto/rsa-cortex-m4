@@ -1,6 +1,6 @@
 use core::ops::{Add, AddAssign};
 
-use crate::{Digit, DoubleDigit, Modular, NonZeroOdd, Unsigned};
+use crate::{Digit, DoubleDigit, Modular, Odd, Unsigned};
 use crate::numbers::Bits;
 
 /// Intention is to replace this with the UMAAL assembly instruction on Cortex-M4.
@@ -20,7 +20,7 @@ pub fn addc(a: u32, b: u32, c: &mut u32, r: &mut u32) {
     umaal(c, r, 1, b);
 }
 
-fn add_modulo<const L: usize>(a: &Unsigned<L>, b: &Unsigned<L>, n: &NonZeroOdd<L>) -> Unsigned<L> {
+fn add_modulo<const L: usize>(a: &Unsigned<L>, b: &Unsigned<L>, n: &Odd<L>) -> Unsigned<L> {
     let mut r = Unsigned::<L>::default();
     let mut c = 0;
 

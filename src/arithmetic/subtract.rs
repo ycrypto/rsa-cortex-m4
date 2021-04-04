@@ -1,6 +1,6 @@
 use core::{cmp, ops::{Sub, SubAssign}};
 
-use crate::{Digit, Modular, NonZeroOdd, SignedDoubleDigit, Unsigned};
+use crate::{AsNormalizedLittleEndianWords, Digit, Modular, Odd, Product, SignedDoubleDigit, Unsigned};
 use crate::numbers::Bits;
 
 
@@ -41,10 +41,30 @@ pub fn sub_assign(a: &mut [Digit], b: &[Digit]) {
     );
 }
 
-impl<const L: usize> SubAssign<&Unsigned<L>> for Unsigned<L> {
-    fn sub_assign(&mut self, other: &Unsigned<L>) {
-        // todo!();
-        sub_assign(&mut self.0, &other.0);
+impl<T, const L: usize> SubAssign<&T> for Unsigned<L>
+where
+    T: AsNormalizedLittleEndianWords,
+{
+    fn sub_assign(&mut self, other: &T) {
+        sub_assign(self, other);
     }
 }
+
+impl<T, const M: usize, const N: usize> SubAssign<&T> for Product<M, N>
+where
+    T: AsNormalizedLittleEndianWords,
+{
+    fn sub_assign(&mut self, other: &T) {
+        sub_assign(self, other);
+    }
+}
+
+// impl<T, const M: usize, const N: usize> SubAssign<T> for Product<M, N>
+// where
+//     T: AsNormalizedLittleEndianWords,
+// {
+//     fn sub_assign(&mut self, other: &T) {
+//         sub_assign(self, other);
+//     }
+// }
 

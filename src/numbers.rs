@@ -1,5 +1,8 @@
 #![allow(unstable_name_collisions)]  // for Bits::BITS
 
+/// TODO: Wild idea: Define `pub type Unsigned<L> = Product<L, 0>`,
+/// instead of an actual separate type. Or why not define triplets, to have MultiProduct<M, N, 1>...
+
 use core::ops::{Deref, DerefMut};
 
 use zeroize::Zeroize;
@@ -83,6 +86,14 @@ pub unsafe trait AsNormalizedLittleEndianWords: Deref<Target = [u32]> + DerefMut
 
 }
 
+pub trait FromSlice: AsNormalizedLittleEndianWords + Zero {
+    fn from_slice(slice: &[Digit]) -> Self {
+        let mut owned = Self::zero();
+        owned[..slice.len()].copy_from_slice(slice);
+        owned
+    }
+}
+
 // The following does not work.
 //
 // The problem is a) that WordsMut(&mut [u32]) is not a "place expression",
@@ -130,6 +141,8 @@ unsafe impl<const L: usize> AsNormalizedLittleEndianWords for Unsigned<L> {
     }
 }
 
+impl<const L: usize> FromSlice for Unsigned<L> {}
+
 /// Fails for L = 0, bound not expressable.
 impl<const L: usize> From<Digit> for Unsigned<L> {
     fn from(unsigned: Digit) -> Self {
@@ -151,12 +164,6 @@ impl<const L: usize> BigEndian<L> {
 
 // c'tors and such
 impl<const L: usize> Unsigned<L> {
-    pub fn from_slice(slice: &[u32]) -> Self {
-        let mut x = Self::zero();
-        x.0[..slice.len()].copy_from_slice(slice);
-        x
-    }
-
     /// TODO: consider `into_be_bytes`, reusing the buffer.
     ///
     /// i.e.
@@ -176,6 +183,9 @@ impl<const L: usize> Unsigned<L> {
 
 /// Trait methods as inherent methods, for convenience.
 impl<const L: usize> Unsigned<L> {
+    pub fn from_slice(slice: &[u32]) -> Self {
+        FromSlice::from_slice(slice)
+    }
     pub fn leading_digit(&self) -> Option<Digit> {
         AsNormalizedLittleEndianWords::leading_digit(self)
     }
@@ -201,7 +211,7 @@ impl<const L: usize> Unsigned<L> {
 ///
 /// The special case `Product<L, 1>` has an alias `UnsignedCarry<L>`.
 #[repr(C)]
-#[derive(Clone, Default, Eq, PartialEq, Zeroize)]
+#[derive(Clone, Default, Eq, Zeroize)]
 pub struct Product<const M: usize, const N: usize> {
     // lo: [u32; M],
     // hi: [u32; N],
@@ -222,8 +232,13 @@ unsafe impl<const M: usize, const N: usize> AsNormalizedLittleEndianWords for Pr
     }
 }
 
+impl<const M: usize, const N: usize> FromSlice for Product<M, N> {}
+
 /// Trait methods as inherent methods, for convenience.
 impl<const M: usize, const N: usize> Product<M, N> {
+    pub fn from_slice(slice: &[u32]) -> Self {
+        FromSlice::from_slice(slice)
+    }
     pub fn leading_digit(&self) -> Option<Digit> {
         AsNormalizedLittleEndianWords::leading_digit(self)
     }
@@ -266,19 +281,19 @@ impl<const L: usize> UnsignedCarry<L> {
 /// `Product<L, L>`
 pub type Square<const L: usize> = Product<L, L>;
 
-/// Unsigned integer that is non-zero and odd.
+/// Unsigned integer that is odd.
 ///
 /// These are used as moduli.
 ///
 /// The oddness condition ensures we can use Montgomery multiplication/reduction.
 #[derive(Clone, Eq, PartialEq, Zeroize)]
-// Q: rename to `PositivelyOdd`? :)
-pub struct NonZeroOdd<const L: usize>(Unsigned<L>);
+// Q: rename to `Odd`? :)
+pub struct Odd<const L: usize>(pub Unsigned<L>);
 
 /// Odd prime.
 #[derive(Clone, Eq, PartialEq, Zeroize)]
 #[zeroize(drop)]
-pub struct Prime<const L: usize>(NonZeroOdd<L>);
+pub struct Prime<const L: usize>(pub Odd<L>);
 
 pub trait One: Sized + PartialEq {
     fn one() -> Self;
@@ -334,7 +349,7 @@ mod test {
 
     #[test]
     fn partial_eq() {
-        let p = Prime(NonZeroOdd(Unsigned([17, 0])));
+        let p = Prime(Odd(Unsigned([17, 0])));
         let u = Unsigned([17, 0]);
         assert_eq!(&p.0.0, &u);
     }
