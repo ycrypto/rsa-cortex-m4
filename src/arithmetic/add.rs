@@ -1,6 +1,6 @@
 use core::ops::{Add, AddAssign};
 
-use crate::{Digit, DoubleDigit, Modular, Montgomery, Odd, Unsigned};
+use crate::{Digit, DoubleDigit, Modular, Montgomery, Unsigned};
 use crate::numbers::Bits;
 
 /// Intention is to replace this with the UMAAL assembly instruction on Cortex-M4.
@@ -8,6 +8,7 @@ use crate::numbers::Bits;
 /// Operation: `(hi, lo) = m*n + hi + lo`
 ///
 /// This works, because `(2^32 - 1)^2 + 2*(2^32 - 1) = 2^64 - 1`.
+#[allow(dead_code)]
 pub fn umaal(hi: &mut u32, lo: &mut u32, m: u32, n: u32) {
     let result = ((m as u64) * (n as u64)) + (*hi as u64) + (*lo as u64);
     *hi = (result >> u32::BITS) as u32;
@@ -15,6 +16,7 @@ pub fn umaal(hi: &mut u32, lo: &mut u32, m: u32, n: u32) {
 }
 
 /// place (a + b + c) in r with carry c
+#[allow(dead_code)]
 pub fn addc(a: u32, b: u32, c: &mut u32, r: &mut u32) {
     *r = a;
     umaal(c, r, 1, b);
@@ -98,10 +100,10 @@ pub fn add_assign(a: &mut [Digit], b: &[Digit]) {
     debug_assert!(carry == 0);
 }
 
-impl<'a, 'b, const L: usize, const N: usize> AddAssign<&'b Unsigned<L>> for Modular<'a, N> {
-    fn add_assign(&mut self, rhs: &'b Unsigned<L>) {
-        let other = rhs.reduce(self.n);
-        let carry = add_assign_carry(&mut self.x, &other);
+impl<'a, 'b, const D: usize, const E: usize, const F: usize, const G: usize> AddAssign<&'b Unsigned<F, G>> for Modular<'a, D, E> {
+    fn add_assign(&mut self, summand: &'b Unsigned<F, G>) {
+        let summand = summand.reduce(self.n);
+        let _carry = add_assign_carry(&mut self.x, &summand);
 
         // The carry bit is of little use here
         // By assumption/construction, self.x and other are < n, hence sum is < 2n
@@ -113,26 +115,26 @@ impl<'a, 'b, const L: usize, const N: usize> AddAssign<&'b Unsigned<L>> for Modu
     }
 }
 
-impl<'a, 'n, const N: usize> Add for &'a Modular<'n, N> {
-    type Output = Modular<'n, N>;
+impl<'a, 'n, const D: usize, const E: usize> Add for &'a Modular<'n, D, E> {
+    type Output = Modular<'n, D, E>;
 
-    fn add(self, other: Self) -> Self::Output {
-        debug_assert_eq!(self.n, other.n);
+    fn add(self, summand: Self) -> Self::Output {
+        debug_assert_eq!(**self.n, **summand.n);
 
         let mut sum = self.clone();
-        sum += &other.x;  // this does a spurious `reduce` on our reduced other.x
+        sum += &summand.x;  // this does a spurious `reduce` on our reduced other.x
 
         sum
     }
 }
 
-impl<'a, 'n, const N: usize> Add for &'a Montgomery<'n, N> {
-    type Output = Montgomery<'n, N>;
+impl<'a, 'n, const D: usize, const E: usize> Add for &'a Montgomery<'n, D, E> {
+    type Output = Montgomery<'n, D, E>;
 
     fn add(self, other: Self) -> Self::Output {
-        debug_assert_eq!(self.n, other.n);
+        debug_assert_eq!(**self.n, **other.n);
 
-        let mut sum = self.clone();
+        // let mut sum = self.clone();
         todo!();
         // sum += &other.y;  // this does a spurious `reduce` on our reduced other.x
 

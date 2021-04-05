@@ -1,13 +1,13 @@
 use core::ops::Mul;
 
-use crate::{AsNormalizedLittleEndianWords, Digit, DoubleDigit, Modular, Montgomery, Square, Unsigned};
+use crate::{Digit, DoubleDigit, Modular, Montgomery, Number, NumberMut, Product, Unsigned};
 use crate::numbers::{Bits, Zero};
 
 /// This just drops (saturates?) if `lhs * rhs` does not fit in a U.
 pub(crate) fn dropping_mul<U, V>(lhs: &U, rhs: &V) -> U
 where
-    U: AsNormalizedLittleEndianWords + Zero,
-    V: AsNormalizedLittleEndianWords,
+    U: NumberMut + Zero,
+    V: Number,
 {
     let mut product: U = Zero::zero();
     let mut accumulator = DoubleDigit::default();
@@ -27,16 +27,16 @@ where
     product
 }
 
-impl <'l, const L: usize> Mul for &'l Unsigned<L> {
+impl <const D: usize, const E: usize> Mul for &Unsigned<D, E> {
 
-    type Output = Square<L>;
+    type Output = Product<D, E>;
 
     /// product-scanning implementation of multiplication
     fn mul(self, other: Self) -> Self::Output {
-        let mut product = Square::default();
+        let mut product = Product::default();
         let mut accumulator = DoubleDigit::default();
 
-        for k in 0..2*L {
+        for k in 0..2*(D + E) {
             // TODO: figure out proper loop (although maybe the compiler is smart enough?)
             for i in 0..self.len() {
                 for j in 0..other.len() {
@@ -58,15 +58,15 @@ impl <'l, const L: usize> Mul for &'l Unsigned<L> {
 
 /// Currently see no way of ensuring that both factors have the same modulus
 /// on a type level; hence a runtime debug_assert instead.
-impl<'l, 'n, const L: usize> Mul for &'l Modular<'n, L> {
-    type Output = Modular<'n, L>;
+impl<'l, 'n, const D: usize, const E: usize> Mul for &'l Modular<'n, D, E> {
+    type Output = Modular<'n, D, E>;
 
     fn mul(self, other: Self) -> Self::Output {
-        debug_assert!(self.n == other.n);
-        let n: &Unsigned<L> = self.n;
+        debug_assert_eq!(**self.n, **other.n);
+        let n: &Unsigned<D, E> = self.n;
 
         let product = &self.x * &other.x;
-        let reduced = product % n;
+        let reduced = &product % &*n;
         Modular { x: reduced, n: self.n }
     }
 }
@@ -79,10 +79,10 @@ impl<'l, 'n, const L: usize> Mul for &'l Modular<'n, L> {
 // /// z is guaranteed to satisfy 0 <= z < 2**(n*_W), but it may not be < m.
 // fn montgomery(z: &mut BigUint, x: &BigUint, y: &BigUint, m: &BigUint, k: BigDigit, n: usize) {
 
-impl<'l, 'n, const L: usize> Mul for &'l Montgomery<'n, L> {
-    type Output = Montgomery<'n, L>;
+impl<'n, const D: usize, const E: usize> Mul for &Montgomery<'n, D, E> {
+    type Output = Montgomery<'n, D, E>;
 
-    fn mul(self, other: Self) -> Self::Output {
+    fn mul(self, _other: Self) -> Self::Output {
         todo!();
     }
 }

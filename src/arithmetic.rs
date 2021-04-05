@@ -4,11 +4,11 @@
 //! for instance to calculate `1/e (mod p - 1)`.
 
 #![allow(unstable_name_collisions)]  // for Bits::BITS
+#![allow(broken_intra_doc_links)]  // because `rustdoc` mistakes [x] for a link
 
 use zeroize::Zeroize;
 
-use crate::{Digit, Odd, Unsigned};
-use crate::numbers::AsNormalizedLittleEndianWords;
+use crate::{Odd, Unsigned};
 
 mod add;
 mod subtract;
@@ -16,6 +16,11 @@ mod shift;
 mod multiply;
 mod divide;
 
+
+// pub enum Modulus<'n, const D: usize, const E: usize> {
+//     Odd(&'n Odd<D, E>),
+//     PowerOfTwo,  // typically, D or 2D
+// }
 
 /// Modular integer, corresponds to the residue class "modulo modulus".
 ///
@@ -30,19 +35,21 @@ mod divide;
 /// On the other hand, if `n` is substantially smaller (e.g., `e`, which has L = 1),
 /// then it would be nice to project `x` down to that size.
 #[derive(Clone)]
-pub struct Modular<'n, const L: usize> {
-    x: Unsigned<L>,
-    n: &'n Odd<L>,
+pub struct Modular<'n, const D: usize, const E: usize> {
+    x: Unsigned<D, E>,
+    n: &'n Odd<D, E>,
 }
 
-impl<const L: usize> Zeroize for Modular<'_, L> {
+pub type ShortModular<'n, const D: usize> = Modular<'n, D, 0>;
+
+impl<const D: usize, const E: usize> Zeroize for Modular<'_, D, E> {
     fn zeroize(&mut self) {
         self.x.zeroize();
     }
 }
 
-/// Montgomery representation of `x (mod n)`,
-/// as `x * (1/2^{32L}) (mod n)`
+/// Montgomery representation of $[x]_{n} := x\text{ }(\text{mod }n)$,
+/// as $[x \cdot 2^{-32L}]_n$.
 ///
 /// This is an additive isomorphism `Modular<L>(_, n) -> Montgomery<L>(_, n)`.
 /// "Montgomery multiplication" means the induced ring structure.
@@ -53,22 +60,25 @@ impl<const L: usize> Zeroize for Modular<'_, L> {
 /// This needs to be balanced by the overhead of applying the additive isomorphism
 /// and its inverse, which is negligible in certain situations, e.g., calculating
 /// powers with large exponents.
-pub struct Montgomery<'n, const L: usize> {
-    y: Unsigned<L>,
-    n: &'n Odd<L>,
+#[allow(dead_code)]
+pub struct Montgomery<'n, const D: usize, const E: usize> {
+    y: Unsigned<D, E>,
+    n: &'n Odd<D, E>,
 }
 
-impl<const L: usize> Unsigned<L> {
+pub type ShortMontgomery<'n, const D: usize> = Modular<'n, D, 0>;
+
+impl<const D: usize, const E: usize> Unsigned<D, E> {
     /// The associated residue class modulo n.
     ///
     /// Note that storage requirements of the residue class are the same
     /// as the modulus (+ reference to it), not the original integer.
-    pub fn modulo<const N: usize>(self, n: &Odd<N>) -> Modular<'_, N> {
+    pub fn modulo<const F: usize, const G: usize>(self, n: &Odd<F, G>) -> Modular<'_, F, G> {
         Modular { x: self.reduce(n), n }
     }
 
     /// The canonical (reduced) representative of the associated residue class modulo n.
-    pub fn reduce<const N: usize>(&self, n: &Unsigned<N>) -> Unsigned<N> {
+    pub fn reduce<const F: usize, const G: usize>(&self, n: &Unsigned<F, G>) -> Unsigned<F, G> {
         self % n
     }
 
@@ -76,7 +86,7 @@ impl<const L: usize> Unsigned<L> {
 
 // pub fn chinese_remainder_theorem
 
-impl<'n, const N: usize> Modular<'n, N> {
+impl<'n, const D: usize, const E: usize> Modular<'n, D, E> {
     pub fn inverse(&self) -> Self {
         todo!();
     }
@@ -89,47 +99,47 @@ impl<'n, const N: usize> Modular<'n, N> {
     // pub fn lift<const L: usize>(self) -> Unsigned<L> {
     //     // TODO: if L < N (or rather, self.modulo.len()), then lift and project maybe? nah
     //     self.x.into_unsigned()
-    pub fn lift(self) -> Unsigned<N> {
+    pub fn lift(self) -> Unsigned<D, E> {
         // TODO: if L < N (or rather, self.modulo.len()), then lift and project maybe? nah
         self.x
     }
 
-    pub fn to_montgomery(&self) -> Montgomery<'n, N> {
+    pub fn to_montgomery(&self) -> Montgomery<'n, D, E> {
         todo!();
     }
 
     // pub fn to_the(self, exponent: & impl Into<Unsigned<L>>) -> Self {
-    pub fn power(&self, exponent: &Unsigned<N>) -> Self {
+    pub fn power(&self, _exponent: &Unsigned<D, E>) -> Self {
         // TODO: If exponent is a small prime, special-case.
         // self.to_montgomery().power(exponent).to_modular()
         todo!();
     }
 }
 
-impl<'n, const N: usize> Montgomery<'n, N> {
-    pub fn to_modular(&self) -> Modular<'n, N> {
+impl<'n, const D: usize, const E: usize> Montgomery<'n, D, E> {
+    pub fn to_modular(&self) -> Modular<'n, D, E> {
         todo!();
     }
 }
 
-impl<const L: usize> From<Modular<'_, L>> for Unsigned<L> {
-    fn from(class: Modular<'_, L>) -> Self {
+impl<const D: usize, const E: usize> From<Modular<'_, D, E>> for Unsigned<D, E> {
+    fn from(class: Modular<'_, D, E>) -> Self {
         class.lift()
     }
 }
 
-fn reduce_modulo_once<const L: usize>(c: Digit, x: &mut Unsigned<L>, n: &Odd<L>) {
-    todo!();
-    // if c > 0 || *x >= *n {
-    //     sub_assign_unchecked(x, n);
-    // }
-}
+// fn reduce_modulo_once<const L: usize>(c: Digit, x: &mut Unsigned<L>, n: &Odd<L>) {
+//     todo!();
+//     // if c > 0 || *x >= *n {
+//     //     sub_assign_unchecked(x, n);
+//     // }
+// }
 
-fn reduce_modulo<const L: usize>(c: Digit, x: &mut Unsigned<L>, n: &Odd<L>) {
-    todo!();
-}
+// fn reduce_modulo<const L: usize>(c: Digit, x: &mut Unsigned<L>, n: &Odd<L>) {
+//     todo!();
+// }
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    // use super::*;
 }

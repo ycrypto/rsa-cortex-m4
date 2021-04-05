@@ -1,6 +1,6 @@
 use core::{cmp, ops::{Sub, SubAssign}};
 
-use crate::{AsNormalizedLittleEndianWords, Digit, Modular, Odd, Product, SignedDoubleDigit, Unsigned};
+use crate::{Array, Number, Digit, Modular, SignedDoubleDigit, Unsigned};
 use crate::numbers::Bits;
 
 
@@ -41,30 +41,70 @@ pub fn sub_assign(a: &mut [Digit], b: &[Digit]) {
     );
 }
 
-// impl<T, const L: usize> SubAssign<&T> for Unsigned<L>
-// where
-//     T: AsNormalizedLittleEndianWords,
-// {
-//     fn sub_assign(&mut self, other: &T) {
-//         sub_assign(self, other);
-//     }
-// }
-
-impl<T, const M: usize, const N: usize> SubAssign<&T> for Product<M, N>
+impl<T, const D: usize, const E: usize> SubAssign<&T> for Unsigned<D, E>
 where
-    T: AsNormalizedLittleEndianWords,
+    T: Number,
 {
     fn sub_assign(&mut self, other: &T) {
         sub_assign(self, other);
     }
 }
 
-// impl<T, const M: usize, const N: usize> SubAssign<T> for Product<M, N>
+impl<T, const D: usize, const E: usize> Sub<&T> for &Unsigned<D, E>
+where
+    T: Number,
+{
+    type Output = Unsigned<D, E>;
+
+    fn sub(self, other: &T) -> Self::Output {
+        let mut difference = self.clone();
+        difference -= other;
+        difference
+    }
+}
+
+impl<T, const D: usize, const E: usize, const L: usize> SubAssign<&T> for Array<D, E, L>
+where
+    T: Number,
+{
+    fn sub_assign(&mut self, other: &T) {
+        sub_assign(self, other);
+    }
+}
+
+impl<T, const D: usize, const E: usize, const L: usize> Sub<&T> for &Array<D, E, L>
+where
+    T: Number,
+{
+    type Output = Array<D, E, L>;
+
+    fn sub(self, other: &T) -> Self::Output {
+        let mut difference = self.clone();
+        difference -= other;
+        difference
+    }
+}
+
+impl<const D: usize, const E: usize, const F: usize, const G: usize> SubAssign<&Unsigned<F, G>> for Modular<'_, D, E>
+{
+    fn sub_assign(&mut self, other: &Unsigned<F, G>) {
+        let subtrahend = other.reduce(self.n);
+        sub_assign(&mut self.x, &subtrahend);
+        // need to conditionally add back a modulus, instead of panicking on underflow
+        todo!();
+    }
+}
+
+// impl<T, const D: usize, const E: usize> Sub<&T> for &Modular<'_, D, E>
 // where
-//     T: AsNormalizedLittleEndianWords,
+//     T: Number,
 // {
-//     fn sub_assign(&mut self, other: &T) {
-//         sub_assign(self, other);
+//     type Output = Unsigned<D, E>;
+
+//     fn sub(self, other: &T) -> Self::Output {
+//         let mut difference = self.clone();
+//         difference -= other;
+//         difference
 //     }
 // }
 

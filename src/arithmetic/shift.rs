@@ -1,6 +1,6 @@
 use core::ops::{Shl, ShlAssign, Shr, ShrAssign};
 
-use crate::{AsNormalizedLittleEndianWords, Digit, Product, Unsigned};
+use crate::{Array, Digit, NumberMut, Product, Unsigned};
 use crate::numbers::{Bits, Zero};
 
 /// Compared to `num-bigint{,-dig}`, this is a truncating shift.
@@ -8,7 +8,7 @@ use crate::numbers::{Bits, Zero};
 /// Note that "left" means "higher number".
 fn generic_shl_assign<T>(number: &mut T, bits: usize)
 where
-    T: AsNormalizedLittleEndianWords + Zero
+    T: NumberMut + Zero
 {
     let l = number.len();
     let n_digits = bits / Digit::BITS;
@@ -35,7 +35,14 @@ where
 //     }
 // }
 
-impl<const M: usize, const N: usize> ShlAssign<usize> for Product<M, N> {
+impl<const D: usize, const E: usize> ShlAssign<usize> for Unsigned<D, E> {
+    #[inline]
+    fn shl_assign(&mut self, bits: usize) {
+        generic_shl_assign(self, bits)
+    }
+}
+
+impl<const D: usize, const E: usize, const L: usize> ShlAssign<usize> for Array<D, E, L> {
     #[inline]
     fn shl_assign(&mut self, bits: usize) {
         generic_shl_assign(self, bits)
@@ -45,7 +52,7 @@ impl<const M: usize, const N: usize> ShlAssign<usize> for Product<M, N> {
 /// Note that "right" means "lower number".
 fn generic_shr_assign<T>(number: &mut T, bits: usize)
 where
-    T: AsNormalizedLittleEndianWords + Zero
+    T: NumberMut + Zero
 {
     let l = number.len();
     let n_digits = bits / Digit::BITS;
@@ -80,8 +87,14 @@ where
 //     }
 // }
 
-impl<const M: usize, const N: usize> ShrAssign<usize> for Product<M, N> {
+impl<const D: usize, const E: usize> ShrAssign<usize> for Unsigned<D, E> {
+    #[inline]
+    fn shr_assign(&mut self, bits: usize) {
+        generic_shr_assign(self, bits)
+    }
+}
 
+impl<const D: usize, const E: usize, const L: usize> ShrAssign<usize> for Array<D, E, L> {
     #[inline]
     fn shr_assign(&mut self, bits: usize) {
         generic_shr_assign(self, bits)
@@ -100,8 +113,19 @@ impl<const M: usize, const N: usize> ShrAssign<usize> for Product<M, N> {
 //     }
 // }
 
-impl<const M: usize, const N: usize> Shl<usize> for &Product<M, N> {
-    type Output = Product<M, N>;
+impl<const D: usize, const E: usize> Shl<usize> for &Unsigned<D, E> {
+    type Output = Unsigned<D, E>;
+
+    #[inline]
+    fn shl(self, bits: usize) -> Self::Output {
+        let mut result = self.clone();
+        result <<= bits;
+        result
+    }
+}
+
+impl<const D: usize, const E: usize, const L: usize> Shl<usize> for &Array<D, E, L> {
+    type Output = Array<D, E, L>;
 
     #[inline]
     fn shl(self, bits: usize) -> Self::Output {

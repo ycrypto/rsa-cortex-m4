@@ -11,7 +11,7 @@
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
-use crate::{Odd, Prime, Square, Result};
+use crate::{Odd, Prime, Result, Unsigned};
 
 /// RSA public key.
 ///
@@ -20,13 +20,13 @@ use crate::{Odd, Prime, Square, Result};
 #[allow(non_snake_case)]
 #[derive(Zeroize)]
 pub struct PublicKey<const L: usize> {
-    pub N: Square<L>,
+    pub N: Unsigned<L, L>,
 }
 
 #[derive(Zeroize)]
 pub struct Precomputed<const L: usize> {
-    dp: Odd<L>,
-    dq: Odd<L>,
+    dp: Odd<L, 0>,
+    dq: Odd<L, 0>,
 }
 
 /// RSA private key.
@@ -46,6 +46,7 @@ pub struct PrivateKey<const L: usize> {
     public: PublicKey<L>,
 }
 
+#[allow(dead_code)]
 fn generate_prime_pair<const L: usize>() -> (Prime<L>, Prime<L>) {
     todo!();
 }
