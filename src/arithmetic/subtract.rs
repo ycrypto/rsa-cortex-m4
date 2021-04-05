@@ -41,14 +41,14 @@ pub fn sub_assign(a: &mut [Digit], b: &[Digit]) {
     );
 }
 
-impl<T, const L: usize> SubAssign<&T> for Unsigned<L>
-where
-    T: AsNormalizedLittleEndianWords,
-{
-    fn sub_assign(&mut self, other: &T) {
-        sub_assign(self, other);
-    }
-}
+// impl<T, const L: usize> SubAssign<&T> for Unsigned<L>
+// where
+//     T: AsNormalizedLittleEndianWords,
+// {
+//     fn sub_assign(&mut self, other: &T) {
+//         sub_assign(self, other);
+//     }
+// }
 
 impl<T, const M: usize, const N: usize> SubAssign<&T> for Product<M, N>
 where

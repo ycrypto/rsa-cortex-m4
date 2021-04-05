@@ -12,20 +12,20 @@ impl super::Bits for DoubleDigit {
     const BITS: usize = 64;
 }
 
-// Unfortunately, implementing Deref for <T: AsNormalizedLittleEndianWords>
-// leads to "conflicting implementations"
-impl<const L: usize> Deref for Unsigned<L> {
-    type Target = [Digit];
-    fn deref(&self) -> &Self::Target {
-        self.words()
-    }
-}
+// // Unfortunately, implementing Deref for <T: AsNormalizedLittleEndianWords>
+// // leads to "conflicting implementations"
+// impl<const L: usize> Deref for Unsigned<L> {
+//     type Target = [Digit];
+//     fn deref(&self) -> &Self::Target {
+//         self.words()
+//     }
+// }
 
-impl<const L: usize> DerefMut for Unsigned<L> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.words_mut()
-    }
-}
+// impl<const L: usize> DerefMut for Unsigned<L> {
+//     fn deref_mut(&mut self) -> &mut Self::Target {
+//         self.words_mut()
+//     }
+// }
 
 impl<const M: usize, const N: usize> Deref for Product<M, N> {
     type Target = [Digit];
@@ -121,16 +121,16 @@ impl<const L: usize> Ord for Unsigned<L> {
     }
 }
 
-impl<T, const L: usize> PartialOrd<T> for Unsigned<L>
-where
-    T: AsNormalizedLittleEndianWords
-{
-    /// This is *little endian* ordering, as opposed to the default
-    /// ordering on arrays and slices!
-    fn partial_cmp(&self, other: &T) -> Option<Ordering> {
-        Some(generic_cmp_unsigned(self, other))
-    }
-}
+// impl<T, const L: usize> PartialOrd<T> for Unsigned<L>
+// where
+//     T: AsNormalizedLittleEndianWords
+// {
+//     /// This is *little endian* ordering, as opposed to the default
+//     /// ordering on arrays and slices!
+//     fn partial_cmp(&self, other: &T) -> Option<Ordering> {
+//         Some(generic_cmp_unsigned(self, other))
+//     }
+// }
 
 impl<T, const M: usize, const N: usize> PartialOrd<T> for Product<M, N>
 where
@@ -143,14 +143,14 @@ where
     }
 }
 
-impl<T, const L: usize> PartialEq<T> for Unsigned<L>
-where
-    T: AsNormalizedLittleEndianWords
-{
-    fn eq(&self, other: &T) -> bool {
-        **self == **other
-    }
-}
+// impl<T, const L: usize> PartialEq<T> for Unsigned<L>
+// where
+//     T: AsNormalizedLittleEndianWords
+// {
+//     fn eq(&self, other: &T) -> bool {
+//         **self == **other
+//     }
+// }
 
 impl<T, const M: usize, const N: usize> PartialEq<T> for Product<M, N>
 where
@@ -185,9 +185,9 @@ impl<const L: usize> PartialOrd<Unsigned<L>> for Odd<L> {
     }
 }
 
-impl<const L: usize> Default for Unsigned<L> {
+impl<const M: usize, const N: usize> Default for Product<M, N> {
     fn default() -> Self {
-        Self([0; L])
+        Self { lo: [0; M], hi: [0; N] }
     }
 }
 

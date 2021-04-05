@@ -28,12 +28,12 @@ where
         }
     }
 }
-impl<const L: usize> ShlAssign<usize> for Unsigned<L> {
-    #[inline]
-    fn shl_assign(&mut self, bits: usize) {
-        generic_shl_assign(self, bits)
-    }
-}
+// impl<const L: usize> ShlAssign<usize> for Unsigned<L> {
+//     #[inline]
+//     fn shl_assign(&mut self, bits: usize) {
+//         generic_shl_assign(self, bits)
+//     }
+// }
 
 impl<const M: usize, const N: usize> ShlAssign<usize> for Product<M, N> {
     #[inline]
@@ -72,13 +72,13 @@ where
     }
 }
 
-impl<const L: usize> ShrAssign<usize> for Unsigned<L> {
+// impl<const L: usize> ShrAssign<usize> for Unsigned<L> {
 
-    #[inline]
-    fn shr_assign(&mut self, bits: usize) {
-        generic_shr_assign(self, bits)
-    }
-}
+//     #[inline]
+//     fn shr_assign(&mut self, bits: usize) {
+//         generic_shr_assign(self, bits)
+//     }
+// }
 
 impl<const M: usize, const N: usize> ShrAssign<usize> for Product<M, N> {
 
@@ -89,16 +89,16 @@ impl<const M: usize, const N: usize> ShrAssign<usize> for Product<M, N> {
 }
 
 
-impl<const L: usize> Shl<usize> for &Unsigned<L> {
-    type Output = Unsigned<L>;
+// impl<const L: usize> Shl<usize> for &Unsigned<L> {
+//     type Output = Unsigned<L>;
 
-    #[inline]
-    fn shl(self, bits: usize) -> Self::Output {
-        let mut result = self.clone();
-        result <<= bits;
-        result
-    }
-}
+//     #[inline]
+//     fn shl(self, bits: usize) -> Self::Output {
+//         let mut result = self.clone();
+//         result <<= bits;
+//         result
+//     }
+// }
 
 impl<const M: usize, const N: usize> Shl<usize> for &Product<M, N> {
     type Output = Product<M, N>;
@@ -111,16 +111,16 @@ impl<const M: usize, const N: usize> Shl<usize> for &Product<M, N> {
     }
 }
 
-impl<const L: usize> Shr<usize> for &Unsigned<L> {
-    type Output = Unsigned<L>;
+// impl<const L: usize> Shr<usize> for &Unsigned<L> {
+//     type Output = Unsigned<L>;
 
-    #[inline]
-    fn shr(self, bits: usize) -> Self::Output {
-        let mut result = self.clone();
-        result >>= bits;
-        result
-    }
-}
+//     #[inline]
+//     fn shr(self, bits: usize) -> Self::Output {
+//         let mut result = self.clone();
+//         result >>= bits;
+//         result
+//     }
+// }
 
 impl<const M: usize, const N: usize> Shr<usize> for &Product<M, N> {
     type Output = Product<M, N>;

@@ -124,31 +124,38 @@ pub trait FromSlice: AsNormalizedLittleEndianWords + Zero {
 /// TODO: unify terminology (digits vs limbs)
 ///
 /// In our "heapless" situation, we have no multiplication nor addition.
-#[derive(Clone, Eq, Zeroize)]
+// #[derive(Clone, Eq, Zeroize)]
 // pub struct Unsigned<const L: usize>(Vec<Digit, L>);
-pub struct Unsigned<const L: usize>(pub(crate) [Digit; L]);
+// pub struct Unsigned<const L: usize>(pub(crate) [Digit; L]);
+pub type Unsigned<const L: usize> = Product<L, 0>;
 
-unsafe impl<const L: usize> AsNormalizedLittleEndianWords for Unsigned<L> {
-    const CAPACITY: usize = L;
+// unsafe impl<const L: usize> AsNormalizedLittleEndianWords for Unsigned<L> {
+//     const CAPACITY: usize = L;
 
-    /// 0 if zero, else index + 1 of last non-zero digit
-    fn len(&self) -> usize {
-        self.0.iter()
-            .enumerate().rev()
-            .find(|(_, &x)| x != 0)
-            .map(|(i, _)| i + 1)
-            .unwrap_or(0)
+//     /// 0 if zero, else index + 1 of last non-zero digit
+//     fn len(&self) -> usize {
+//         self.0.iter()
+//             .enumerate().rev()
+//             .find(|(_, &x)| x != 0)
+//             .map(|(i, _)| i + 1)
+//             .unwrap_or(0)
+//     }
+// }
+
+// impl<const L: usize> FromSlice for Unsigned<L> {}
+
+/// Fails for L = 0, bound not expressable.
+impl<const M: usize, const N: usize> From<Digit> for Product<M, N> {
+    fn from(unsigned: Digit) -> Self {
+        let mut r = Self::default();
+        r[0] = unsigned;
+        r
     }
 }
 
-impl<const L: usize> FromSlice for Unsigned<L> {}
-
-/// Fails for L = 0, bound not expressable.
-impl<const L: usize> From<Digit> for Unsigned<L> {
-    fn from(unsigned: Digit) -> Self {
-        let mut r = Self::default();
-        r.0[0] = unsigned;
-        r
+impl<const L: usize> From<[Digit; L]> for Unsigned<L> {
+    fn from(unsigned: [Digit; L]) -> Self {
+        Self { lo: unsigned, hi: [] }
     }
 }
 
@@ -175,33 +182,33 @@ impl<const L: usize> Unsigned<L> {
         // the native architecture (although PC/Cortex are both little-endian).
         for i in 0..L {
             // "On big endian this is a no-op. On little endian the bytes are swapped."
-            big_endian.0[L - i - 1] = u32::from_be(self.0[i]);
+            big_endian.0[L - i - 1] = u32::from_be(self[i]);
         }
         big_endian
     }
 }
 
-/// Trait methods as inherent methods, for convenience.
-impl<const L: usize> Unsigned<L> {
-    pub fn from_slice(slice: &[u32]) -> Self {
-        FromSlice::from_slice(slice)
-    }
-    pub fn leading_digit(&self) -> Option<Digit> {
-        AsNormalizedLittleEndianWords::leading_digit(self)
-    }
-    pub fn try_into_unsigned<const C: usize>(&self) -> Result<Unsigned<C>> {
-        AsNormalizedLittleEndianWords::try_into_unsigned(self)
-    }
-    pub fn into_unsigned<const C: usize>(&self) -> Unsigned<C> {
-        AsNormalizedLittleEndianWords::into_unsigned(self)
-    }
-    pub fn one() -> Self {
-        One::one()
-    }
-    pub fn zero() -> Self {
-        Zero::zero()
-    }
-}
+// /// Trait methods as inherent methods, for convenience.
+// impl<const L: usize> Unsigned<L> {
+//     pub fn from_slice(slice: &[u32]) -> Self {
+//         FromSlice::from_slice(slice)
+//     }
+//     pub fn leading_digit(&self) -> Option<Digit> {
+//         AsNormalizedLittleEndianWords::leading_digit(self)
+//     }
+//     pub fn try_into_unsigned<const C: usize>(&self) -> Result<Unsigned<C>> {
+//         AsNormalizedLittleEndianWords::try_into_unsigned(self)
+//     }
+//     pub fn into_unsigned<const C: usize>(&self) -> Unsigned<C> {
+//         AsNormalizedLittleEndianWords::into_unsigned(self)
+//     }
+//     pub fn one() -> Self {
+//         One::one()
+//     }
+//     pub fn zero() -> Self {
+//         Zero::zero()
+//     }
+// }
 
 
 /// Product of two unsigned integers.
@@ -211,23 +218,34 @@ impl<const L: usize> Unsigned<L> {
 ///
 /// The special case `Product<L, 1>` has an alias `UnsignedCarry<L>`.
 #[repr(C)]
-#[derive(Clone, Default, Eq, Zeroize)]
+#[derive(Clone, Eq, Zeroize)]
 pub struct Product<const M: usize, const N: usize> {
-    // lo: [u32; M],
-    // hi: [u32; N],
-    lo: Unsigned<M>,
-    hi: Unsigned<N>,
+    lo: [u32; M],
+    hi: [u32; N],
+    // lo: Unsigned<M>,
+    // hi: Unsigned<N>,
+}
+
+impl<const M: usize, const N: usize> Product<M, N> {
+
+    fn used_len(slice: &[Digit]) -> usize {
+        slice.iter()
+            .enumerate().rev()
+            .find(|(_, &x)| x != 0)
+            .map(|(i, _)| i + 1)
+            .unwrap_or(0)
+    }
 }
 
 unsafe impl<const M: usize, const N: usize> AsNormalizedLittleEndianWords for Product<M, N> {
     const CAPACITY: usize = M + N;
 
     fn len(&self) -> usize {
-        let l_hi = self.hi.len();
+        let l_hi = Self::used_len(&self.hi);
         if l_hi > 0 {
             M + l_hi
         } else {
-            self.lo.len()
+            Self::used_len(&self.lo)
         }
     }
 }
@@ -266,14 +284,18 @@ pub type UnsignedCarry<const L: usize> = Product<L, 1>;
 impl<const L: usize> UnsignedCarry<L> {
     pub fn from_array_and_carry(array: [u32; L], carry: u32) -> Self {
         Self {
-            lo: Unsigned(array),
-            hi: Unsigned([carry]),
+            lo: array,
+            hi:[carry],
         }
     }
     pub fn from_slice_and_carry(slice: &[u32], carry: u32) -> Self {
         Self {
-            lo: Unsigned::from_slice(slice),
-            hi: Unsigned::from_slice(&[carry]),
+            lo: {
+                let mut array = [0; L];
+                array[..slice.len()].copy_from_slice(slice);
+                array
+            },
+            hi: [carry],
         }
     }
 }
@@ -334,29 +356,30 @@ mod test {
 
     #[test]
     fn debug() {
-        let u = Unsigned([0x76543210, 0xFEDCBA98]);
+        let u = Unsigned::from([0x76543210, 0xFEDCBA98]);
         assert_eq!(format!("{:X?}", u), "[FE, DC, BA, 98, 76, 54, 32, 10]");
     }
 
     #[test]
     fn len() {
-        let x = Unsigned([0,1,0,2,0,0]);
+        let x = Unsigned::from([0,1,0,2,0,0]);
+        assert_eq!(*x, [0,1,0,2]);
         assert_eq!(x.len(), 4);
 
-        let x = Unsigned([0, 0, 0]);
+        let x = Unsigned::from([0, 0, 0]);
         assert_eq!(x.len(), 0);
     }
 
     #[test]
     fn partial_eq() {
-        let p = Prime(Odd(Unsigned([17, 0])));
-        let u = Unsigned([17, 0]);
+        let p = Prime(Odd(Unsigned::from([17, 0])));
+        let u = Unsigned::from([17, 0]);
         assert_eq!(&p.0.0, &u);
     }
 
     #[test]
     fn product() {
-        let prod = Square { lo: Unsigned([1,2,3]), hi: Unsigned([4,5,6]) };
+        let prod = Square { lo: [1,2,3], hi: [4,5,6] };
         assert_eq!(prod.words().len(), 6);
         assert_eq!(prod.words(), &[1,2,3,4,5,6]);
     }

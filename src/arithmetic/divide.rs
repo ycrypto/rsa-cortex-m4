@@ -82,7 +82,7 @@ pub fn div_rem<const X: usize, const N: usize>(x: &Unsigned<X>, n: &Unsigned<N>)
     }
 
     if n.len() == 1 {
-        let n = n.0[0];
+        let n = n[0];
 
         let mut div = x.clone();
         if n == 1 {
@@ -142,8 +142,8 @@ pub fn div_rem<const X: usize, const N: usize>(x: &Unsigned<X>, n: &Unsigned<N>)
     // can be bigger).
     //
 
-    // this is the "trial division" that Montgomery would later refer to :)
-    let mut trial = Unsigned::<X>::default(); // SmallVec::with_capacity(2)
+    // // this is the "trial division" that Montgomery would later refer to :)
+    // let mut trial = Unsigned::<X>::default(); // SmallVec::with_capacity(2)
 
     for j in (0..q_len).rev() {
         /*
@@ -159,8 +159,9 @@ pub fn div_rem<const X: usize, const N: usize>(x: &Unsigned<X>, n: &Unsigned<N>)
 
         // set "trial" to current remainder, immediately after we divide by highest digit of
         // divisor `n` to get a guess.
-        trial.set_zero();
-        trial.0[..X - offset].copy_from_slice(&r.0[offset..]);
+        // trial.set_zero();
+        // trial[..r.len() - offset].copy_from_slice(&r[offset..]);
+        let mut trial = Unsigned::<X>::from_slice(&r[offset..]);
 
         /*
          * q0 << j * big_digit::BITS is our actual quotient estimate - we do the shifts
@@ -212,7 +213,7 @@ where
     }
 
     if n.len() == 1 {
-        let n = n.0[0];
+        let n = n[0];
 
         let mut div = x.clone();
         if n == 1 {
@@ -331,13 +332,13 @@ impl<'a, const X: usize, const N: usize> Rem<Unsigned<N>> for &'a Unsigned<X> {
     }
 }
 
-impl<'a, const X: usize, const N: usize> Rem<&'a Unsigned<N>> for Unsigned<X> {
-    type Output = Unsigned<N>;
-    fn rem(self, modulus: &'a Unsigned<N>) -> Self::Output {
-        let (_quotient, remainder) = div_rem(&self, modulus);
-        remainder
-    }
-}
+// impl<'a, const X: usize, const N: usize> Rem<&'a Unsigned<N>> for Unsigned<X> {
+//     type Output = Unsigned<N>;
+//     fn rem(self, modulus: &'a Unsigned<N>) -> Self::Output {
+//         let (_quotient, remainder) = div_rem(&self, modulus);
+//         remainder
+//     }
+// }
 
 impl<'a, const X: usize, const N: usize> Rem<Unsigned<N>> for Unsigned<X> {
     type Output = Unsigned<N>;
