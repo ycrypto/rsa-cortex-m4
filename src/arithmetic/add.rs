@@ -1,6 +1,6 @@
 use core::ops::{Add, AddAssign};
 
-use crate::{Digit, DoubleDigit, Modular, Odd, Unsigned};
+use crate::{Digit, DoubleDigit, Modular, Montgomery, Odd, Unsigned};
 use crate::numbers::Bits;
 
 /// Intention is to replace this with the UMAAL assembly instruction on Cortex-M4.
@@ -20,38 +20,30 @@ pub fn addc(a: u32, b: u32, c: &mut u32, r: &mut u32) {
     umaal(c, r, 1, b);
 }
 
-fn add_modulo<const L: usize>(a: &Unsigned<L>, b: &Unsigned<L>, n: &Odd<L>) -> Unsigned<L> {
-    let mut r = Unsigned::<L>::default();
-    let mut c = 0;
+// fn add_modulo<const L: usize>(a: &Unsigned<L>, b: &Unsigned<L>, n: &Odd<L>) -> Unsigned<L> {
+//     let mut r = Unsigned::<L>::default();
+//     let mut c = 0;
 
-    // 1. sum up term-by-term
-    for i in 0..L {
-        // let sum = (a.0[i] as u64) + (b.0[i] as u64) + c as u64;
-        // r.0[i] = sum as u32;
-        // c = (sum >> 32) as u32;
-        addc(a.0[i], b.0[i], &mut c, &mut r.0[i]);
-    }
+//     // 1. sum up term-by-term
+//     for i in 0..L {
+//         // let sum = (a.0[i] as u64) + (b.0[i] as u64) + c as u64;
+//         // r.0[i] = sum as u32;
+//         // c = (sum >> 32) as u32;
+//         addc(a.0[i], b.0[i], &mut c, &mut r.0[i]);
+//     }
 
-    // for ((ai, bi), ri) in (a.as_ref().iter().zip(b.as_ref().iter())).zip(r.as_mut().iter()) {
-    //     let sum = (*ai as u64) + (*bi as u64) + c as u64;
-    //     *ri = sum as u32;
-    //     todo!();
-    // }
+//     // for ((ai, bi), ri) in (a.as_ref().iter().zip(b.as_ref().iter())).zip(r.as_mut().iter()) {
+//     //     let sum = (*ai as u64) + (*bi as u64) + c as u64;
+//     //     *ri = sum as u32;
+//     //     todo!();
+//     // }
 
-    // 2. reduce modulo n
-    // reduce_modulo(c, &mut r, n);
+//     // 2. reduce modulo n
+//     // reduce_modulo(c, &mut r, n);
 
-    // 3. done
-    r
-}
-
-impl<'a, 'b, const L: usize> Add<&'b Unsigned<L>> for Modular<'a, L> {
-    type Output = Self;
-
-    fn add(self, rhs: &'b Unsigned<L>) -> Self {
-        todo!();
-    }
-}
+//     // 3. done
+//     r
+// }
 
 //
 // from num-bigint
@@ -104,5 +96,47 @@ pub fn add_assign(a: &mut [Digit], b: &[Digit]) {
     let carry = add_assign_carry(a, b);
 
     debug_assert!(carry == 0);
+}
+
+impl<'a, 'b, const L: usize, const N: usize> AddAssign<&'b Unsigned<L>> for Modular<'a, N> {
+    fn add_assign(&mut self, rhs: &'b Unsigned<L>) {
+        let other = rhs.reduce(self.n);
+        let carry = add_assign_carry(&mut self.x, &other);
+
+        // The carry bit is of little use here
+        // By assumption/construction, self.x and other are < n, hence sum is < 2n
+        // So iff their sum >= n, need to subtract n once.
+        // This is not constant time; the alternative is to always subtract n,
+        // and then subtle::conditionally_select the sum or its correction, based on whether
+        // we have a borrow bit after the subtraction.
+        todo!();
+    }
+}
+
+impl<'a, 'n, const N: usize> Add for &'a Modular<'n, N> {
+    type Output = Modular<'n, N>;
+
+    fn add(self, other: Self) -> Self::Output {
+        debug_assert_eq!(self.n, other.n);
+
+        let mut sum = self.clone();
+        sum += &other.x;  // this does a spurious `reduce` on our reduced other.x
+
+        sum
+    }
+}
+
+impl<'a, 'n, const N: usize> Add for &'a Montgomery<'n, N> {
+    type Output = Montgomery<'n, N>;
+
+    fn add(self, other: Self) -> Self::Output {
+        debug_assert_eq!(self.n, other.n);
+
+        let mut sum = self.clone();
+        todo!();
+        // sum += &other.y;  // this does a spurious `reduce` on our reduced other.x
+
+        // sum
+    }
 }
 

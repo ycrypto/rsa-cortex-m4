@@ -286,7 +286,7 @@ pub type Square<const L: usize> = Product<L, L>;
 /// These are used as moduli.
 ///
 /// The oddness condition ensures we can use Montgomery multiplication/reduction.
-#[derive(Clone, Eq, PartialEq, Zeroize)]
+#[derive(Clone, Debug, Eq, PartialEq, Zeroize)]
 // Q: rename to `Odd`? :)
 pub struct Odd<const L: usize>(pub Unsigned<L>);
 

@@ -64,20 +64,19 @@ impl<const L: usize> Unsigned<L> {
     /// Note that storage requirements of the residue class are the same
     /// as the modulus (+ reference to it), not the original integer.
     pub fn modulo<const N: usize>(self, n: &Odd<N>) -> Modular<'_, N> {
-        let reduced_residue_class_representative = &self % &**n;
-        Modular { x: reduced_residue_class_representative, n }
+        Modular { x: self.reduce(n), n }
     }
 
     /// The canonical (reduced) representative of the associated residue class modulo n.
-    pub fn reduce(self, n: &Odd<L>) -> Self {
-        self.modulo(n).lift()
+    pub fn reduce<const N: usize>(&self, n: &Unsigned<N>) -> Unsigned<N> {
+        self % n
     }
 
 }
 
 // pub fn chinese_remainder_theorem
 
-impl<const N: usize> Modular<'_, N> {
+impl<'n, const N: usize> Modular<'n, N> {
     pub fn inverse(&self) -> Self {
         todo!();
     }
@@ -87,13 +86,28 @@ impl<const N: usize> Modular<'_, N> {
     /// This is like [`lift`][lift] in GP/PARI
     ///
     /// [lift]: https://pari.math.u-bordeaux.fr/dochtml/html/Conversions_and_similar_elementary_functions_or_commands.html#se:lift
-    pub fn lift<const L: usize>(self) -> Unsigned<L> {
+    // pub fn lift<const L: usize>(self) -> Unsigned<L> {
+    //     // TODO: if L < N (or rather, self.modulo.len()), then lift and project maybe? nah
+    //     self.x.into_unsigned()
+    pub fn lift(self) -> Unsigned<N> {
         // TODO: if L < N (or rather, self.modulo.len()), then lift and project maybe? nah
-        self.x.into_unsigned()
+        self.x
+    }
+
+    pub fn to_montgomery(&self) -> Montgomery<'n, N> {
+        todo!();
     }
 
     // pub fn to_the(self, exponent: & impl Into<Unsigned<L>>) -> Self {
-    pub fn power(self, exponent: & impl Into<Unsigned<N>>) -> Self {
+    pub fn power(&self, exponent: &Unsigned<N>) -> Self {
+        // TODO: If exponent is a small prime, special-case.
+        // self.to_montgomery().power(exponent).to_modular()
+        todo!();
+    }
+}
+
+impl<'n, const N: usize> Montgomery<'n, N> {
+    pub fn to_modular(&self) -> Modular<'n, N> {
         todo!();
     }
 }
