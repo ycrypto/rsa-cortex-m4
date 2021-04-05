@@ -1,5 +1,5 @@
 #![cfg_attr(not(test), no_std)]
-mod arithmetic;
+pub mod arithmetic;
 pub use arithmetic::{Modular, Montgomery, ShortModular, ShortMontgomery};
 mod error;
 pub use error::{Error, Result};

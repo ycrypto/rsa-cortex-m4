@@ -1,4 +1,4 @@
-use core::{cmp, ops::{Sub, SubAssign}};
+use core::{cmp, ops::{Neg, Sub, SubAssign}};
 
 use crate::{Array, Number, Digit, Modular, SignedDoubleDigit, Unsigned};
 use crate::numbers::Bits;
@@ -60,6 +60,14 @@ where
         let mut difference = self.clone();
         difference -= other;
         difference
+    }
+}
+
+impl<const D: usize, const E: usize> Neg for &Unsigned<D, E> {
+    type Output = Unsigned<D, E>;
+
+    fn neg(self) -> Self::Output {
+        todo!();
     }
 }
 

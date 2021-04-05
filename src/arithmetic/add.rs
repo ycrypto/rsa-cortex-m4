@@ -65,7 +65,7 @@ pub fn adc(a: Digit, b: Digit, acc: &mut DoubleDigit) -> Digit {
 // our signature:
 // pub fn addc(a: u32, b: u32, c: &mut u32, r: &mut u32)
 
-// Only for the Add impl:
+// This is perhaps too general - we always use equal length slices I believe.
 #[inline]
 pub fn add_assign_carry(a: &mut [Digit], b: &[Digit]) -> Digit {
     debug_assert!(a.len() >= b.len());
@@ -100,18 +100,47 @@ pub fn add_assign(a: &mut [Digit], b: &[Digit]) {
     debug_assert!(carry == 0);
 }
 
-impl<'a, 'b, const D: usize, const E: usize, const F: usize, const G: usize> AddAssign<&'b Unsigned<F, G>> for Modular<'a, D, E> {
-    fn add_assign(&mut self, summand: &'b Unsigned<F, G>) {
-        let summand = summand.reduce(self.n);
-        let _carry = add_assign_carry(&mut self.x, &summand);
 
-        // The carry bit is of little use here
-        // By assumption/construction, self.x and other are < n, hence sum is < 2n
-        // So iff their sum >= n, need to subtract n once.
-        // This is not constant time; the alternative is to always subtract n,
-        // and then subtle::conditionally_select the sum or its correction, based on whether
-        // we have a borrow bit after the subtraction.
-        todo!();
+
+// Addition in Unsigned / 2^M
+
+impl<const D: usize, const E: usize> AddAssign<&Unsigned<D, E>> for Unsigned<D, E> {
+    fn add_assign(&mut self, summand: &Self) {
+        add_assign_carry(self, summand);
+    }
+}
+
+impl<const D: usize, const E: usize> Add for &Unsigned<D, E> {
+    type Output = Unsigned<D, E>;
+
+    fn add(self, summand: Self) -> Self::Output {
+
+        let mut sum = self.clone();
+        sum += &summand;
+
+        sum
+    }
+}
+
+
+
+// Addition in Modular
+
+impl<'a, 'n, const D: usize, const E: usize> AddAssign<&'a Self> for Modular<'n, D, E> {
+
+    fn add_assign(&mut self, summand: &'a Self)  {
+        debug_assert_eq!(**self.n, **summand.n);
+
+        #[allow(non_snake_case)]
+        let F = -&**self.n;
+
+        // step 3
+        let carry = add_assign_carry(&mut self.x, &summand.x);
+
+        // TODO: consider making this constant time.
+        if carry != 0 {
+            add_assign_carry(&mut self.x, &F);
+        }
     }
 }
 
@@ -119,26 +148,67 @@ impl<'a, 'n, const D: usize, const E: usize> Add for &'a Modular<'n, D, E> {
     type Output = Modular<'n, D, E>;
 
     fn add(self, summand: Self) -> Self::Output {
-        debug_assert_eq!(**self.n, **summand.n);
+        // debug_assert_eq!(**self.n, **summand.n);
 
         let mut sum = self.clone();
-        sum += &summand.x;  // this does a spurious `reduce` on our reduced other.x
+        sum += summand;
 
         sum
+    }
+}
+
+// Addition of Unsigned to Modular
+// Simply delegates to addition in Modular, after partial reduction.
+
+impl<'a, 'b, const D: usize, const E: usize, const F: usize, const G: usize> AddAssign<&'b Unsigned<F, G>> for Modular<'a, D, E> {
+    fn add_assign(&mut self, summand: &'b Unsigned<F, G>) {
+        *self += &Modular { x: summand.partially_reduce(), n: self.n }
+    }
+}
+
+impl<'a, 'b, const D: usize, const E: usize, const F: usize, const G: usize> Add<&'b Unsigned<F, G>> for Modular<'a, D, E> {
+    type Output = Self;
+
+    fn add(self, summand: &'b Unsigned<F, G>) -> Self::Output {
+
+        let mut sum = self.clone();
+        sum += summand;  // this does a spurious `reduce` on our reduced other.x
+
+        sum
+    }
+}
+
+
+// Addition in Montgomery
+// Exactly like addition in Modular
+
+impl<'a, 'n, const D: usize, const E: usize> AddAssign<&'a Self> for Montgomery<'n, D, E> {
+
+    fn add_assign(&mut self, summand: &'a Self)  {
+        debug_assert_eq!(**self.n, **summand.n);
+
+        #[allow(non_snake_case)]
+        let F = -&**self.n;
+
+        // step 3
+        let carry = add_assign_carry(&mut self.y, &summand.y);
+
+        if carry != 0 {
+            add_assign_carry(&mut self.y, &F);
+        }
     }
 }
 
 impl<'a, 'n, const D: usize, const E: usize> Add for &'a Montgomery<'n, D, E> {
     type Output = Montgomery<'n, D, E>;
 
-    fn add(self, other: Self) -> Self::Output {
-        debug_assert_eq!(**self.n, **other.n);
+    fn add(self, summand: Self) -> Self::Output {
+        // debug_assert_eq!(**self.n, **summand.n);
 
-        // let mut sum = self.clone();
-        todo!();
-        // sum += &other.y;  // this does a spurious `reduce` on our reduced other.x
+        let mut sum = self.clone();
+        sum += summand;
 
-        // sum
+        sum
     }
 }
 

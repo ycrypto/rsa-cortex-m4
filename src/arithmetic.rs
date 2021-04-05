@@ -1,7 +1,14 @@
 //! Unsigned and Modular.
 //!
-//! TODO: Note that we also have use for `Mod(Unsigned<L>, 2^{32*L})`,
-//! for instance to calculate `1/e (mod p - 1)`.
+//! For `Unsigned`, we implement operations "$\text{mod } 2^{32(D + E)}$",
+//! that is, dropping all carries and borrows.
+//!
+//! For `Modular`, we use incompletely reduced representations internally
+//! (which can be implemented on a word-level), offering a complete reduction
+//! for external use (which needs to be implemented on a bit-level).
+//!
+//! We do indeed have use for the modular interpretation of `Unsigned`,
+//! for instance, to calculate $65537^{-1} \text{ mod }(p - 1)$.
 
 #![allow(unstable_name_collisions)]  // for Bits::BITS
 #![allow(broken_intra_doc_links)]  // because `rustdoc` mistakes [x] for a link
@@ -71,6 +78,7 @@ impl<const D: usize, const E: usize> Zeroize for Modular<'_, D, E> {
 /// [yanik-savas-koc]: https://api.semanticscholar.org/CorpusID:17543811
 /// [gueron]: https://api.semanticscholar.org/CorpusID:7629541
 #[allow(dead_code)]
+#[derive(Clone)]
 pub struct Montgomery<'n, const D: usize, const E: usize> {
     y: Unsigned<D, E>,
     n: &'n Convenient<D, E>,
@@ -85,6 +93,15 @@ impl<const D: usize, const E: usize> Unsigned<D, E> {
     /// as the modulus (+ reference to it), not the original integer.
     pub fn modulo<const F: usize, const G: usize>(self, n: &Convenient<F, G>) -> Modular<'_, F, G> {
         Modular { x: self.reduce(n), n }
+    }
+
+    pub fn _partially_reduce_hinted<const F: usize, const G: usize>(&self, _: &Unsigned<F, G>) -> Unsigned<F, G> {
+        Unsigned::from_slice(&self[..(F + G)])
+    }
+
+    /// A noncanonical representative of the associated residue class modulo n.
+    pub fn partially_reduce<const F: usize, const G: usize>(&self) -> Unsigned<F, G> {
+        Unsigned::from_slice(&self[..(F + G)])
     }
 
     /// The canonical (reduced) representative of the associated residue class modulo n.
