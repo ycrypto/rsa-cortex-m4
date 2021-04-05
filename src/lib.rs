@@ -3,14 +3,14 @@ mod arithmetic;
 pub use arithmetic::{Modular, Montgomery, ShortModular, ShortMontgomery};
 mod error;
 pub use error::{Error, Result};
-mod key;
-pub use key::{PrivateKey, PublicKey};
+// mod key;
+// pub use key::{PrivateKey, PublicKey};
 // pub use key::{Rsa, Rsa2k, Rsa3k, Rsa4k};
 pub mod numbers;
 pub use numbers::{
     FromSlice, Number ,NumberMut,
     Digit, DoubleDigit, Limb, SignedDoubleDigit,
-    Array, Odd, Prime, Product, Short, Unsigned,
+    Array, Convenient, Prime, Product, Short, Unsigned,
 };
 
 // mod primitive;

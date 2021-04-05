@@ -1,22 +1,22 @@
 use core::{cmp::Ordering, convert::TryFrom, fmt, ops::{Deref, DerefMut}};
 
-use super::{Array, Digit, DoubleDigit, Number, NumberMut, Odd, Prime, Unsigned};
+use super::{Array, Bits, Convenient, Digit, DoubleDigit, Number, NumberMut, Prime, Unsigned};
 use crate::{Error, Result};
 
 
-impl super::Bits for Digit {
+impl Bits for Digit {
     const BITS: usize = 32;
 }
 
-impl super::Bits for DoubleDigit {
+impl Bits for DoubleDigit {
     const BITS: usize = 64;
 }
 
-impl<const D: usize, const E: usize> super::Bits for Unsigned<D, E> {
+impl<const D: usize, const E: usize> Bits for Unsigned<D, E> {
     const BITS: usize = Digit::BITS * (D + E);
 }
 
-impl<const D: usize, const E: usize, const L: usize> super::Bits for Array<D, E, L> {
+impl<const D: usize, const E: usize, const L: usize> Bits for Array<D, E, L> {
     const BITS: usize = Digit::BITS * (D + E) * L;
 }
 
@@ -61,21 +61,21 @@ impl<const D: usize, const E: usize, const L: usize> DerefMut for Array<D, E, L>
     }
 }
 
-impl<const D: usize, const E: usize> Deref for Odd<D, E> {
+impl<const D: usize, const E: usize> Deref for Convenient<D, E> {
     type Target = Unsigned<D, E>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<const D: usize, const E: usize> DerefMut for Odd<D, E> {
+impl<const D: usize, const E: usize> DerefMut for Convenient<D, E> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
 impl<const D: usize> Deref for Prime<D> {
-    type Target = Odd<D, 0>;
+    type Target = Convenient<D, 0>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -87,26 +87,51 @@ impl<const D: usize> DerefMut for Prime<D> {
     }
 }
 
-impl<const D: usize, const E: usize> TryFrom<Unsigned<D, E>> for Odd<D, E> {
+// impl<const D: usize, const E: usize> TryFrom<Unsigned<D, E>> for Odd<D, E> {
+//     type Error = Error;
+//     /// Enforces odd parity.
+//     fn try_from(unsigned: Unsigned<D, E>) -> Result<Self> {
+//         use super::Zero;
+//         // non-zero (so we can index in next step)
+//         if unsigned.is_zero() {
+//             return Err(Error);
+//         }
+//         // odd
+//         if unsigned[0] & 1 == 0 {
+//             return Err(Error);
+//         }
+//         Ok(Self(unsigned))
+//     }
+// }
+
+// impl<const D: usize, const E: usize> From<Odd<D, E>> for Unsigned<D, E> {
+//     fn from(odd: Odd<D, E>) -> Self {
+//         odd.0
+//     }
+// }
+
+impl<const D: usize, const E: usize> TryFrom<Unsigned<D, E>> for Convenient<D, E> {
     type Error = Error;
     /// Enforces odd parity.
     fn try_from(unsigned: Unsigned<D, E>) -> Result<Self> {
-        use super::Zero;
         // non-zero (so we can index in next step)
-        if unsigned.is_zero() {
+        let (l, c) = (unsigned.len(), D + E);
+        if c == 0 || l < c {
             return Err(Error);
         }
-        // odd
         if unsigned[0] & 1 == 0 {
+            return Err(Error);
+        }
+        if unsigned.leading_digit().unwrap() >> (Digit::BITS - 1) == 0 {
             return Err(Error);
         }
         Ok(Self(unsigned))
     }
 }
 
-impl<const D: usize, const E: usize> From<Odd<D, E>> for Unsigned<D, E> {
-    fn from(odd: Odd<D, E>) -> Self {
-        odd.0
+impl<const D: usize, const E: usize> From<Convenient<D, E>> for Unsigned<D, E> {
+    fn from(convenient: Convenient<D, E>) -> Self {
+        convenient.0
     }
 }
 
@@ -200,7 +225,7 @@ where
     }
 }
 
-impl<T: Number, const D: usize, const E: usize> PartialEq<T> for Odd<D, E> {
+impl<T: Number, const D: usize, const E: usize> PartialEq<T> for Convenient<D, E> {
     fn eq(&self, other: &T) -> bool {
         self.number() == other.number()
     }

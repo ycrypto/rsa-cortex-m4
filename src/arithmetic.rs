@@ -8,7 +8,7 @@
 
 use zeroize::Zeroize;
 
-use crate::{Odd, Unsigned};
+use crate::{Convenient, Unsigned};
 
 mod add;
 mod subtract;
@@ -37,7 +37,7 @@ mod divide;
 #[derive(Clone)]
 pub struct Modular<'n, const D: usize, const E: usize> {
     x: Unsigned<D, E>,
-    n: &'n Odd<D, E>,
+    n: &'n Convenient<D, E>,
 }
 
 pub type ShortModular<'n, const D: usize> = Modular<'n, D, 0>;
@@ -60,10 +60,20 @@ impl<const D: usize, const E: usize> Zeroize for Modular<'_, D, E> {
 /// This needs to be balanced by the overhead of applying the additive isomorphism
 /// and its inverse, which is negligible in certain situations, e.g., calculating
 /// powers with large exponents.
+///
+/// Note: As described in [Incomplete reduction in modular arithmetic (2002)][yanik-savas-koc],
+/// it is not necessary to reduce fully modulo `n` while calculating in the Montegomery
+/// representation.
+///
+/// Also, as described in [Efficient software implementations of modular exponentiation
+/// (2012)][gueron], using moduli with both the top and bottom bit set is particularly convenient.
+///
+/// [yanik-savas-koc]: https://api.semanticscholar.org/CorpusID:17543811
+/// [gueron]: https://api.semanticscholar.org/CorpusID:7629541
 #[allow(dead_code)]
 pub struct Montgomery<'n, const D: usize, const E: usize> {
     y: Unsigned<D, E>,
-    n: &'n Odd<D, E>,
+    n: &'n Convenient<D, E>,
 }
 
 pub type ShortMontgomery<'n, const D: usize> = Modular<'n, D, 0>;
@@ -73,7 +83,7 @@ impl<const D: usize, const E: usize> Unsigned<D, E> {
     ///
     /// Note that storage requirements of the residue class are the same
     /// as the modulus (+ reference to it), not the original integer.
-    pub fn modulo<const F: usize, const G: usize>(self, n: &Odd<F, G>) -> Modular<'_, F, G> {
+    pub fn modulo<const F: usize, const G: usize>(self, n: &Convenient<F, G>) -> Modular<'_, F, G> {
         Modular { x: self.reduce(n), n }
     }
 

@@ -1,4 +1,4 @@
-    #![allow(unstable_name_collisions)]  // for Bits::BITS
+#![allow(unstable_name_collisions)]  // for Bits::BITS
 
 /// TODO: Wild idea: Define `pub type Unsigned<L> = Product<L, 0>`,
 /// instead of an actual separate type. Or why not define triplets, to have MultiProduct<M, N, 1>...
@@ -42,10 +42,32 @@ pub struct Unsigned<const D: usize, const E: usize> {  // this is a kind of "dua
 
 // pub struct MultiDual<const D: usize, const E: usize, const L: usize>([Dual<D, E>; L]);
 
+// #[repr(C)]
+// pub struct Odd<const D: usize, const E: usize>(Unsigned<D, E>);
+
 #[repr(C)]
-pub struct Odd<const D: usize, const E: usize>(Unsigned<D, E>);
+/// These are the unsigned numbers with both their top and bottom bits set.
+///
+/// In particular, they are odd. But also, $n \ge 2^{m - 1}$, with strict inequality
+/// by oddness.
+///
+/// As described in [Incomplete reduction in modular arithmetic (2002)][yanik-savas-koc],
+/// it is not necessary to reduce fully modulo `n` while calculating modular arithmetic.
+/// Instead, we can reduce modulo $2^m$, and only "fully" reduce when so desired.
+///
+/// Their arguments apply to non-prime moduli also, and the "convenient" ones have the properties,
+/// in their terminology, that $I = 1$ and $J = 2$, hence $F = 2^m - p$ and $G = 2p - 2^m$.
+/// Moreover (!!!), the last case/reduction in their modular addition / subtraction never
+/// occurs.
+///
+/// E.g., in addition, we have $F = 2^m - n < 2^m - 2^{m - 1} = 2^{m-1}$, and so
+/// $T := S + F < (2^m - 2) + 2^{m - 1} < 2^{m - 1}$.
+///
+/// [yanik-savas-koc]: https://api.semanticscholar.org/CorpusID:17543811
+pub struct Convenient<const D: usize, const E: usize>(Unsigned<D, E>);
+
 #[repr(C)]
-pub struct Prime<const P: usize>(Odd<P, 0>);
+pub struct Prime<const P: usize>(Convenient<P, 0>);
 
 // unsafe impl<const D: usize, const E: usize> Number for Odd<D, E> {
 //     fn len(&self) -> usize {
@@ -607,6 +629,7 @@ impl<T: Number + Default + PartialEq> Zero for T {
 
 #[cfg(test)]
 mod test {
+    use core::convert::TryFrom;
     use super::*;
 
     #[test]
@@ -634,8 +657,9 @@ mod test {
 
     #[test]
     fn partial_eq() {
-        let p = Prime(Odd(Short::from([17, 0])));
-        let u = Short::from([17, 0]);
+        let d = 1u32 << 31;
+        let p = Prime(Convenient::try_from(Short::from([17, d])).unwrap());
+        let u = Short::from([17, d]);
         assert_eq!(&p.0.0, &u);
     }
 
