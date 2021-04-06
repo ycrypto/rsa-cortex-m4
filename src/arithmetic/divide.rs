@@ -1,7 +1,7 @@
 use core::{cmp::Ordering, ops::{Div, Rem}};
 
-use crate::{Array, Digit, DoubleDigit, FromSlice, Number, NumberMut, Unsigned};
-use crate::numbers::{Bits, One, Zero};
+use crate::{Digit, DoubleDigit, Unsigned};
+use crate::numbers::{Array, Bits, FromSlice, Number, NumberMut, One, Zero};
 
 // /// Input:  x = (x_0,x_1,...,x_n), n = (n_0,n_1, ...n_t, 0, ...0), 1 <= t <= L, yt != 0
 // /// Output: q = (q_0,q_1,...,q_{n-t}), r = (r_0,r_1,...r_t) with x=qy+r, 0<=r<y

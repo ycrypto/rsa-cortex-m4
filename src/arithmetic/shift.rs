@@ -1,7 +1,7 @@
 use core::ops::{Shl, ShlAssign, Shr, ShrAssign};
 
-use crate::{Array, Digit, NumberMut, Product, Unsigned};
-use crate::numbers::{Bits, Zero};
+use crate::{Digit, Unsigned};
+use crate::numbers::{Array, Bits, NumberMut, Zero};
 
 /// Compared to `num-bigint{,-dig}`, this is a truncating shift.
 ///
@@ -146,8 +146,8 @@ impl<const D: usize, const E: usize, const L: usize> Shl<usize> for &Array<D, E,
 //     }
 // }
 
-impl<const M: usize, const N: usize> Shr<usize> for &Product<M, N> {
-    type Output = Product<M, N>;
+impl<const D: usize, const E: usize, const L: usize> Shr<usize> for &Array<D, E, L> {
+    type Output = Array<D, E, L>;
 
     #[inline]
     fn shr(self, bits: usize) -> Self::Output {

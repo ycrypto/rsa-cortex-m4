@@ -1,6 +1,9 @@
 #![cfg_attr(not(test), no_std)]
+//! Allocation-free implementation of [RSA][rsa] for the standard cases.
+//!
+//! [rsa]: http://patft.uspto.gov/netacgi/nph-Parser?Sect1=PTO1&Sect2=HITOFF&p=1&u=/netahtml/PTO/srchnum.html&r=1&f=G&l=50&d=PALL&s1=4405829.PN.
 pub mod arithmetic;
-pub use arithmetic::{Modular, Montgomery, ShortModular, ShortMontgomery};
+pub use arithmetic::{Modular, Montgomery};
 mod error;
 pub use error::{Error, Result};
 // mod key;
@@ -8,12 +11,43 @@ pub use error::{Error, Result};
 // pub use key::{Rsa, Rsa2k, Rsa3k, Rsa4k};
 pub mod numbers;
 pub use numbers::{
-    FromSlice, Number ,NumberMut,
-    Digit, DoubleDigit, Limb, SignedDoubleDigit,
-    Array, Convenient, Prime, Product, Short, Unsigned,
+    // Number ,NumberMut,
+    // Array,
+    Convenient, Long, Prime, Short, Unsigned,
 };
 
+/// A word on the machine. [`Unsigned`] is composed of many digits.
+pub type Digit = usize;
+
+// The DIGIT_SIZE_CHECK is a compile-time assertion
+// that Digit is of expected bit size.
+
+#[cfg(target_pointer_width = "16")]
+#[allow(dead_code)]
+const DIGIT_SIZE_CHECK: usize = (core::mem::size_of::<Digit>() == core::mem::size_of::<u16>()) as usize - 1;
+#[cfg(target_pointer_width = "16")]
+pub(crate) type DoubleDigit = u32;
+#[cfg(target_pointer_width = "16")]
+pub(crate) type SignedDoubleDigit = i32;
+
+#[cfg(target_pointer_width = "32")]
+#[allow(dead_code)]
+const DIGIT_SIZE_CHECK: usize = (core::mem::size_of::<Digit>() == core::mem::size_of::<u32>()) as usize - 1;
+#[cfg(target_pointer_width = "32")]
+pub(crate) type DoubleDigit = u64;
+#[cfg(target_pointer_width = "32")]
+pub(crate) type SignedDoubleDigit = i64;
+
+#[cfg(target_pointer_width = "64")]
+#[allow(dead_code)]
+const DIGIT_SIZE_CHECK: usize = (core::mem::size_of::<Digit>() == core::mem::size_of::<u64>()) as usize - 1;
+#[cfg(target_pointer_width = "64")]
+pub(crate) type DoubleDigit = u128;
+#[cfg(target_pointer_width = "64")]
+pub(crate) type SignedDoubleDigit = i128;
+
 // mod primitive;
+
 
 /// The fourth Fermat prime, $2^{16} + 1$.
 ///
@@ -23,6 +57,3 @@ pub use numbers::{
 /// more generally, there seems no need to have too many knobs to turn.
 ///
 pub const F4: u32 = 0x10001;
-
-// /// F4 (aka E, aka e, aka the fourth Fermat prime) as Unsigned of length 1.
-// pub const UE: Unsigned<1> = Unsigned([E]);

@@ -1,4 +1,4 @@
-//! Unsigned and Modular.
+//! Modular arithmetic (for moduli that are either [`Convenient`] or word-sized powers-of-two).
 //!
 //! For `Unsigned`, we implement operations "$\text{mod } 2^{32(D + E)}$",
 //! that is, dropping all carries and borrows.
@@ -86,25 +86,31 @@ pub struct Montgomery<'n, const D: usize, const E: usize> {
 
 pub type ShortMontgomery<'n, const D: usize> = Modular<'n, D, 0>;
 
+/// ## Reduction of unsigned integers
 impl<const D: usize, const E: usize> Unsigned<D, E> {
     /// The associated residue class modulo n.
     ///
     /// Note that storage requirements of the residue class are the same
     /// as the modulus (+ reference to it), not the original integer.
+    ///
+    /// This uses incomplete reduction ([`Self::partially_reduce`]) for efficiency.
     pub fn modulo<const F: usize, const G: usize>(self, n: &Convenient<F, G>) -> Modular<'_, F, G> {
-        Modular { x: self.reduce(n), n }
-    }
-
-    pub fn _partially_reduce_hinted<const F: usize, const G: usize>(&self, _: &Unsigned<F, G>) -> Unsigned<F, G> {
-        Unsigned::from_slice(&self[..(F + G)])
+        Modular { x: self.partially_reduce(n), n }
     }
 
     /// A noncanonical representative of the associated residue class modulo n.
+    ///
+    /// The "incomplete reduction" modulo $w^{D + E}$, where $w$ is the digit size
+    /// $2^{\text{BITS}}$, i.e., the word size of the machine.
+    ///
+    /// Cf. [`Modular`].
     pub fn partially_reduce<const F: usize, const G: usize>(&self) -> Unsigned<F, G> {
         Unsigned::from_slice(&self[..(F + G)])
     }
 
-    /// The canonical (reduced) representative of the associated residue class modulo n.
+    /// The canonical (completely) reduced representative of the associated residue class modulo $n$.
+    ///
+    /// Cf. [`Modular`].
     pub fn reduce<const F: usize, const G: usize>(&self, n: &Unsigned<F, G>) -> Unsigned<F, G> {
         self % n
     }
@@ -126,7 +132,7 @@ impl<'n, const D: usize, const E: usize> Modular<'n, D, E> {
     // pub fn lift<const L: usize>(self) -> Unsigned<L> {
     //     // TODO: if L < N (or rather, self.modulo.len()), then lift and project maybe? nah
     //     self.x.into_unsigned()
-    pub fn lift(self) -> Unsigned<D, E> {
+    pub fn canonical_lift(self) -> Unsigned<D, E> {
         // TODO: if L < N (or rather, self.modulo.len()), then lift and project maybe? nah
         self.x
     }

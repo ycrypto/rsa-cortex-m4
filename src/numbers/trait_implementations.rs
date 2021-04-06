@@ -5,11 +5,11 @@ use crate::{Error, Result};
 
 
 impl Bits for Digit {
-    const BITS: usize = 32;
+    const BITS: usize = core::mem::size_of::<Digit>() * 8;
 }
 
 impl Bits for DoubleDigit {
-    const BITS: usize = 64;
+    const BITS: usize = core::mem::size_of::<DoubleDigit>() * 8;
 }
 
 impl<const D: usize, const E: usize> Bits for Unsigned<D, E> {

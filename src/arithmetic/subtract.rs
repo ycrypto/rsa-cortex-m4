@@ -1,7 +1,7 @@
 use core::ops::{Neg, Sub, SubAssign};
 
-use crate::{Array, Number, Digit, Modular, Montgomery, SignedDoubleDigit, Unsigned};
-use crate::numbers::Bits;
+use crate::{Digit, Modular, Montgomery, SignedDoubleDigit, Unsigned};
+use crate::numbers::{Array, Bits, Number};
 
 
 /// Subtract with borrow:

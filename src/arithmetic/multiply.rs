@@ -1,7 +1,7 @@
 use core::ops::Mul;
 
-use crate::{Digit, DoubleDigit, Modular, Montgomery, Number, NumberMut, Product, Unsigned};
-use crate::numbers::{Bits, Zero};
+use crate::{Digit, DoubleDigit, Modular, Montgomery, Unsigned};
+use crate::numbers::{Bits, Number, NumberMut, Product, Zero};
 
 /// This just drops (saturates?) if `lhs * rhs` does not fit in a U.
 pub(crate) fn dropping_mul<U, V>(lhs: &U, rhs: &V) -> U
@@ -17,7 +17,7 @@ where
         for i in 0..lhs.len() {
             for j in 0..rhs.len() {
                 if i + j == k {
-                    accumulator += (lhs[i] as u64) * (rhs[j] as u64);
+                    accumulator += (lhs[i] as DoubleDigit) * (rhs[j] as DoubleDigit);
                 }
             }
         }
@@ -41,7 +41,7 @@ impl <const D: usize, const E: usize> Mul for &Unsigned<D, E> {
             for i in 0..self.len() {
                 for j in 0..other.len() {
                     if i + j == k {
-                        accumulator += (self[i] as u64) * (other[j] as u64);
+                        accumulator += (self[i] as DoubleDigit) * (other[j] as DoubleDigit);
                     }
                 }
             }

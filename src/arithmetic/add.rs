@@ -9,15 +9,15 @@ use crate::numbers::Bits;
 ///
 /// This works, because `(2^32 - 1)^2 + 2*(2^32 - 1) = 2^64 - 1`.
 #[allow(dead_code)]
-pub fn umaal(hi: &mut u32, lo: &mut u32, m: u32, n: u32) {
-    let result = ((m as u64) * (n as u64)) + (*hi as u64) + (*lo as u64);
-    *hi = (result >> u32::BITS) as u32;
-    *lo = result as u32;
+pub fn umaal(hi: &mut Digit, lo: &mut Digit, m: Digit, n: Digit) {
+    let result = ((m as DoubleDigit) * (n as DoubleDigit)) + (*hi as DoubleDigit) + (*lo as DoubleDigit);
+    *hi = (result >> Digit::BITS) as Digit;
+    *lo = result as Digit;
 }
 
 /// place (a + b + c) in r with carry c
 #[allow(dead_code)]
-pub fn addc(a: u32, b: u32, c: &mut u32, r: &mut u32) {
+pub fn addc(a: Digit, b: Digit, c: &mut Digit, r: &mut Digit) {
     *r = a;
     umaal(c, r, 1, b);
 }
