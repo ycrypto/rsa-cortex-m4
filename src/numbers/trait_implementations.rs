@@ -44,7 +44,7 @@ impl<const D: usize, const E: usize> Deref for Unsigned<D, E> {
 
 impl<const D: usize, const E: usize> DerefMut for Unsigned<D, E> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.number_mut()
+        self.padded_number_mut()
     }
 }
 
@@ -57,7 +57,7 @@ impl<const D: usize, const E: usize, const L: usize> Deref for Array<D, E, L> {
 
 impl<const D: usize, const E: usize, const L: usize> DerefMut for Array<D, E, L> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.number_mut()
+        self.padded_number_mut()
     }
 }
 

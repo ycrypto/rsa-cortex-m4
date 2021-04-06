@@ -234,6 +234,9 @@ where
         Ordering::Less => {} // Do nothing
     }
 
+    // // 2021-04-06: workaround
+    // let n =  Unsigned<
+
     // Knuth, TAOCP vol 2 section 4.3, algorithm D(ivision)
     //
     // This shift has no influence on `q`, and will be reverted for `r` at the end.
@@ -274,7 +277,7 @@ where
         // Unfortunately, don't see a way to use operators here (wrapped types don't work,
         // and slices are foreign types).
         super::add::add_assign(&mut q[j..], &trial);
-        super::subtract::sub_assign(&mut r[j..], &prod);
+        super::subtract::sub_assign_borrow(&mut r[j..], &prod);
     }
 
     debug_assert!(n > r);

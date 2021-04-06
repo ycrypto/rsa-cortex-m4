@@ -75,8 +75,8 @@ pub struct Prime<const P: usize>(Convenient<P, 0>);
 //     }
 // }
 
+pub type Long<const D: usize> = Unsigned<D, D>;  // duplex with equal limb size
 pub type Short<const D: usize> = Unsigned<D, 0>;  // duplex with empty hi limb
-pub type Regular<const D: usize> = Unsigned<D, D>;  // duplex with equal limb size
 
 #[repr(C)]
 #[derive(Clone, Eq/*, Zeroize*/)]
@@ -114,21 +114,33 @@ pub type Product<const D: usize, const E: usize> = Array<D, E, 2>;
 /// Something similar to a `Vec<u32>`, without allocations.
 ///
 /// Implementation ***must ensure***:
-/// - `self.len() == self.words().len()`
-/// - `self.capacity() == self.words_mut().len()`
-/// - `Deref` coincides with `self.words()`
-/// - `DerefMut` coincides with `self.words_mut()`
+/// - `self.len() == self.number().len()`
+/// - `self.capacity() == self.number_mut().len()`
+/// - `Deref` coincides with `self.number()`
+/// - `DerefMut` coincides with `self.padded_number_mut()`
+///
+/// It may or may not be the case that having Deref/DerefMut of
+/// different length is too cute (cf. remarks on `NumberMut::invalidate_len`),
+/// but it's terribly convenient:
 ///
 /// There is no need to "extend" the allocation, simply write to
 /// the desired index / slice (via DerefMut).
 ///
-/// This may need to be revisited for efficiency reasons (calculating `len` over and over).
+/// For efficiency, our implementations track (cache) `len`.
 ///
 /// The highest non-zero term determines the leading digit and the length.
 ///
-/// Current implementations are:
-/// - `Unsigned<L>`
-/// - `Product<M,N>`
+/// Current implementations are (with const generic usize parameters):
+/// - `Unsigned<D, E>`
+/// - `Array<D, E, L>`
+///
+/// Of actual interest are Long (=Unsigned<D,D>) and Short (=Unsigned<D,)>) numbers,
+/// where "Short" is tongue-in-cheek.
+///
+/// A lot of this dance could be skipped if only sums of const generic usizes were
+/// considered const (which they are not in Rust 1.51's `min_const_generics`.
+///
+/// What we want is to have two "Short" primes $P, Q$, and their "Long" product $N = PQ$.
 //pub unsafe trait AsNormalizedLittleEndianWords: Deref<Target = [u32]> + DerefMut {
 
 //    const CAPACITY: usize;
@@ -183,11 +195,27 @@ pub type Product<const D: usize, const E: usize> = Array<D, E, 2>;
 
 pub unsafe trait Number: Deref<Target = [Digit]> { //+ One + Zero + PartialEq + PartialOrd {
 
+    const CAPACITY: usize;
+
+    #[inline]
+    fn capacity() -> usize {
+        Self::CAPACITY
+    }
+
+    /// The length of the number in terms of relevant digits.
+    ///
+    /// Example: [0, 1, 0, 2, 0, 0, 0, 0] has length 4.
     fn len(&self) -> usize;
 
     /// Default implementation assumes "data slice" starts at object address.
     fn number(&self) -> &[u32] {
         let l = self.len();
+        unsafe { core::slice::from_raw_parts_mut(self as *const _ as _, l) }
+    }
+
+    /// Default implementation assumes "data slice" starts at object address.
+    fn padded_number(&self) -> &[u32] {
+        let l = Self::capacity();
         unsafe { core::slice::from_raw_parts_mut(self as *const _ as _, l) }
     }
 
@@ -225,18 +253,27 @@ pub unsafe trait Number: Deref<Target = [Digit]> { //+ One + Zero + PartialEq + 
 
 pub trait NumberMut: Number + DerefMut {
 
-    const CAPACITY: usize;
-
-    fn capacity() -> usize {
-        Self::CAPACITY
-    }
-
-    // optimizations
+    /// Opportunity to cache length, so Number::len (and the Derefs) are more efficient.
+    ///
+    /// Implementations can NOP this in principle.
     fn cache_len(&mut self) -> usize;
+
+    /// Any mutation should call this method (as a change of what is the leading digit
+    /// invalidates the length).
+    ///
+    /// This is an unsoundness hole, really - the DerefMut which calls `number_mut` (which
+    /// calls this) is not the only way to invalidate cached lengths.
     fn invalidate_len(&mut self);
 
     /// Default implementation assumes "data slice" starts at object address.
     fn number_mut(&mut self) -> &mut [u32] {
+        self.invalidate_len();
+        let l = self.len();
+        unsafe { core::slice::from_raw_parts_mut(self as *mut _ as _, l) }
+    }
+
+    /// Default implementation assumes "data slice" starts at object address.
+    fn padded_number_mut(&mut self) -> &mut [u32] {
         self.invalidate_len();
         let l = Self::capacity();
         unsafe { core::slice::from_raw_parts_mut(self as *mut _ as _, l) }
@@ -339,14 +376,14 @@ impl<const D: usize, const E: usize> Unsigned<D, E> {
 }
 
 unsafe impl<const D: usize, const E: usize> Number for Unsigned<D, E> {
+    const CAPACITY: usize = D + E;
+
     fn len(&self) -> usize {
         self.cached_len.unwrap_or_else(|| self.calculate_len())
     }
 }
 
 impl<const D: usize, const E: usize> NumberMut for Unsigned<D, E> {
-    const CAPACITY: usize = D + E;
-
     fn cache_len(&mut self) -> usize {
         let l = self.calculate_len();
         self.cached_len = Some(l);
@@ -379,6 +416,8 @@ impl<const D: usize, const E: usize, const L: usize> Array<D, E, L> {
 }
 
 unsafe impl<const D: usize, const E: usize, const L: usize> Number for Array<D, E, L> {
+    const CAPACITY: usize = (D + E)*L;
+
     fn len(&self) -> usize {
         self.cached_len.unwrap_or_else(|| self.calculate_len())
     }
@@ -386,8 +425,6 @@ unsafe impl<const D: usize, const E: usize, const L: usize> Number for Array<D, 
 
 
 impl<const D: usize, const E: usize, const L: usize> NumberMut for Array<D, E, L> {
-    const CAPACITY: usize = (D + E)*L;
-
     fn cache_len(&mut self) -> usize {
         let l = self.calculate_len();
         self.cached_len = Some(l);

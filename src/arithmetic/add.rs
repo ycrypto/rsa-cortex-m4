@@ -132,6 +132,7 @@ impl<'a, 'n, const D: usize, const E: usize> AddAssign<&'a Self> for Modular<'n,
         debug_assert_eq!(**self.n, **summand.n);
 
         #[allow(non_snake_case)]
+        // F = 2^m - p, i.e., -n
         let F = -&**self.n;
 
         // step 3
@@ -172,7 +173,7 @@ impl<'a, 'b, const D: usize, const E: usize, const F: usize, const G: usize> Add
     fn add(self, summand: &'b Unsigned<F, G>) -> Self::Output {
 
         let mut sum = self.clone();
-        sum += summand;  // this does a spurious `reduce` on our reduced other.x
+        sum += summand;
 
         sum
     }
@@ -194,7 +195,8 @@ impl<'a, 'n, const D: usize, const E: usize> AddAssign<&'a Self> for Montgomery<
         let carry = add_assign_carry(&mut self.y, &summand.y);
 
         if carry != 0 {
-            add_assign_carry(&mut self.y, &F);
+            // add_assign_carry(&mut self.y, &F);
+            self.y += &F;
         }
     }
 }
