@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+
+    - name: Check
+      run: |
+        cargo check
+        cargo check --features always-u32-digits
+        cargo check --release
+        cargo check --features always-u32-digits --release
+
+    - name: Test
+      run: |
+        cargo test
+        cargo test --features always-u32-digits
+        cargo test --release
+        cargo test --features always-u32-digits --release
+

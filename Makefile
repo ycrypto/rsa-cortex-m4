@@ -1,0 +1,2 @@
+test:
+	act -j ci
