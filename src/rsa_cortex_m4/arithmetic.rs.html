@@ -195,6 +195,7 @@
 <span id="176">176</span>
 <span id="177">177</span>
 <span id="178">178</span>
+<span id="179">179</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Modular arithmetic (for moduli that are either [`Convenient`] or word-sized powers-of-two).</span>
 <span class="doccomment">//!</span>
@@ -215,9 +216,10 @@
 
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">Convenient</span>, <span class="ident">Unsigned</span>};
 
+<span class="kw">mod</span> <span class="ident">shift</span>;
 <span class="kw">mod</span> <span class="ident">add</span>;
 <span class="kw">mod</span> <span class="ident">subtract</span>;
-<span class="kw">mod</span> <span class="ident">shift</span>;
+<span class="kw">mod</span> <span class="ident">montgomery</span>;
 <span class="kw">mod</span> <span class="ident">multiply</span>;
 <span class="kw">mod</span> <span class="ident">divide</span>;
 
@@ -293,7 +295,7 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// This uses incomplete reduction ([`Self::partially_reduce`]) for efficiency.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">modulo</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">F</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">G</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="self">self</span>, <span class="ident">n</span>: <span class="kw-2">&amp;</span><span class="ident">Convenient</span><span class="op">&lt;</span><span class="ident">F</span>, <span class="ident">G</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Modular</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">F</span>, <span class="ident">G</span><span class="op">&gt;</span> {
-        <span class="ident">Modular</span> { <span class="ident">x</span>: <span class="self">self</span>.<span class="ident">partially_reduce</span>(<span class="ident">n</span>), <span class="ident">n</span> }
+        <span class="ident">Modular</span> { <span class="ident">x</span>: <span class="self">self</span>.<span class="ident">partially_reduce</span>(), <span class="ident">n</span> }
     }
 
     <span class="doccomment">/// A noncanonical representative of the associated residue class modulo n.</span>
@@ -355,7 +357,7 @@
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">Modular</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">class</span>: <span class="ident">Modular</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
-        <span class="ident">class</span>.<span class="ident">lift</span>()
+        <span class="ident">class</span>.<span class="ident">canonical_lift</span>()
     }
 }
 

@@ -955,9 +955,9 @@
 <span class="kw">mod</span> <span class="ident">test</span> {
     <span class="kw">use</span> <span class="kw">super</span>::<span class="kw-2">*</span>;
 
-    <span class="kw">pub</span> <span class="kw">const</span> <span class="ident">N1</span>: <span class="ident">u32</span> <span class="op">=</span> <span class="op">-</span><span class="number">1i32</span> <span class="kw">as</span> <span class="ident">u32</span>;
-    <span class="kw">pub</span> <span class="kw">const</span> <span class="ident">N2</span>: <span class="ident">u32</span> <span class="op">=</span> <span class="op">-</span><span class="number">2i32</span> <span class="kw">as</span> <span class="ident">u32</span>;
-    <span class="kw">pub</span> <span class="kw">const</span> <span class="ident">M</span>: <span class="ident">u32</span> <span class="op">=</span> <span class="ident">u32</span>::<span class="ident">MAX</span>;
+    <span class="kw">pub</span> <span class="kw">const</span> <span class="ident">N1</span>: <span class="ident">Digit</span> <span class="op">=</span> <span class="op">-</span><span class="number">1i64</span> <span class="kw">as</span> <span class="ident">Digit</span>;
+    <span class="kw">pub</span> <span class="kw">const</span> <span class="ident">N2</span>: <span class="ident">Digit</span> <span class="op">=</span> <span class="op">-</span><span class="number">2i64</span> <span class="kw">as</span> <span class="ident">Digit</span>;
+    <span class="kw">pub</span> <span class="kw">const</span> <span class="ident">M</span>: <span class="ident">Digit</span> <span class="op">=</span> <span class="ident">Digit</span>::<span class="ident">MAX</span>;
 
     <span class="doccomment">/// Assert that an op works for all val/ref combinations</span>
     <span class="macro">macro_rules</span><span class="macro">!</span> <span class="ident">assert_op</span> {
@@ -980,7 +980,7 @@
     <span class="comment">//     }};</span>
     <span class="comment">// }</span>
 
-    <span class="kw">pub</span> <span class="kw">const</span> <span class="ident">MUL_TRIPLES</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [(<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [<span class="ident">u32</span>], <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [<span class="ident">u32</span>], <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [<span class="ident">u32</span>])] <span class="op">=</span> <span class="kw-2">&amp;</span>[
+    <span class="kw">pub</span> <span class="kw">const</span> <span class="ident">MUL_TRIPLES</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [(<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [<span class="ident">Digit</span>], <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [<span class="ident">Digit</span>], <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [<span class="ident">Digit</span>])] <span class="op">=</span> <span class="kw-2">&amp;</span>[
         (<span class="kw-2">&amp;</span>[], <span class="kw-2">&amp;</span>[], <span class="kw-2">&amp;</span>[]),
         (<span class="kw-2">&amp;</span>[], <span class="kw-2">&amp;</span>[<span class="number">1</span>], <span class="kw-2">&amp;</span>[]),
         (<span class="kw-2">&amp;</span>[<span class="number">2</span>], <span class="kw-2">&amp;</span>[], <span class="kw-2">&amp;</span>[]),
@@ -1005,10 +1005,10 @@
     ];
 
     <span class="kw">pub</span> <span class="kw">const</span> <span class="ident">DIV_REM_QUADRUPLES</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [(
-        <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [<span class="ident">u32</span>],
-        <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [<span class="ident">u32</span>],
-        <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [<span class="ident">u32</span>],
-        <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [<span class="ident">u32</span>],
+        <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [<span class="ident">Digit</span>],
+        <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [<span class="ident">Digit</span>],
+        <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [<span class="ident">Digit</span>],
+        <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [<span class="ident">Digit</span>],
     )] <span class="op">=</span> <span class="kw-2">&amp;</span>[
             (<span class="kw-2">&amp;</span>[<span class="number">1</span>], <span class="kw-2">&amp;</span>[<span class="number">2</span>], <span class="kw-2">&amp;</span>[], <span class="kw-2">&amp;</span>[<span class="number">1</span>]),
             (<span class="kw-2">&amp;</span>[<span class="number">3</span>], <span class="kw-2">&amp;</span>[<span class="number">2</span>], <span class="kw-2">&amp;</span>[<span class="number">1</span>], <span class="kw-2">&amp;</span>[<span class="number">1</span>]),
