@@ -413,9 +413,9 @@ impl<'a, const D: usize, const E: usize, const F: usize, const G: usize, const L
 mod test {
     use super::*;
 
-    pub const N1: u32 = -1i32 as u32;
-    pub const N2: u32 = -2i32 as u32;
-    pub const M: u32 = u32::MAX;
+    pub const N1: Digit = -1i64 as Digit;
+    pub const N2: Digit = -2i64 as Digit;
+    pub const M: Digit = Digit::MAX;
 
     /// Assert that an op works for all val/ref combinations
     macro_rules! assert_op {
@@ -438,7 +438,7 @@ mod test {
     //     }};
     // }
 
-    pub const MUL_TRIPLES: &'static [(&'static [u32], &'static [u32], &'static [u32])] = &[
+    pub const MUL_TRIPLES: &'static [(&'static [Digit], &'static [Digit], &'static [Digit])] = &[
         (&[], &[], &[]),
         (&[], &[1], &[]),
         (&[2], &[], &[]),
@@ -463,10 +463,10 @@ mod test {
     ];
 
     pub const DIV_REM_QUADRUPLES: &'static [(
-        &'static [u32],
-        &'static [u32],
-        &'static [u32],
-        &'static [u32],
+        &'static [Digit],
+        &'static [Digit],
+        &'static [Digit],
+        &'static [Digit],
     )] = &[
             (&[1], &[2], &[], &[1]),
             (&[3], &[2], &[1], &[1]),

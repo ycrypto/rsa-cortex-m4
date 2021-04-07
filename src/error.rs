@@ -1,3 +1,5 @@
+//! This library's [`Error`] and [`Result`] type.
+
 /// There is but one – failure 🤪.
 #[derive(Debug)]
 pub struct Error;

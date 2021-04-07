@@ -17,9 +17,10 @@ use zeroize::Zeroize;
 
 use crate::{Convenient, Unsigned};
 
+mod shift;
 mod add;
 mod subtract;
-mod shift;
+mod montgomery;
 mod multiply;
 mod divide;
 
@@ -95,7 +96,7 @@ impl<const D: usize, const E: usize> Unsigned<D, E> {
     ///
     /// This uses incomplete reduction ([`Self::partially_reduce`]) for efficiency.
     pub fn modulo<const F: usize, const G: usize>(self, n: &Convenient<F, G>) -> Modular<'_, F, G> {
-        Modular { x: self.partially_reduce(n), n }
+        Modular { x: self.partially_reduce(), n }
     }
 
     /// A noncanonical representative of the associated residue class modulo n.
@@ -157,7 +158,7 @@ impl<'n, const D: usize, const E: usize> Montgomery<'n, D, E> {
 
 impl<const D: usize, const E: usize> From<Modular<'_, D, E>> for Unsigned<D, E> {
     fn from(class: Modular<'_, D, E>) -> Self {
-        class.lift()
+        class.canonical_lift()
     }
 }
 

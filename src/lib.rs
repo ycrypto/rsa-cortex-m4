@@ -17,33 +17,36 @@ pub use numbers::{
 };
 
 /// A word on the machine. [`Unsigned`] is composed of many digits.
+#[cfg(feature = "always-u32-digits")]
+pub type Digit = u32;
+#[cfg(not(feature = "always-u32-digits"))]
 pub type Digit = usize;
 
 // The DIGIT_SIZE_CHECK is a compile-time assertion
 // that Digit is of expected bit size.
 
-#[cfg(target_pointer_width = "16")]
-#[allow(dead_code)]
-const DIGIT_SIZE_CHECK: usize = (core::mem::size_of::<Digit>() == core::mem::size_of::<u16>()) as usize - 1;
-#[cfg(target_pointer_width = "16")]
-pub(crate) type DoubleDigit = u32;
-#[cfg(target_pointer_width = "16")]
-pub(crate) type SignedDoubleDigit = i32;
+// #[cfg(target_pointer_width = "16")]
+// #[allow(dead_code)]
+// const DIGIT_SIZE_CHECK: usize = (core::mem::size_of::<Digit>() == core::mem::size_of::<u16>()) as usize - 1;
+// #[cfg(target_pointer_width = "16")]
+// pub(crate) type DoubleDigit = u32;
+// #[cfg(target_pointer_width = "16")]
+// pub(crate) type SignedDoubleDigit = i32;
 
-#[cfg(target_pointer_width = "32")]
+#[cfg(any(target_pointer_width = "32", feature = "always-u32-digits"))]
 #[allow(dead_code)]
 const DIGIT_SIZE_CHECK: usize = (core::mem::size_of::<Digit>() == core::mem::size_of::<u32>()) as usize - 1;
-#[cfg(target_pointer_width = "32")]
+#[cfg(any(target_pointer_width = "32", feature = "always-u32-digits"))]
 pub(crate) type DoubleDigit = u64;
-#[cfg(target_pointer_width = "32")]
+#[cfg(any(target_pointer_width = "32", feature = "always-u32-digits"))]
 pub(crate) type SignedDoubleDigit = i64;
 
-#[cfg(target_pointer_width = "64")]
+#[cfg(all(target_pointer_width = "64", not(feature = "always-u32-digits")))]
 #[allow(dead_code)]
 const DIGIT_SIZE_CHECK: usize = (core::mem::size_of::<Digit>() == core::mem::size_of::<u64>()) as usize - 1;
-#[cfg(target_pointer_width = "64")]
+#[cfg(all(target_pointer_width = "64", not(feature = "always-u32-digits")))]
 pub(crate) type DoubleDigit = u128;
-#[cfg(target_pointer_width = "64")]
+#[cfg(all(target_pointer_width = "64", not(feature = "always-u32-digits")))]
 pub(crate) type SignedDoubleDigit = i128;
 
 // mod primitive;
@@ -56,4 +59,4 @@ pub(crate) type SignedDoubleDigit = i128;
 /// An example recommendation to do so is RFC 4871: <https://www.ietf.org/rfc/rfc4871.txt>,
 /// more generally, there seems no need to have too many knobs to turn.
 ///
-pub const F4: u32 = 0x10001;
+pub const F4: Digit = 0x1_0001;

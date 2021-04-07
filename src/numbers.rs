@@ -670,12 +670,26 @@ pub trait Zero: Sized + PartialEq {
     fn set_zero(&mut self) { *self = Self::zero(); }
 }
 
+impl One for Digit {
+    #[inline]
+    fn one() -> Self {
+        1
+    }
+}
+
 // impl<const L: usize> One for Unsigned<L> {
 impl<T: NumberMut + Default + PartialEq> One for T {
     fn one() -> Self {
         let mut one = Self::default();
         one[0] = 1;
         one
+    }
+}
+
+impl Zero for Digit {
+    #[inline]
+    fn zero() -> Self {
+        0
     }
 }
 
@@ -691,10 +705,10 @@ impl<T: Number + Default + PartialEq> Zero for T {
 
 #[cfg(test)]
 mod test {
-    use core::convert::TryFrom;
     use super::*;
 
     #[test]
+    #[cfg(target_pointer_width = "32")]
     fn debug() {
         let u = Short::from([0x76543210, 0xFEDCBA98]);
         assert_eq!(format!("{:X?}", u), "[FE, DC, BA, 98, 76, 54, 32, 10]");
@@ -718,8 +732,10 @@ mod test {
     }
 
     #[test]
+    #[cfg(target_pointer_width = "32")]
     fn partial_eq() {
-        let d = 1u32 << 31;
+        use core::convert::TryFrom;
+        let d = (1 as Digit) << 31;
         let p = Prime(Convenient::try_from(Short::from([17, d])).unwrap());
         let u = Short::from([17, d]);
         assert_eq!(&p.0.0, &u);
