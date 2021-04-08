@@ -13,9 +13,10 @@
 
 use core::ops::{Deref, DerefMut};
 
+use ref_cast::RefCast;
 use zeroize::Zeroize;
 
-use crate::{Digit, DoubleDigit, Error, Result};
+use crate::{Digit, Error, Result};
 
 mod trait_implementations;
 
@@ -53,10 +54,12 @@ pub struct Unsigned<const D: usize, const E: usize> {  // this is a kind of "dua
 
 // pub struct MultiDual<const D: usize, const E: usize, const L: usize>([Dual<D, E>; L]);
 
-// #[repr(C)]
-// pub struct Odd<const D: usize, const E: usize>(Unsigned<D, E>);
+#[repr(transparent)]
+#[derive(RefCast)]
+pub struct Odd<const D: usize, const E: usize>(pub(crate) Unsigned<D, E>);
 
-#[repr(C)]
+#[repr(transparent)]
+#[derive(RefCast)]
 /// Unsigned numbers with both their top and bottom bits set – highly convenient for modular
 /// arithmetic!
 ///
@@ -76,9 +79,10 @@ pub struct Unsigned<const D: usize, const E: usize> {  // this is a kind of "dua
 /// $T := S + F < (2^m - 2) + 2^{m - 1} < 2^{m - 1}$.
 ///
 /// [yanik-savas-koc]: https://api.semanticscholar.org/CorpusID:17543811
-pub struct Convenient<const D: usize, const E: usize>(Unsigned<D, E>);
+pub struct Convenient<const D: usize, const E: usize>(Odd<D, E>);
 
-#[repr(C)]
+#[repr(transparent)]
+#[derive(RefCast)]
 /// Prime number (passing primality tests); convenient by definition.
 pub struct Prime<const P: usize>(Convenient<P, 0>);
 
@@ -209,7 +213,7 @@ pub type Product<const D: usize, const E: usize> = Array<D, E, 2>;
 
 //}
 
-pub unsafe trait Number: Deref<Target = [Digit]> { //+ One + Zero + PartialEq + PartialOrd {
+pub unsafe trait Number: Deref<Target = [Digit]> + core::fmt::Debug { //+ One + Zero + PartialEq + PartialOrd {
 
     const CAPACITY: usize;
 
@@ -260,6 +264,17 @@ pub unsafe trait Number: Deref<Target = [Digit]> { //+ One + Zero + PartialEq + 
     /// actually panics, bar implementation errors.
     fn into_unsigned<const D: usize, const E: usize>(&self) -> Unsigned<D, E> {
         self.try_into_unsigned().unwrap()
+    }
+
+    fn is_odd(&self) -> bool {
+        if self.len() == 0 {
+            return false
+        }
+        // odd
+        if self.number()[0] & 1 == 0 {
+            return false
+        }
+        true
     }
 
 }
@@ -314,6 +329,19 @@ pub trait FromSlice: NumberMut + Zero {
         owned
     }
 }
+
+impl<const D: usize, const E: usize> FromSlice for Unsigned<D, E> {}
+impl<const D: usize, const E: usize, const L: usize> FromSlice for Array<D, E, L> {}
+
+// impl FromSlice for NumberMut {
+
+//     fn from_slice(slice: &[Digit]) -> Self {
+//         let mut owned = Self::zero();
+//         owned[..slice.len()].copy_from_slice(slice);
+//         owned.cache_len();
+//         owned
+//     }
+// }
 
 // /// This datum has multiple limbs, and they're all differently sized ;)
 // /// All the same, its digits have an order: $[a_0, a_1,... a_{A-1}, b_0, ... c_{C - 1}]$.
@@ -477,9 +505,6 @@ impl<const D: usize, const E: usize, const L: usize> NumberMut for Array<D, E, L
 //     }
 // }
 
-impl<const D: usize, const E: usize> FromSlice for Unsigned<D, E> {}
-impl<const D: usize, const E: usize, const L: usize> FromSlice for Array<D, E, L> {}
-
 /// Fails for D + E = 0, bound not expressable.
 impl<const D: usize, const E: usize> From<Digit> for Unsigned<D, E> {
     fn from(unsigned: Digit) -> Self {
@@ -500,13 +525,25 @@ impl<const D: usize, const E: usize> From<[Digit; D]> for Unsigned<D, E> {
 }
 
 /// Representation of [`Unsigned`] as big-endian bytes.
-#[repr(C)]
+#[repr(transparent)]
+#[derive(RefCast)]
 pub struct BigEndian<const D: usize, const E: usize>(Unsigned<D, E>);
+
+#[repr(transparent)]
+#[derive(RefCast)]
+pub struct BigEndianArray<const D: usize, const E: usize, const L: usize>(Array<D, E, L>);
 
 impl<const D: usize, const E: usize> BigEndian<D, E> {
     /// TODO: consider truncating leading zero bytes (needs some pointer arithmetique)
     pub fn as_be_bytes(&self) -> &[u8] {
         unsafe { core::slice::from_raw_parts(&self.0[0] as *const Digit as _, core::mem::size_of::<Digit>() * (D + E)) }
+    }
+}
+
+impl<const D: usize, const E: usize, const L: usize> BigEndianArray<D, E, L> {
+    /// TODO: consider truncating leading zero bytes (needs some pointer arithmetique)
+    pub fn as_be_bytes(&self) -> &[u8] {
+        unsafe { core::slice::from_raw_parts(&self.0[0] as *const Digit as _, core::mem::size_of::<Digit>() * (D + E) * L) }
     }
 }
 
@@ -524,7 +561,26 @@ impl<const D: usize, const E: usize> Unsigned<D, E> {
         let l = self.len();
         for i in 0..l {
             // "On big endian this is a no-op. On little endian the bytes are swapped."
-            big_endian.0[l - i - 1] = Digit::from_be(self[i]);
+            big_endian.0[Self::CAPACITY - i - 1] = Digit::from_be(self[i]);
+        }
+        big_endian
+    }
+}
+
+impl<const D: usize, const E: usize, const L: usize> Array<D, E, L> {
+    /// TODO: consider `into_be_bytes`, reusing the buffer.
+    ///
+    /// i.e.
+    /// - swap words + endianness on self.0
+    /// - return BigEndian(self.0)
+    fn to_be_bytes(&self) -> BigEndianArray<D, E, L> {
+        let mut big_endian = BigEndianArray(Zero::zero());
+        // we need to store word such that it bytes are big-endian, whatever
+        // the native architecture (although PC/Cortex are both little-endian).
+        let l = self.len();
+        for i in 0..l {
+            // "On big endian this is a no-op. On little endian the bytes are swapped."
+            big_endian.0[Self::CAPACITY - i - 1] = Digit::from_be(self[i]);
         }
         big_endian
     }

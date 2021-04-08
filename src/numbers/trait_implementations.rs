@@ -1,15 +1,27 @@
 use core::{cmp::Ordering, convert::TryFrom, fmt, ops::{Deref, DerefMut}};
 
-use super::{Array, Bits, Convenient, Digit, DoubleDigit, Number, NumberMut, Prime, Unsigned};
+use ref_cast::RefCast;
+
+use super::{Array, Bits, Convenient, Digit, Number, NumberMut, Odd, Prime, Unsigned};
 use crate::{Error, Result};
 
 
-impl Bits for Digit {
-    const BITS: usize = core::mem::size_of::<Digit>() * 8;
+#[cfg(target_pointer_width = "32")]
+impl Bits for usize {
+    const BITS: usize = 32;
 }
 
-impl Bits for DoubleDigit {
-    const BITS: usize = core::mem::size_of::<DoubleDigit>() * 8;
+#[cfg(target_pointer_width = "64")]
+impl Bits for usize {
+    const BITS: usize = 64;
+}
+
+impl Bits for u32 {
+    const BITS: usize = 32;
+}
+
+impl Bits for u128 {
+    const BITS: usize = 128;
 }
 
 impl<const D: usize, const E: usize> Bits for Unsigned<D, E> {
@@ -74,6 +86,19 @@ impl<const D: usize, const E: usize> DerefMut for Convenient<D, E> {
     }
 }
 
+impl<const D: usize, const E: usize> Deref for Odd<D, E> {
+    type Target = Unsigned<D, E>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<const D: usize, const E: usize> DerefMut for Odd<D, E> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 impl<const D: usize> Deref for Prime<D> {
     type Target = Convenient<D, 0>;
     fn deref(&self) -> &Self::Target {
@@ -87,28 +112,27 @@ impl<const D: usize> DerefMut for Prime<D> {
     }
 }
 
-// impl<const D: usize, const E: usize> TryFrom<Unsigned<D, E>> for Odd<D, E> {
-//     type Error = Error;
-//     /// Enforces odd parity.
-//     fn try_from(unsigned: Unsigned<D, E>) -> Result<Self> {
-//         use super::Zero;
-//         // non-zero (so we can index in next step)
-//         if unsigned.is_zero() {
-//             return Err(Error);
-//         }
-//         // odd
-//         if unsigned[0] & 1 == 0 {
-//             return Err(Error);
-//         }
-//         Ok(Self(unsigned))
-//     }
-// }
+impl<const D: usize, const E: usize> TryFrom<Unsigned<D, E>> for Odd<D, E> {
+    type Error = Error;
+    /// Enforces odd parity.
+    fn try_from(unsigned: Unsigned<D, E>) -> Result<Self> {
+        unsigned.is_odd().then(|| Odd(unsigned)).ok_or(Error)
+    }
+}
 
-// impl<const D: usize, const E: usize> From<Odd<D, E>> for Unsigned<D, E> {
-//     fn from(odd: Odd<D, E>) -> Self {
-//         odd.0
-//     }
-// }
+impl<'a, const D: usize, const E: usize> TryFrom<&'a Unsigned<D, E>> for &'a Odd<D, E> {
+    type Error = Error;
+    /// Enforces odd parity.
+    fn try_from(unsigned: &'a Unsigned<D, E>) -> Result<Self> {
+        unsigned.is_odd().then(|| Odd::ref_cast(unsigned)).ok_or(Error)
+    }
+}
+
+impl<const D: usize, const E: usize> From<Odd<D, E>> for Unsigned<D, E> {
+    fn from(odd: Odd<D, E>) -> Self {
+        odd.0
+    }
+}
 
 impl<const D: usize, const E: usize> TryFrom<Unsigned<D, E>> for Convenient<D, E> {
     type Error = Error;
@@ -125,13 +149,13 @@ impl<const D: usize, const E: usize> TryFrom<Unsigned<D, E>> for Convenient<D, E
         if unsigned.leading_digit().unwrap() >> (Digit::BITS - 1) == 0 {
             return Err(Error);
         }
-        Ok(Self(unsigned))
+        Ok(Self(Odd(unsigned)))
     }
 }
 
 impl<const D: usize, const E: usize> From<Convenient<D, E>> for Unsigned<D, E> {
     fn from(convenient: Convenient<D, E>) -> Self {
-        convenient.0
+        convenient.0.0
     }
 }
 
@@ -268,6 +292,14 @@ impl<const D: usize, const E: usize, const L: usize> Default for Array<D, E, L> 
 }
 
 impl<const D: usize, const E: usize> fmt::Debug for Unsigned<D, E> {
+    /// TODO: Do we want debug output to be big-endian bytes (as currently implemented)?
+    /// Or stick with internal representation?
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(self.to_be_bytes().as_be_bytes(), f)
+    }
+}
+
+impl<const D: usize, const E: usize, const L: usize> fmt::Debug for Array<D, E, L> {
     /// TODO: Do we want debug output to be big-endian bytes (as currently implemented)?
     /// Or stick with internal representation?
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

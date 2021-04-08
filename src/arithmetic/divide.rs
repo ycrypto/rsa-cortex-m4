@@ -1,8 +1,38 @@
-use core::{cmp::Ordering, ops::{Div, Rem}};
+use core::{cmp::Ordering, convert::TryInto, ops::{Div, Rem}};
 
-use crate::{Digit, DoubleDigit, Unsigned};
+use crate::{Digit, DoubleDigit, Odd, Result, Unsigned};
 use crate::numbers::{Array, Bits, FromSlice, Number, NumberMut, One, Zero};
 
+// pub fn invert<T>(x: &T) -> T
+// where
+//     T: NumberMut + One,
+//     for<'a> &'a T: core::ops::Add<Output = T>,
+//     for<'a> &'a T: core::ops::Sub<Output = T>,
+//     for<'a> &'a T: core::ops::Mul<Output = T>,
+//     for<'a> T: core::ops::MulAssign<&'a T>,
+// {
+/// Odd numbers can be inverted modulo $2^m$
+pub fn invert_odd<const D: usize, const E: usize>(x: &Odd<D, E>) -> Odd<D, E> {
+    use super::multiply::dropping_mul;
+    #[allow(non_snake_case)]
+    let T = (D + E) * (Digit::BITS.trailing_zeros() as usize);
+
+    let x: &Unsigned<D, E> = &*x;
+    let mut y: Unsigned<D, E> = One::one();
+    let two = &y + &y;
+
+    for _ in 1..=T {
+        // y = &y * &(&two - &(x * &y));
+        y = dropping_mul(&y, &(&two - &dropping_mul(x, &y)));
+    }
+    Odd(y)
+}
+
+#[allow(dead_code)]
+pub fn invert<const D: usize, const E: usize>(unsigned: &Unsigned<D, E>) -> Result<Unsigned<D, E>> {
+    let odd: &Odd<D, E> = unsigned.try_into()?;
+    Ok(invert_odd(odd).into())
+}
 // /// Input:  x = (x_0,x_1,...,x_n), n = (n_0,n_1, ...n_t, 0, ...0), 1 <= t <= L, yt != 0
 // /// Output: q = (q_0,q_1,...,q_{n-t}), r = (r_0,r_1,...r_t) with x=qy+r, 0<=r<y
 // fn div_rem<const L: usize>(x: &mut Unsigned<L>, n: &Odd<L>) -> (Unsigned<L>, Unsigned<L>) {
@@ -518,5 +548,29 @@ mod test {
                 assert!(generic_div_rem(&a, &b) == (c, d));
             }
         }
+    }
+
+    #[test]
+    fn test_invert() {
+        use crate::Long;
+
+        #[cfg(any(target_pointer_width = "32", feature = "always-u32-digits"))]
+        let x = Long::<4>::from_slice(
+            &[0xb581f62d, 0x30a5bea0, 0x1ec39332, 0x825c3782, 0xff46a3d1, 0x481cd99e, 0x2952164f, 0x2f7c30a3]);
+
+        #[cfg(all(target_pointer_width = "64", not(feature = "always-u32-digits")))]
+        let x = Long::<2>::from_slice(
+            &[0x9881a570678b33bb, 0xc071fc5a0d75de20, 0xae8303747b3db15d, 0x756a33dea26163df]);
+
+        // unwrap does not fail since x is odd.
+        let maybe_inverse = invert(&x).unwrap();
+        let maybe_one = crate::arithmetic::multiply::dropping_mul(&maybe_inverse, &x);
+
+        assert_eq!(maybe_one, Long::<2>::one());
+
+        // even numbers not invertible
+        let x = Long::<2>::from_slice(&[0x2, 0x1]);
+        assert!(invert(&x).is_err());
+
     }
 }

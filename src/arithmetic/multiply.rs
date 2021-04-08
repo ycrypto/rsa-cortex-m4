@@ -6,24 +6,29 @@ use crate::numbers::{Bits, Number, NumberMut, Product, Zero};
 /// This just drops (saturates?) if `lhs * rhs` does not fit in a U.
 pub(crate) fn dropping_mul<U, V>(lhs: &U, rhs: &V) -> U
 where
-    U: NumberMut + Zero,
-    V: Number,
+    U: NumberMut + Zero + core::fmt::Debug,
+    V: Number + core::fmt::Debug,
 {
     let mut product: U = Zero::zero();
-    let mut accumulator = DoubleDigit::default();
 
-    for k in 0..U::CAPACITY {
-        // TODO: figure out proper loop (although maybe the compiler is smart enough?)
-        for i in 0..lhs.len() {
-            for j in 0..rhs.len() {
-                if i + j == k {
-                    accumulator += (lhs[i] as DoubleDigit) * (rhs[j] as DoubleDigit);
-                }
-            }
+    // #[cfg(test)]
+    // println!("BITS = {:?}", Digit::BITS);
+    // #[cfg(test)]
+    // println!("U = {:?}", lhs);
+    // #[cfg(test)]
+    // println!("V = {:?}", rhs);
+
+    for j in 0..core::cmp::min(U::CAPACITY, rhs.len()) {
+        let yj = rhs[j] as DoubleDigit;
+        let mut accumulator = 0;
+        for i in 0..(U::CAPACITY - j) {
+            let xi = lhs.padded_number()[i] as DoubleDigit;
+            accumulator += (product.padded_number()[i + j] as DoubleDigit) + xi*yj;
+            product[i + j] = accumulator as Digit;
+            accumulator >>= Digit::BITS;
         }
-        product[k] = accumulator as Digit;
-        accumulator = accumulator >> Digit::BITS;
     }
+
     product
 }
 

@@ -13,7 +13,7 @@ pub mod numbers;
 pub use numbers::{
     // Number ,NumberMut,
     // Array,
-    Convenient, Long, Prime, Short, Unsigned,
+    Convenient, Long, Odd, Prime, Short, Unsigned,
 };
 
 /// A word on the machine. [`Unsigned`] is composed of many digits.
