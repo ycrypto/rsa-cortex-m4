@@ -1,6 +1,8 @@
 use core::ops::{Add, AddAssign};
 
-use crate::{Digit, DoubleDigit, Modular, Montgomery, Unsigned};
+use ref_cast::RefCast;
+
+use crate::{Digit, DoubleDigit, Modular, Montgomery, Unsigned, Wrapping};
 use crate::numbers::Bits;
 use crate::umaal;
 
@@ -54,9 +56,15 @@ pub fn adc(a: Digit, b: Digit, acc: &mut DoubleDigit) -> Digit {
 // our signature:
 // pub fn addc(a: u32, b: u32, c: &mut u32, r: &mut u32)
 
-// This is perhaps too general - we always use equal length slices I believe.
 #[inline]
-pub fn add_assign_carry(a: &mut [Digit], b: &[Digit]) -> Digit {
+/// /Two argument addition of raw slices:
+/// a += b
+///
+/// The caller _must_ ensure that a is big enough to store the result - typically this means
+/// resizing a to max(a.len(), b.len()) + 1, to fit a possible carry.
+///
+/// TODO: should this return a result (Err(digit) if digit != 0) to enforce explicit handling?
+fn add_assign_carry(a: &mut [Digit], b: &[Digit]) -> Digit {
     debug_assert!(a.len() >= b.len());
 
     let mut carry = 0;
@@ -78,35 +86,57 @@ pub fn add_assign_carry(a: &mut [Digit], b: &[Digit]) -> Digit {
     carry as Digit
 }
 
-/// /Two argument addition of raw slices:
-/// a += b
-///
-/// The caller _must_ ensure that a is big enough to store the result - typically this means
-/// resizing a to max(a.len(), b.len()) + 1, to fit a possible carry.
-pub fn add_assign(a: &mut [Digit], b: &[Digit]) {
-    let carry = add_assign_carry(a, b);
+// #[inline]
+// pub(crate) fn checking_add_assign(a: &mut [Digit], b: &[Digit]) {
+//     let carry = add_assign_carry(a, b);
+//     debug_assert!(carry == 0);
+// }
 
-    debug_assert!(carry == 0);
+#[inline]
+pub(crate) fn wrapping_add_assign(a: &mut [Digit], b: &[Digit]) {
+    add_assign_carry(a, b);
 }
-
 
 
 // Addition in Unsigned / 2^M
 
-impl<const D: usize, const E: usize> AddAssign<&Unsigned<D, E>> for Unsigned<D, E> {
+impl<const D: usize, const E: usize> AddAssign<&Self> for Wrapping<Unsigned<D, E>>
+{
     fn add_assign(&mut self, summand: &Self) {
-        add_assign_carry(self, summand);
+        wrapping_add_assign(&mut self.0, &summand.0);
     }
 }
 
-impl<const D: usize, const E: usize> Add for &Unsigned<D, E> {
-    type Output = Unsigned<D, E>;
+// std-lib does `Add<&'_ Wrapping<Unsigned<D, E>>> for &Wrapping<Unsigned<D, E>>` here.
+// Not sure what the use is, as the output is owned.
+// impl<const D: usize, const E: usize> Add<&'_ Wrapping<Unsigned<D, E>>> for &Wrapping<Unsigned<D, E>> {
+impl<const D: usize, const E: usize> Add for &Wrapping<Unsigned<D, E>> {
+    type Output = Wrapping<Unsigned<D, E>>;
 
+    // fn add(self, summand: &Wrapping<Unsigned<D, E>>) -> Self::Output {
     fn add(self, summand: Self) -> Self::Output {
 
         let mut sum = self.clone();
         sum += &summand;
+        sum
+    }
+}
 
+impl<const D: usize, const E: usize> Unsigned<D, E> {
+
+    pub fn checked_add(&self, summand: &Self) -> Option<Self> {
+        let mut sum = self.clone();
+        let carry = add_assign_carry(&mut sum, summand);
+        (carry != 0).then(|| sum)
+    }
+
+    pub fn wrapping_add_assign(&mut self, summand: &Self) {
+        *Wrapping::ref_cast_mut(self) += Wrapping::ref_cast(summand);
+    }
+
+    pub fn wrapping_add(&self, summand: &Self) -> Self {
+        let mut sum = self.clone();
+        sum.wrapping_add_assign(summand);
         sum
     }
 }
@@ -121,8 +151,8 @@ impl<'a, 'n, const D: usize, const E: usize> AddAssign<&'a Self> for Modular<'n,
         debug_assert_eq!(**self.n, **summand.n);
 
         #[allow(non_snake_case)]
+        let F = self.n.wrapping_neg();
         // F = 2^m - p, i.e., -n
-        let F = -&**self.n;
 
         // step 3
         let carry = add_assign_carry(&mut self.x, &summand.x);
@@ -178,14 +208,14 @@ impl<'a, 'n, const D: usize, const E: usize> AddAssign<&'a Self> for Montgomery<
         debug_assert_eq!(**self.n, **summand.n);
 
         #[allow(non_snake_case)]
-        let F = -&**self.n;
+        let F = self.n.wrapping_neg();
 
         // step 3
         let carry = add_assign_carry(&mut self.y, &summand.y);
 
         if carry != 0 {
-            // add_assign_carry(&mut self.y, &F);
-            self.y += &F;
+            add_assign_carry(&mut self.y, &F);
+            // self.y += &F;
         }
     }
 }

@@ -1,6 +1,8 @@
 use core::ops::{Neg, Sub, SubAssign};
 
-use crate::{Digit, Modular, Montgomery, SignedDoubleDigit, Unsigned};
+use ref_cast::RefCast;
+
+use crate::{Digit, Modular, Montgomery, SignedDoubleDigit, Unsigned, Wrapping};
 use crate::numbers::{Array, Bits, Number};
 
 
@@ -100,7 +102,7 @@ pub fn sub_assign_borrow(a: &mut [Digit], b: &[Digit]) -> Digit {
 /// and, where we're called, minuend >= subtrahend, and hence minuend.len() >= subtrahend.len().
 ///
 /// This is needed to make the implementation of sub_assign_borrow (with dropped borrow) valid.
-impl<T, const D: usize, const E: usize> SubAssign<&T> for Unsigned<D, E>
+impl<T, const D: usize, const E: usize> SubAssign<&T> for Wrapping<Unsigned<D, E>>
 where
     T: Number,
 // impl<const D: usize, const E: usize> SubAssign<&Unsigned<D, E>> for Unsigned<D, E>
@@ -109,30 +111,49 @@ where
     // fn sub_assign(&mut self, subtrahend: &Unsigned<D, E>) {
         // sub_assign_borrow(self.padded_number_mut(), subtrahend.padded_number());
         // sub_assign_borrow(self.padded_number_mut(), subtrahend.padded_number());
-        sub_assign_borrow(self, subtrahend);
+        sub_assign_borrow(&mut self.0, subtrahend);
     }
 }
 
-// impl<T, const D: usize, const E: usize> Sub<&T> for &Unsigned<D, E>
-// where
-//     T: NumberMut,
-impl<const D: usize, const E: usize> Sub for &Unsigned<D, E>
+impl<const D: usize, const E: usize> Sub for &Wrapping<Unsigned<D, E>>
 {
-    type Output = Unsigned<D, E>;
+    type Output = Wrapping<Unsigned<D, E>>;
 
-    // fn sub(self, other: &T) -> Self::Output {
-    fn sub(self, subtrahend: &Unsigned<D, E>) -> Self::Output {
+    fn sub(self, subtrahend: Self) -> Self::Output {
         let mut difference = self.clone();
         difference -= subtrahend;
         difference
     }
 }
 
-impl<const D: usize, const E: usize> Neg for &Unsigned<D, E> {
-    type Output = Unsigned<D, E>;
+impl<const D: usize, const E: usize> Neg for &Wrapping<Unsigned<D, E>> {
+    type Output = Wrapping<Unsigned<D, E>>;
 
     fn neg(self) -> Self::Output {
+        use crate::numbers::Zero;
         &Self::Output::zero() - self
+    }
+}
+
+impl<const D: usize, const E: usize> Unsigned<D, E> {
+    pub fn wrapping_neg(&self) -> Self {
+        Wrapping::ref_cast(self).neg().0
+    }
+
+    pub fn checked_sub(&self, subtrahend: &Self) -> Option<Self> {
+        let mut difference = self.clone();
+        let borrow = sub_assign_borrow(&mut difference, subtrahend);
+        (borrow != 0).then(|| difference)
+    }
+
+    pub fn wrapping_sub_assign(&mut self, subtrahend: &Self) {
+        *Wrapping::ref_cast_mut(self) -= Wrapping::ref_cast(subtrahend);
+    }
+
+    pub fn wrapping_sub(&self, subtrahend: &Self) -> Self {
+        let mut difference = self.clone();
+        difference.wrapping_sub_assign(subtrahend);
+        difference
     }
 }
 
@@ -140,7 +161,7 @@ impl<const D: usize, const E: usize> Neg for &Unsigned<D, E> {
 // Exactly like Unsigned
 
 /// TODO: See remark about SubAssign for Unsigned<D, E>
-impl<T, const D: usize, const E: usize, const L: usize> SubAssign<&T> for Array<D, E, L>
+impl<T, const D: usize, const E: usize, const L: usize> SubAssign<&T> for Wrapping<Array<D, E, L>>
 where
     T: Number,
 // impl<const D: usize, const E: usize, const L: usize> SubAssign<&Array<D, E, L>> for Array<D, E, L>
@@ -148,23 +169,39 @@ where
     fn sub_assign(&mut self, other: &T) {
     // fn sub_assign(&mut self, other: &Self) {
         debug_assert!(self.len() >= other.len());
-        sub_assign_borrow(self, other);
+        sub_assign_borrow(&mut self.0, other);
     }
 }
 
 // impl<T, const D: usize, const E: usize, const L: usize> Sub<&T> for &Array<D, E, L>
 // where
 //     T: Number,
-impl<const D: usize, const E: usize, const L: usize> Sub for &Array<D, E, L>
+impl<const D: usize, const E: usize, const L: usize> Sub for &Wrapping<Array<D, E, L>>
 {
-    type Output = Array<D, E, L>;
+    type Output = Wrapping<Array<D, E, L>>;
 
     // fn sub(self, other: &T) -> Self::Output {
-    fn sub(self, other: &Array<D, E, L>) -> Self::Output {
+    fn sub(self, other: Self) -> Self::Output {
         let mut difference = self.clone();
         difference -= other;
         difference
     }
+}
+
+impl<const D: usize, const E: usize, const L: usize> Array<D, E, L> {
+    // pub fn wrapping_neg(&self) -> Self {
+    //     Wrapping::ref_cast(self).neg().0
+    // }
+
+    pub fn wrapping_sub_assign<T: Number>(&mut self, subtrahend: &T) {
+        *Wrapping::ref_cast_mut(self) -= Wrapping::ref_cast(subtrahend);
+    }
+
+    // pub fn wrapping_sub(&self, subtrahend: &Self) -> Self {
+    //     let mut difference = self.clone();
+    //     difference.wrapping_sub_assign(subtrahend);
+    //     difference
+    // }
 }
 
 // impl<T, const D: usize, const E: usize, const L: usize> SubAssign<&T> for Array<D, E, L>
@@ -211,15 +248,14 @@ impl<'a, 'n, const D: usize, const E: usize> SubAssign<&'a Self> for Modular<'n,
 
         #[allow(non_snake_case)]
         // G = 2p - 2^m, i.e., 2n
-        let G = &**self.n + &**self.n;
+        let G = self.n.wrapping_add(&self.n);
 
         // step 3
         let borrow = sub_assign_borrow(&mut self.x, &subtrahend.x);
 
         // TODO: consider making this constant time.
         if borrow != 0 {
-            self.x += &G;
-            // super::add::add_assign_carry(&mut self.x, &G);
+            self.x.wrapping_add(&G);
         }
     }
 }
@@ -270,15 +306,14 @@ impl<'a, 'n, const D: usize, const E: usize> SubAssign<&'a Self> for Montgomery<
 
         #[allow(non_snake_case)]
         // G = 2p - 2^m, i.e., 2n
-        let G = &**self.n + &**self.n;
+        let G = self.n.wrapping_add(&self.n);
 
         // step 3
         let borrow = sub_assign_borrow(&mut self.y, &subtrahend.y);
 
         // TODO: consider making this constant time.
         if borrow != 0 {
-            self.y += &G;
-            // super::add::add_assign_carry(&mut self.x, &G);
+            self.y.wrapping_add(&G);
         }
     }
 }

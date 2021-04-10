@@ -1,10 +1,12 @@
 use core::ops::Mul;
 
-use crate::{Digit, DoubleDigit, Modular, Montgomery, Unsigned};
+use ref_cast::RefCast;
+
+use crate::{Digit, DoubleDigit, Modular, Montgomery, Unsigned, Wrapping};
 use crate::numbers::{Bits, Number, NumberMut, Product, Zero};
 
-/// This just drops (saturates?) if `lhs * rhs` does not fit in a U.
-pub(crate) fn dropping_mul<U, V>(lhs: &U, rhs: &V) -> U
+/// This just drops higher digits if `lhs * rhs` does not fit in a U.
+pub(crate) fn wrapping_mul<U, V>(lhs: &U, rhs: &V) -> U
 where
     U: NumberMut + Zero + core::fmt::Debug,
     V: Number + core::fmt::Debug,
@@ -90,16 +92,24 @@ fn carrying_mul<const D: usize, const E: usize>(lhs: &Unsigned<D, E>, rhs: &Unsi
     // THE BELOW WORKS, JUST NOT RAM-EFFICIENT
     // let lhs = Product::<D, E>::from_slice(lhs);
     // let rhs = Product::<D, E>::from_slice(rhs);
-    // let product = dropping_mul(&lhs, &rhs);
+    // let product = wrapping_mul(&lhs, &rhs);
     // product
 
+}
+
+impl <const D: usize, const E: usize> Mul for &Wrapping<Unsigned<D, E>> {
+    type Output = Wrapping<Unsigned<D, E>>;
+
+    fn mul(self, other: Self) -> Self::Output {
+        Wrapping(wrapping_mul(&self.0, &other.0))
+    }
 }
 
 impl <const D: usize, const E: usize> Mul for &Unsigned<D, E> {
 
     type Output = Product<D, E>;
 
-    /// product-scanning implementation of multiplication
+    /// *not* product-scanning implementation of multiplication, that overflowed
     fn mul(self, other: Self) -> Self::Output {
         carrying_mul(self, other)
         // let mut product = Product::default();
@@ -118,6 +128,12 @@ impl <const D: usize, const E: usize> Mul for &Unsigned<D, E> {
         //     accumulator = accumulator >> Digit::BITS;
         // }
         // product
+    }
+}
+
+impl <const D: usize, const E: usize> Unsigned<D, E> {
+    pub fn wrapping_mul(&self, factor: &Self) -> Self {
+        (Wrapping::ref_cast(self) * Wrapping::ref_cast(factor)).0
     }
 }
 
@@ -194,8 +210,8 @@ mod test {
             &[0x98cfc7fb6125fa17, 0x5c5d5c9a44473305, 0x657e9a1b791123bc, 0xbac18a9d6827494b,
               0xa901c23efda054d4, 0xb25c8a466af66649, 0xa806189f4755ee81, 0xb1dc20c7b4613d3b]);
 
-        assert_ne!(dropping_mul(&p, &q).into_unsigned::<8,8>(), Unsigned::<8,8>::try_from_slice(&n).unwrap());
-        assert_eq!(dropping_mul(&p, &q).into_unsigned::<4,4>(), Unsigned::<4,4>::from_slice(&n[..(n.len()/2)]));
+        assert_ne!(wrapping_mul(&p, &q).into_unsigned::<8,8>(), Unsigned::<8,8>::try_from_slice(&n).unwrap());
+        assert_eq!(wrapping_mul(&p, &q).into_unsigned::<4,4>(), Unsigned::<4,4>::from_slice(&n[..(n.len()/2)]));
 
         assert_eq!(n.to_be_bytes().as_be_bytes(),
             &[0xb1, 0xdc, 0x20, 0xc7, 0xb4, 0x61, 0x3d, 0x3b, 0xa8, 0x06, 0x18, 0x9f, 0x47, 0x55, 0xee, 0x81,

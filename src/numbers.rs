@@ -1,4 +1,4 @@
-//! Specification of "big integer" types, specialized to our (allocation-free) purposes.
+//! Large unsized integers (specialized to our *allocation-free* purposes).
 //!
 //! The internal representation is in terms of little-endian machine words.
 //!
@@ -591,12 +591,17 @@ impl<const D: usize, const E: usize> From<[Digit; D]> for Unsigned<D, E> {
 }
 
 /// Representation of [`Unsigned`] as big-endian bytes.
+///
+/// `RefCast` is *not* what we want, as &BigEndian is big-endian, unlike &Unsigned which is
+/// little-endian!
+///
+/// Maybe rename to `BigEndianBytes`
 #[repr(transparent)]
-#[derive(RefCast)]
+// #[derive(RefCast)]
 pub struct BigEndian<const D: usize, const E: usize>(Unsigned<D, E>);
 
 #[repr(transparent)]
-#[derive(RefCast)]
+// #[derive(RefCast)]
 pub struct BigEndianArray<const D: usize, const E: usize, const L: usize>(Array<D, E, L>);
 
 impl<const D: usize, const E: usize> BigEndian<D, E> {

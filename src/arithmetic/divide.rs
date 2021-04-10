@@ -1,6 +1,8 @@
 use core::{cmp::Ordering, convert::TryInto, ops::{Div, Rem}};
 
-use crate::{Digit, DoubleDigit, Odd, Result, Unsigned};
+use ref_cast::RefCast;
+
+use crate::{Digit, DoubleDigit, Odd, Result, Unsigned, Wrapping};
 use crate::numbers::{Array, Bits, FromSlice, Number, NumberMut, One, Zero};
 
 // pub fn invert<T>(x: &T) -> T
@@ -12,26 +14,26 @@ use crate::numbers::{Array, Bits, FromSlice, Number, NumberMut, One, Zero};
 //     for<'a> T: core::ops::MulAssign<&'a T>,
 // {
 /// Odd numbers can be inverted modulo $2^m$
-pub fn invert_odd<const D: usize, const E: usize>(x: &Odd<D, E>) -> Odd<D, E> {
-    use super::multiply::dropping_mul;
+pub fn wrapping_invert_odd<const D: usize, const E: usize>(x: &Odd<D, E>) -> Odd<D, E> {
     #[allow(non_snake_case)]
     let T = (D + E) * (Digit::BITS.trailing_zeros() as usize);
 
     let x: &Unsigned<D, E> = &*x;
     let mut y: Unsigned<D, E> = One::one();
-    let two = &y + &y;
+    let two = y.wrapping_add(&y);
 
     for _ in 1..=T {
         // y = &y * &(&two - &(x * &y));
-        y = dropping_mul(&y, &(&two - &dropping_mul(x, &y)));
+        // y = wrapping_mul(&y, &(two - &wrapping_mul(x, &y)));
+        y = y.wrapping_mul(&(two.wrapping_sub(&x.wrapping_mul(&y))));
     }
     Odd(y)
 }
 
 #[allow(dead_code)]
-pub fn invert<const D: usize, const E: usize>(unsigned: &Unsigned<D, E>) -> Result<Unsigned<D, E>> {
+pub fn wrapping_invert<const D: usize, const E: usize>(unsigned: &Unsigned<D, E>) -> Result<Unsigned<D, E>> {
     let odd: &Odd<D, E> = unsigned.try_into()?;
-    Ok(invert_odd(odd).into())
+    Ok(wrapping_invert_odd(odd).into())
 }
 // /// Input:  x = (x_0,x_1,...,x_n), n = (n_0,n_1, ...n_t, 0, ...0), 1 <= t <= L, yt != 0
 // /// Output: q = (q_0,q_1,...,q_{n-t}), r = (r_0,r_1,...r_t) with x=qy+r, 0<=r<y
@@ -234,8 +236,8 @@ where
     T: Number + Clone + One + Zero + FromSlice + PartialOrd + core::ops::ShrAssign<usize>,
     T: core::ops::ShrAssign<usize>,
     for<'a> &'a T: core::ops::Shl<usize, Output = T>,
-    for<'a> T: core::ops::SubAssign<&'a Unsigned<D, E>>,
-    for<'a> T: core::ops::SubAssign<&'a T>,
+    for<'a> Wrapping<T>: core::ops::SubAssign<&'a Unsigned<D, E>>,
+    for<'a> Wrapping<T>: core::ops::SubAssign<&'a T>,
 {
 
     if x.is_zero() {
@@ -297,16 +299,16 @@ where
         trial[..r.len() - offset].copy_from_slice(&r[offset..]);
 
         div_rem_assign_digit(&mut trial, n.leading_digit().unwrap());
-        let mut prod = super::multiply::dropping_mul(&trial, &n);
+        let mut prod = super::multiply::wrapping_mul(&trial, &n);
 
         while prod > T::from_slice(&r[j..]) {
-            trial -= &T::one();
-            prod -= &n;
+            *Wrapping::ref_cast_mut(&mut trial) -= &T::one();
+            *Wrapping::ref_cast_mut(&mut prod) -= &n;
         }
 
         // Unfortunately, don't see a way to use operators here (wrapped types don't work,
         // and slices are foreign types).
-        super::add::add_assign(&mut q[j..], &trial);
+        super::add::wrapping_add_assign(&mut q[j..], &trial);
         super::subtract::sub_assign_borrow(&mut r[j..], &prod);
     }
 
@@ -318,6 +320,39 @@ where
 }
 
 
+
+// Inversion
+
+impl<const D: usize, const E: usize> Wrapping<Unsigned<D, E>> {
+    /// See `Unsigned::wrapping_inv`.
+    pub fn inv(&self) -> Result<Self> {
+        wrapping_invert(&self.0).map(Wrapping)
+    }
+}
+
+impl<const D: usize, const E: usize> Unsigned<D, E> {
+    /// The wrapping inverse, i.e., the exact inverse w.r.t wrapping multiplication.
+    ///
+    /// Exists if and only if the number is odd.
+    ///
+    /// This uses $\mathcal{O}(\log n)$ loops in `Self::BITS`, very efficient (!)
+    ///
+    /// Source: Fig. 1 from
+    /// [GCD-Free Algorithms for Computing Modular Inverses (2003)][joy-paillier]
+    ///
+    /// Note that this source is highly confusing! What they mean to say
+    /// is to iterate $y \leftarrow y(2 - ey)$ in $\mathbb{Z}/2^{|f|}$,
+    /// where the output is an inverse of $e$ modulo $2^{2i}$.
+    /// In other words, the $\text{mod }2^i$ is a typo, and should be $\text{mod }2^{|f|}$.
+    ///
+    /// cf. also [Crypto StackExchange][cse].
+    ///
+    /// [joy-paillier]: https://api.semanticscholar.org/CorpusID:17736455
+    /// [cse]: https://crypto.stackexchange.com/a/47496
+    pub fn wrapping_inv(&self) -> Result<Self> {
+        wrapping_invert(&self)
+    }
+}
 
 //
 // Implement Div
@@ -563,14 +598,14 @@ mod test {
             &[0x9881a570678b33bb, 0xc071fc5a0d75de20, 0xae8303747b3db15d, 0x756a33dea26163df]);
 
         // unwrap does not fail since x is odd.
-        let maybe_inverse = invert(&x).unwrap();
-        let maybe_one = crate::arithmetic::multiply::dropping_mul(&maybe_inverse, &x);
+        let maybe_inverse = wrapping_invert(&x).unwrap();
+        let maybe_one = crate::arithmetic::multiply::wrapping_mul(&maybe_inverse, &x);
 
         assert_eq!(maybe_one, Long::<2>::one());
 
         // even numbers not invertible
         let x = Long::<2>::from_slice(&[0x2, 0x1]);
-        assert!(invert(&x).is_err());
+        assert!(wrapping_invert(&x).is_err());
 
     }
 }

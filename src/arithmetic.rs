@@ -1,18 +1,19 @@
 //! Modular arithmetic (for moduli that are either [`Convenient`] or word-sized powers-of-two).
 //!
-//! For `Unsigned`, we implement operations "$\text{mod } 2^{32(D + E)}$",
-//! that is, dropping all carries and borrows.
-//!
 //! For `Modular`, we use incompletely reduced representations internally
 //! (which can be implemented on a word-level), offering a complete reduction
 //! for external use (which needs to be implemented on a bit-level).
 //!
-//! We do indeed have use for the modular interpretation of `Unsigned`,
-//! for instance, to calculate $65537^{-1} \text{ mod }(p - 1)$.
+//! For `Wrapping<Unsigned>`, we implement operations "$\text{mod } 2^{32(D + E)}$",
+//! that is, dropping all carries and borrows.
+//!
+//! This case does indeed have practical use, for instance,
+//! to calculate $65537^{-1} \text{ mod }(p - 1)$ via Arazi's Lemma.
 
 #![allow(unstable_name_collisions)]  // for Bits::BITS
 #![allow(broken_intra_doc_links)]  // because `rustdoc` mistakes [x] for a link
 
+use ref_cast::RefCast;
 use zeroize::Zeroize;
 
 use crate::{Convenient, Unsigned};
@@ -172,6 +173,16 @@ impl<const D: usize, const E: usize> From<Modular<'_, D, E>> for Unsigned<D, E> 
 // fn reduce_modulo<const L: usize>(c: Digit, x: &mut Unsigned<L>, n: &Odd<L>) {
 //     todo!();
 // }
+
+#[repr(transparent)]
+#[derive(Clone, Debug, Default, PartialEq, RefCast)]
+/// Intentionally-wrapped arithmetic.
+///
+/// We can't use `core::num::Wrapping` due to type coherence clashing
+/// with our usage requirements.
+///
+/// The idea is that `T` is [`Number`], and we wrap around $2^N$ where `N = T::BITS`.
+pub struct Wrapping<T>(pub T);
 
 #[cfg(test)]
 mod test {

@@ -3,7 +3,7 @@ use core::{cmp::Ordering, convert::TryFrom, fmt, ops::{Deref, DerefMut}};
 use ref_cast::RefCast;
 
 use super::{Array, Bits, Convenient, Digit, Number, NumberMut, Odd, Prime, Unsigned};
-use crate::{Error, Result};
+use crate::{Error, Result, Wrapping};
 
 
 #[cfg(target_pointer_width = "32")]
@@ -24,12 +24,16 @@ impl Bits for u128 {
     const BITS: usize = 128;
 }
 
-impl<const D: usize, const E: usize> Bits for Unsigned<D, E> {
-    const BITS: usize = Digit::BITS * (D + E);
-}
+// impl<const D: usize, const E: usize> Bits for Unsigned<D, E> {
+//     const BITS: usize = Digit::BITS * (D + E);
+// }
 
-impl<const D: usize, const E: usize, const L: usize> Bits for Array<D, E, L> {
-    const BITS: usize = Digit::BITS * (D + E) * L;
+// impl<const D: usize, const E: usize, const L: usize> Bits for Array<D, E, L> {
+//     const BITS: usize = Digit::BITS * (D + E) * L;
+// }
+
+impl<T: Number> Bits for T {
+    const BITS: usize = Digit::BITS * T::CAPACITY;
 }
 
 // // Unfortunately, implementing Deref for <T: AsNormalizedLittleEndianWords>
@@ -111,6 +115,38 @@ impl<const D: usize> DerefMut for Prime<D> {
         &mut self.0
     }
 }
+
+impl<T: Number> Deref for Wrapping<T> {
+    type Target = [Digit];
+    fn deref(&self) -> &Self::Target {
+        &*self.0
+    }
+}
+
+impl<T: Number + NumberMut> DerefMut for Wrapping<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut *self.0
+    }
+}
+
+unsafe impl<T: Number> Number for Wrapping<T> {
+    const CAPACITY: usize = T::CAPACITY;
+
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
+impl<T: Number + NumberMut> NumberMut for Wrapping<T> {
+    fn cache_len(&mut self) -> usize {
+        self.0.cache_len()
+    }
+
+    fn invalidate_len(&mut self) {
+        self.0.invalidate_len();
+    }
+}
+
 
 impl<const D: usize, const E: usize> TryFrom<Unsigned<D, E>> for Odd<D, E> {
     type Error = Error;
