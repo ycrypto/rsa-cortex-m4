@@ -234,9 +234,9 @@
         <span class="kw">let</span> <span class="ident">candidate</span> <span class="op">=</span> <span class="ident">e_inverse_digit_joye_paillier</span>(<span class="ident">e</span>);
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">candidate</span>.<span class="ident">wrapping_mul</span>(<span class="ident">e</span>), <span class="number">1</span>);
 
-        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">target_pointer_width</span> <span class="op">=</span> <span class="string">&quot;32&quot;</span>, <span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;always-u32-digits&quot;</span>))]</span>
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">target_pointer_width</span> <span class="op">=</span> <span class="string">&quot;32&quot;</span>, <span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;u32&quot;</span>))]</span>
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">candidate</span>, <span class="number">4294901761</span>);
-        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">all</span>(<span class="ident">target_pointer_width</span> <span class="op">=</span> <span class="string">&quot;64&quot;</span>, <span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;always-u32-digits&quot;</span>)))]</span>
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">all</span>(<span class="ident">target_pointer_width</span> <span class="op">=</span> <span class="string">&quot;64&quot;</span>, <span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;u32&quot;</span>)))]</span>
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">candidate</span>, <span class="number">18446462603027742721</span>);
 
         <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">debug_assertions</span>))]</span>
@@ -254,9 +254,9 @@
         <span class="kw">let</span> <span class="ident">candidate</span> <span class="op">=</span> <span class="ident">x_inverse_digit_dusse_kaliski</span>(<span class="kw">crate</span>::<span class="ident">F4</span>);
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">candidate</span>.<span class="ident">wrapping_mul</span>(<span class="kw">crate</span>::<span class="ident">F4</span>), <span class="number">1</span>);
 
-        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">target_pointer_width</span> <span class="op">=</span> <span class="string">&quot;32&quot;</span>, <span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;always-u32-digits&quot;</span>))]</span>
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">target_pointer_width</span> <span class="op">=</span> <span class="string">&quot;32&quot;</span>, <span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;u32&quot;</span>))]</span>
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">candidate</span>, <span class="number">4294901761</span>);
-        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">all</span>(<span class="ident">target_pointer_width</span> <span class="op">=</span> <span class="string">&quot;64&quot;</span>, <span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;always-u32-digits&quot;</span>)))]</span>
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">all</span>(<span class="ident">target_pointer_width</span> <span class="op">=</span> <span class="string">&quot;64&quot;</span>, <span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;u32&quot;</span>)))]</span>
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">candidate</span>, <span class="number">18446462603027742721</span>);
 
         <span class="comment">// too slow for full test, even in release mode</span>

@@ -233,23 +233,33 @@
 <span id="214">214</span>
 <span id="215">215</span>
 <span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">ops</span>::{<span class="ident">Add</span>, <span class="ident">AddAssign</span>};
 
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">Digit</span>, <span class="ident">DoubleDigit</span>, <span class="ident">Modular</span>, <span class="ident">Montgomery</span>, <span class="ident">Unsigned</span>};
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">numbers</span>::<span class="ident">Bits</span>;
+<span class="kw">use</span> <span class="ident">ref_cast</span>::<span class="ident">RefCast</span>;
 
-<span class="doccomment">/// Intention is to replace this with the UMAAL assembly instruction on Cortex-M4.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// Operation: `(hi, lo) = m*n + hi + lo`</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// This works, because `(2^32 - 1)^2 + 2*(2^32 - 1) = 2^64 - 1`.</span>
-<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">dead_code</span>)]</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">umaal</span>(<span class="ident">hi</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Digit</span>, <span class="ident">lo</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Digit</span>, <span class="ident">m</span>: <span class="ident">Digit</span>, <span class="ident">n</span>: <span class="ident">Digit</span>) {
-    <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> ((<span class="ident">m</span> <span class="kw">as</span> <span class="ident">DoubleDigit</span>) <span class="op">*</span> (<span class="ident">n</span> <span class="kw">as</span> <span class="ident">DoubleDigit</span>)) <span class="op">+</span> (<span class="kw-2">*</span><span class="ident">hi</span> <span class="kw">as</span> <span class="ident">DoubleDigit</span>) <span class="op">+</span> (<span class="kw-2">*</span><span class="ident">lo</span> <span class="kw">as</span> <span class="ident">DoubleDigit</span>);
-    <span class="kw-2">*</span><span class="ident">hi</span> <span class="op">=</span> (<span class="ident">result</span> <span class="op">&gt;</span><span class="op">&gt;</span> <span class="ident">Digit</span>::<span class="ident">BITS</span>) <span class="kw">as</span> <span class="ident">Digit</span>;
-    <span class="kw-2">*</span><span class="ident">lo</span> <span class="op">=</span> <span class="ident">result</span> <span class="kw">as</span> <span class="ident">Digit</span>;
-}
+<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">Digit</span>, <span class="ident">DoubleDigit</span>, <span class="ident">Modular</span>, <span class="ident">Montgomery</span>, <span class="ident">Unsigned</span>, <span class="ident">Wrapping</span>};
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">numbers</span>::<span class="ident">Bits</span>;
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">umaal</span>;
 
 <span class="doccomment">/// place (a + b + c) in r with carry c</span>
 <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">dead_code</span>)]</span>
@@ -301,9 +311,15 @@
 <span class="comment">// our signature:</span>
 <span class="comment">// pub fn addc(a: u32, b: u32, c: &amp;mut u32, r: &amp;mut u32)</span>
 
-<span class="comment">// This is perhaps too general - we always use equal length slices I believe.</span>
 <span class="attribute">#[<span class="ident">inline</span>]</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_assign_carry</span>(<span class="ident">a</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">Digit</span>], <span class="ident">b</span>: <span class="kw-2">&amp;</span>[<span class="ident">Digit</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Digit</span> {
+<span class="doccomment">/// /Two argument addition of raw slices:</span>
+<span class="doccomment">/// a += b</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// The caller _must_ ensure that a is big enough to store the result - typically this means</span>
+<span class="doccomment">/// resizing a to max(a.len(), b.len()) + 1, to fit a possible carry.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// TODO: should this return a result (Err(digit) if digit != 0) to enforce explicit handling?</span>
+<span class="kw">fn</span> <span class="ident">add_assign_carry</span>(<span class="ident">a</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">Digit</span>], <span class="ident">b</span>: <span class="kw-2">&amp;</span>[<span class="ident">Digit</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Digit</span> {
     <span class="macro">debug_assert</span><span class="macro">!</span>(<span class="ident">a</span>.<span class="ident">len</span>() <span class="op">&gt;</span><span class="op">=</span> <span class="ident">b</span>.<span class="ident">len</span>());
 
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">carry</span> <span class="op">=</span> <span class="number">0</span>;
@@ -325,35 +341,57 @@
     <span class="ident">carry</span> <span class="kw">as</span> <span class="ident">Digit</span>
 }
 
-<span class="doccomment">/// /Two argument addition of raw slices:</span>
-<span class="doccomment">/// a += b</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// The caller _must_ ensure that a is big enough to store the result - typically this means</span>
-<span class="doccomment">/// resizing a to max(a.len(), b.len()) + 1, to fit a possible carry.</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">add_assign</span>(<span class="ident">a</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">Digit</span>], <span class="ident">b</span>: <span class="kw-2">&amp;</span>[<span class="ident">Digit</span>]) {
-    <span class="kw">let</span> <span class="ident">carry</span> <span class="op">=</span> <span class="ident">add_assign_carry</span>(<span class="ident">a</span>, <span class="ident">b</span>);
+<span class="comment">// #[inline]</span>
+<span class="comment">// pub(crate) fn checking_add_assign(a: &amp;mut [Digit], b: &amp;[Digit]) {</span>
+<span class="comment">//     let carry = add_assign_carry(a, b);</span>
+<span class="comment">//     debug_assert!(carry == 0);</span>
+<span class="comment">// }</span>
 
-    <span class="macro">debug_assert</span><span class="macro">!</span>(<span class="ident">carry</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span>);
+<span class="attribute">#[<span class="ident">inline</span>]</span>
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">wrapping_add_assign</span>(<span class="ident">a</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">Digit</span>], <span class="ident">b</span>: <span class="kw-2">&amp;</span>[<span class="ident">Digit</span>]) {
+    <span class="ident">add_assign_carry</span>(<span class="ident">a</span>, <span class="ident">b</span>);
 }
-
 
 
 <span class="comment">// Addition in Unsigned / 2^M</span>
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">AddAssign</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">AddAssign</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="self">Self</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Wrapping</span><span class="op">&lt;</span><span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span><span class="op">&gt;</span>
+{
     <span class="kw">fn</span> <span class="ident">add_assign</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">summand</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) {
-        <span class="ident">add_assign_carry</span>(<span class="self">self</span>, <span class="ident">summand</span>);
+        <span class="ident">wrapping_add_assign</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="number">0</span>, <span class="kw-2">&amp;</span><span class="ident">summand</span>.<span class="number">0</span>);
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">Add</span> <span class="kw">for</span> <span class="kw-2">&amp;</span><span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
-    <span class="kw">type</span> <span class="ident">Output</span> <span class="op">=</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>;
+<span class="comment">// std-lib does `Add&lt;&amp;&#39;_ Wrapping&lt;Unsigned&lt;D, E&gt;&gt;&gt; for &amp;Wrapping&lt;Unsigned&lt;D, E&gt;&gt;` here.</span>
+<span class="comment">// Not sure what the use is, as the output is owned.</span>
+<span class="comment">// impl&lt;const D: usize, const E: usize&gt; Add&lt;&amp;&#39;_ Wrapping&lt;Unsigned&lt;D, E&gt;&gt;&gt; for &amp;Wrapping&lt;Unsigned&lt;D, E&gt;&gt; {</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">Add</span> <span class="kw">for</span> <span class="kw-2">&amp;</span><span class="ident">Wrapping</span><span class="op">&lt;</span><span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Output</span> <span class="op">=</span> <span class="ident">Wrapping</span><span class="op">&lt;</span><span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span><span class="op">&gt;</span>;
 
+    <span class="comment">// fn add(self, summand: &amp;Wrapping&lt;Unsigned&lt;D, E&gt;&gt;) -&gt; Self::Output {</span>
     <span class="kw">fn</span> <span class="ident">add</span>(<span class="self">self</span>, <span class="ident">summand</span>: <span class="self">Self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">Output</span> {
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sum</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">clone</span>();
         <span class="ident">sum</span> <span class="op">+</span><span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">summand</span>;
+        <span class="ident">sum</span>
+    }
+}
 
+<span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">checked_add</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">summand</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sum</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">clone</span>();
+        <span class="kw">let</span> <span class="ident">carry</span> <span class="op">=</span> <span class="ident">add_assign_carry</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">sum</span>, <span class="ident">summand</span>);
+        (<span class="ident">carry</span> <span class="op">!</span><span class="op">=</span> <span class="number">0</span>).<span class="ident">then</span>(<span class="op">|</span><span class="op">|</span> <span class="ident">sum</span>)
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">wrapping_add_assign</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">summand</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) {
+        <span class="kw-2">*</span><span class="ident">Wrapping</span>::<span class="ident">ref_cast_mut</span>(<span class="self">self</span>) <span class="op">+</span><span class="op">=</span> <span class="ident">Wrapping</span>::<span class="ident">ref_cast</span>(<span class="ident">summand</span>);
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">wrapping_add</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">summand</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sum</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">clone</span>();
+        <span class="ident">sum</span>.<span class="ident">wrapping_add_assign</span>(<span class="ident">summand</span>);
         <span class="ident">sum</span>
     }
 }
@@ -368,8 +406,8 @@
         <span class="macro">debug_assert_eq</span><span class="macro">!</span>(<span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span>.<span class="ident">n</span>, <span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">summand</span>.<span class="ident">n</span>);
 
         <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">non_snake_case</span>)]</span>
+        <span class="kw">let</span> <span class="ident">F</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">n</span>.<span class="ident">wrapping_neg</span>();
         <span class="comment">// F = 2^m - p, i.e., -n</span>
-        <span class="kw">let</span> <span class="ident">F</span> <span class="op">=</span> <span class="op">-</span><span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span>.<span class="ident">n</span>;
 
         <span class="comment">// step 3</span>
         <span class="kw">let</span> <span class="ident">carry</span> <span class="op">=</span> <span class="ident">add_assign_carry</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">x</span>, <span class="kw-2">&amp;</span><span class="ident">summand</span>.<span class="ident">x</span>);
@@ -425,14 +463,14 @@
         <span class="macro">debug_assert_eq</span><span class="macro">!</span>(<span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span>.<span class="ident">n</span>, <span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">summand</span>.<span class="ident">n</span>);
 
         <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">non_snake_case</span>)]</span>
-        <span class="kw">let</span> <span class="ident">F</span> <span class="op">=</span> <span class="op">-</span><span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="kw-2">*</span><span class="self">self</span>.<span class="ident">n</span>;
+        <span class="kw">let</span> <span class="ident">F</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">n</span>.<span class="ident">wrapping_neg</span>();
 
         <span class="comment">// step 3</span>
         <span class="kw">let</span> <span class="ident">carry</span> <span class="op">=</span> <span class="ident">add_assign_carry</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">y</span>, <span class="kw-2">&amp;</span><span class="ident">summand</span>.<span class="ident">y</span>);
 
         <span class="kw">if</span> <span class="ident">carry</span> <span class="op">!</span><span class="op">=</span> <span class="number">0</span> {
-            <span class="comment">// add_assign_carry(&amp;mut self.y, &amp;F);</span>
-            <span class="self">self</span>.<span class="ident">y</span> <span class="op">+</span><span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">F</span>;
+            <span class="ident">add_assign_carry</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">y</span>, <span class="kw-2">&amp;</span><span class="ident">F</span>);
+            <span class="comment">// self.y += &amp;F;</span>
         }
     }
 }

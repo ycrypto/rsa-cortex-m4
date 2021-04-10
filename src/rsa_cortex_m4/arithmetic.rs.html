@@ -196,22 +196,34 @@
 <span id="177">177</span>
 <span id="178">178</span>
 <span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
+<span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Modular arithmetic (for moduli that are either [`Convenient`] or word-sized powers-of-two).</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! For `Unsigned`, we implement operations &quot;$\text{mod } 2^{32(D + E)}$&quot;,</span>
-<span class="doccomment">//! that is, dropping all carries and borrows.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! For `Modular`, we use incompletely reduced representations internally</span>
 <span class="doccomment">//! (which can be implemented on a word-level), offering a complete reduction</span>
 <span class="doccomment">//! for external use (which needs to be implemented on a bit-level).</span>
 <span class="doccomment">//!</span>
-<span class="doccomment">//! We do indeed have use for the modular interpretation of `Unsigned`,</span>
-<span class="doccomment">//! for instance, to calculate $65537^{-1} \text{ mod }(p - 1)$.</span>
+<span class="doccomment">//! For `Wrapping&lt;Unsigned&gt;`, we implement operations &quot;$\text{mod } 2^{32(D + E)}$&quot;,</span>
+<span class="doccomment">//! that is, dropping all carries and borrows.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! This case does indeed have practical use, for instance,</span>
+<span class="doccomment">//! to calculate $65537^{-1} \text{ mod }(p - 1)$ via Arazi&#39;s Lemma.</span>
 
 <span class="attribute">#![<span class="ident">allow</span>(<span class="ident">unstable_name_collisions</span>)]</span>  <span class="comment">// for Bits::BITS</span>
 <span class="attribute">#![<span class="ident">allow</span>(<span class="ident">broken_intra_doc_links</span>)]</span>  <span class="comment">// because `rustdoc` mistakes [x] for a link</span>
 
+<span class="kw">use</span> <span class="ident">ref_cast</span>::<span class="ident">RefCast</span>;
 <span class="kw">use</span> <span class="ident">zeroize</span>::<span class="ident">Zeroize</span>;
 
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">Convenient</span>, <span class="ident">Unsigned</span>};
@@ -371,6 +383,16 @@
 <span class="comment">// fn reduce_modulo&lt;const L: usize&gt;(c: Digit, x: &amp;mut Unsigned&lt;L&gt;, n: &amp;Odd&lt;L&gt;) {</span>
 <span class="comment">//     todo!();</span>
 <span class="comment">// }</span>
+
+<span class="attribute">#[<span class="ident">repr</span>(<span class="ident">transparent</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>, <span class="ident">Default</span>, <span class="ident">PartialEq</span>, <span class="ident">RefCast</span>)]</span>
+<span class="doccomment">/// Intentionally-wrapped arithmetic.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// We can&#39;t use `core::num::Wrapping` due to type coherence clashing</span>
+<span class="doccomment">/// with our usage requirements.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// The idea is that `T` is [`Number`], and we wrap around $2^N$ where `N = T::BITS`.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Wrapping</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(<span class="kw">pub</span> <span class="ident">T</span>);
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">mod</span> <span class="ident">test</span> {

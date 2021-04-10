@@ -773,8 +773,138 @@
 <span id="754">754</span>
 <span id="755">755</span>
 <span id="756">756</span>
+<span id="757">757</span>
+<span id="758">758</span>
+<span id="759">759</span>
+<span id="760">760</span>
+<span id="761">761</span>
+<span id="762">762</span>
+<span id="763">763</span>
+<span id="764">764</span>
+<span id="765">765</span>
+<span id="766">766</span>
+<span id="767">767</span>
+<span id="768">768</span>
+<span id="769">769</span>
+<span id="770">770</span>
+<span id="771">771</span>
+<span id="772">772</span>
+<span id="773">773</span>
+<span id="774">774</span>
+<span id="775">775</span>
+<span id="776">776</span>
+<span id="777">777</span>
+<span id="778">778</span>
+<span id="779">779</span>
+<span id="780">780</span>
+<span id="781">781</span>
+<span id="782">782</span>
+<span id="783">783</span>
+<span id="784">784</span>
+<span id="785">785</span>
+<span id="786">786</span>
+<span id="787">787</span>
+<span id="788">788</span>
+<span id="789">789</span>
+<span id="790">790</span>
+<span id="791">791</span>
+<span id="792">792</span>
+<span id="793">793</span>
+<span id="794">794</span>
+<span id="795">795</span>
+<span id="796">796</span>
+<span id="797">797</span>
+<span id="798">798</span>
+<span id="799">799</span>
+<span id="800">800</span>
+<span id="801">801</span>
+<span id="802">802</span>
+<span id="803">803</span>
+<span id="804">804</span>
+<span id="805">805</span>
+<span id="806">806</span>
+<span id="807">807</span>
+<span id="808">808</span>
+<span id="809">809</span>
+<span id="810">810</span>
+<span id="811">811</span>
+<span id="812">812</span>
+<span id="813">813</span>
+<span id="814">814</span>
+<span id="815">815</span>
+<span id="816">816</span>
+<span id="817">817</span>
+<span id="818">818</span>
+<span id="819">819</span>
+<span id="820">820</span>
+<span id="821">821</span>
+<span id="822">822</span>
+<span id="823">823</span>
+<span id="824">824</span>
+<span id="825">825</span>
+<span id="826">826</span>
+<span id="827">827</span>
+<span id="828">828</span>
+<span id="829">829</span>
+<span id="830">830</span>
+<span id="831">831</span>
+<span id="832">832</span>
+<span id="833">833</span>
+<span id="834">834</span>
+<span id="835">835</span>
+<span id="836">836</span>
+<span id="837">837</span>
+<span id="838">838</span>
+<span id="839">839</span>
+<span id="840">840</span>
+<span id="841">841</span>
+<span id="842">842</span>
+<span id="843">843</span>
+<span id="844">844</span>
+<span id="845">845</span>
+<span id="846">846</span>
+<span id="847">847</span>
+<span id="848">848</span>
+<span id="849">849</span>
+<span id="850">850</span>
+<span id="851">851</span>
+<span id="852">852</span>
+<span id="853">853</span>
+<span id="854">854</span>
+<span id="855">855</span>
+<span id="856">856</span>
+<span id="857">857</span>
+<span id="858">858</span>
+<span id="859">859</span>
+<span id="860">860</span>
+<span id="861">861</span>
+<span id="862">862</span>
+<span id="863">863</span>
+<span id="864">864</span>
+<span id="865">865</span>
+<span id="866">866</span>
+<span id="867">867</span>
+<span id="868">868</span>
+<span id="869">869</span>
+<span id="870">870</span>
+<span id="871">871</span>
+<span id="872">872</span>
+<span id="873">873</span>
+<span id="874">874</span>
+<span id="875">875</span>
+<span id="876">876</span>
+<span id="877">877</span>
+<span id="878">878</span>
+<span id="879">879</span>
+<span id="880">880</span>
+<span id="881">881</span>
+<span id="882">882</span>
+<span id="883">883</span>
+<span id="884">884</span>
+<span id="885">885</span>
+<span id="886">886</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="doccomment">//! Specification of &quot;big integer&quot; types, specialized to our (allocation-free) purposes.</span>
+<span class="doccomment">//! Large unsized integers (specialized to our *allocation-free* purposes).</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! The internal representation is in terms of little-endian machine words.</span>
 <span class="doccomment">//!</span>
@@ -789,9 +919,10 @@
 
 <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">ops</span>::{<span class="ident">Deref</span>, <span class="ident">DerefMut</span>};
 
+<span class="kw">use</span> <span class="ident">ref_cast</span>::<span class="ident">RefCast</span>;
 <span class="kw">use</span> <span class="ident">zeroize</span>::<span class="ident">Zeroize</span>;
 
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">Digit</span>, <span class="ident">DoubleDigit</span>, <span class="ident">Error</span>, <span class="prelude-ty">Result</span>};
+<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">Digit</span>, <span class="ident">Error</span>, <span class="prelude-ty">Result</span>};
 
 <span class="kw">mod</span> <span class="ident">trait_implementations</span>;
 
@@ -827,12 +958,16 @@
     <span class="ident">cached_len</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>,
 }
 
+<span class="comment">// pub type Unsigned&lt;const D: usize, const E: usize&gt; = Array&lt;D, E, 1&gt;;</span>
+
 <span class="comment">// pub struct MultiDual&lt;const D: usize, const E: usize, const L: usize&gt;([Dual&lt;D, E&gt;; L]);</span>
 
-<span class="comment">// #[repr(C)]</span>
-<span class="comment">// pub struct Odd&lt;const D: usize, const E: usize&gt;(Unsigned&lt;D, E&gt;);</span>
+<span class="attribute">#[<span class="ident">repr</span>(<span class="ident">transparent</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">RefCast</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Odd</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>);
 
-<span class="attribute">#[<span class="ident">repr</span>(<span class="ident">C</span>)]</span>
+<span class="attribute">#[<span class="ident">repr</span>(<span class="ident">transparent</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">RefCast</span>)]</span>
 <span class="doccomment">/// Unsigned numbers with both their top and bottom bits set – highly convenient for modular</span>
 <span class="doccomment">/// arithmetic!</span>
 <span class="doccomment">///</span>
@@ -852,9 +987,10 @@
 <span class="doccomment">/// $T := S + F &lt; (2^m - 2) + 2^{m - 1} &lt; 2^{m - 1}$.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// [yanik-savas-koc]: https://api.semanticscholar.org/CorpusID:17543811</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Convenient</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>);
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Convenient</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="ident">Odd</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>);
 
-<span class="attribute">#[<span class="ident">repr</span>(<span class="ident">C</span>)]</span>
+<span class="attribute">#[<span class="ident">repr</span>(<span class="ident">transparent</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">RefCast</span>)]</span>
 <span class="doccomment">/// Prime number (passing primality tests); convenient by definition.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Prime</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">P</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="ident">Convenient</span><span class="op">&lt;</span><span class="ident">P</span>, <span class="number">0</span><span class="op">&gt;</span>);
 
@@ -869,6 +1005,25 @@
 <span class="doccomment">/// [`Unsigned`] with only one limb (e.g., private prime). Short only in comparison to [`Long`].</span>
 <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">Short</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="number">0</span><span class="op">&gt;</span>;  <span class="comment">// duplex with empty hi limb</span>
 
+<span class="comment">// DO NOT DO THIS</span>
+<span class="comment">//</span>
+<span class="comment">// it&#39;s way too unsafe, can call self.padded_number() on result</span>
+<span class="comment">//</span>
+<span class="comment">//impl&lt;const D: usize&gt; Short&lt;D&gt; {</span>
+<span class="comment">//    /// TODO.</span>
+<span class="comment">//    ///</span>
+<span class="comment">//    /// Idea: Can implement truncating arithmetic on Unsigned&lt;D, E&gt;,</span>
+<span class="comment">//    /// and where needed, instead do:</span>
+<span class="comment">//    ///</span>
+<span class="comment">//    /// let (p, q): (Short&lt;D&gt;, Short&lt;D&gt;) = generate_primes();</span>
+<span class="comment">//    /// let n: Product&lt;D, D&gt; = p.as_long() * q.as_long()  // &lt;- using Mul for &amp;Unsigned&lt;D, D&gt;</span>
+<span class="comment">//    ///</span>
+<span class="comment">//    /// to use &quot;long&quot; arithmetic on short unsigned numbers.</span>
+<span class="comment">//    pub fn as_long(&amp;self) -&gt; &amp;Long&lt;D&gt; {</span>
+<span class="comment">//        unsafe { &amp;*(self as *const _ as *const _) }</span>
+<span class="comment">//    }</span>
+<span class="comment">//}</span>
+
 <span class="attribute">#[<span class="ident">repr</span>(<span class="ident">C</span>)]</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Eq</span><span class="comment">/*, Zeroize*/</span>)]</span>
 <span class="doccomment">/// Array of [`Unsigned`].</span>
@@ -881,6 +1036,16 @@
 <span class="comment">// double duplex?</span>
 <span class="doccomment">/// Big enough to fit the product of two [`Unsigned`].</span>
 <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">Product</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span>, <span class="number">2</span><span class="op">&gt;</span>;
+
+<span class="kw">impl</span> <span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">Product</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="number">0</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">to_long</span>(<span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> {
+        <span class="ident">Unsigned</span>::<span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">D</span><span class="op">&gt;</span> { <span class="ident">lo</span>: <span class="self">self</span>.<span class="ident">lo</span>[<span class="number">0</span>], <span class="ident">hi</span>: <span class="self">self</span>.<span class="ident">lo</span>[<span class="number">1</span>], <span class="ident">cached_len</span>: <span class="self">self</span>.<span class="ident">cached_len</span> }
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">as_long</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> {
+        <span class="kw">unsafe</span> { <span class="kw-2">&amp;</span><span class="kw-2">*</span>(<span class="self">self</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="kw">_</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="kw">_</span>) }
+    }
+}
 
 <span class="comment">// pub type Long&lt;const D: usize&gt; = MultiUnsigned&lt;D, D, 2&gt;;</span>
 
@@ -985,7 +1150,7 @@
 
 <span class="comment">//}</span>
 
-<span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">trait</span> <span class="ident">Number</span>: <span class="ident">Deref</span><span class="op">&lt;</span><span class="ident">Target</span> <span class="op">=</span> [<span class="ident">Digit</span>]<span class="op">&gt;</span> { <span class="comment">//+ One + Zero + PartialEq + PartialOrd {</span>
+<span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">trait</span> <span class="ident">Number</span>: <span class="ident">Deref</span><span class="op">&lt;</span><span class="ident">Target</span> <span class="op">=</span> [<span class="ident">Digit</span>]<span class="op">&gt;</span> <span class="op">+</span> <span class="ident">core</span>::<span class="ident">fmt</span>::<span class="ident">Debug</span> { <span class="comment">//+ One + Zero + PartialEq + PartialOrd {</span>
 
     <span class="kw">const</span> <span class="ident">CAPACITY</span>: <span class="ident">usize</span>;
 
@@ -1036,6 +1201,17 @@
     <span class="doccomment">/// actually panics, bar implementation errors.</span>
     <span class="kw">fn</span> <span class="ident">into_unsigned</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
         <span class="self">self</span>.<span class="ident">try_into_unsigned</span>().<span class="ident">unwrap</span>()
+    }
+
+    <span class="kw">fn</span> <span class="ident">is_odd</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">bool</span> {
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">len</span>() <span class="op">=</span><span class="op">=</span> <span class="number">0</span> {
+            <span class="kw">return</span> <span class="bool-val">false</span>
+        }
+        <span class="comment">// odd</span>
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">number</span>()[<span class="number">0</span>] <span class="op">&amp;</span> <span class="number">1</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span> {
+            <span class="kw">return</span> <span class="bool-val">false</span>
+        }
+        <span class="bool-val">true</span>
     }
 
 }
@@ -1089,7 +1265,30 @@
         <span class="ident">owned</span>.<span class="ident">cache_len</span>();
         <span class="ident">owned</span>
     }
+    <span class="kw">fn</span> <span class="ident">try_from_slice</span>(<span class="ident">slice</span>: <span class="kw-2">&amp;</span>[<span class="ident">Digit</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="ident">slice</span>.<span class="ident">len</span>() <span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">CAPACITY</span> {
+            <span class="prelude-val">Err</span>(<span class="ident">Error</span>)
+        } <span class="kw">else</span> {
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">owned</span> <span class="op">=</span> <span class="self">Self</span>::<span class="ident">zero</span>();
+            <span class="ident">owned</span>[..<span class="ident">slice</span>.<span class="ident">len</span>()].<span class="ident">copy_from_slice</span>(<span class="ident">slice</span>);
+            <span class="ident">owned</span>.<span class="ident">cache_len</span>();
+            <span class="prelude-val">Ok</span>(<span class="ident">owned</span>)
+        }
+    }
 }
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">FromSlice</span> <span class="kw">for</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {}
+<span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">L</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">FromSlice</span> <span class="kw">for</span> <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span>, <span class="ident">L</span><span class="op">&gt;</span> {}
+
+<span class="comment">// impl FromSlice for NumberMut {</span>
+
+<span class="comment">//     fn from_slice(slice: &amp;[Digit]) -&gt; Self {</span>
+<span class="comment">//         let mut owned = Self::zero();</span>
+<span class="comment">//         owned[..slice.len()].copy_from_slice(slice);</span>
+<span class="comment">//         owned.cache_len();</span>
+<span class="comment">//         owned</span>
+<span class="comment">//     }</span>
+<span class="comment">// }</span>
 
 <span class="comment">// /// This datum has multiple limbs, and they&#39;re all differently sized ;)</span>
 <span class="comment">// /// All the same, its digits have an order: $[a_0, a_1,... a_{A-1}, b_0, ... c_{C - 1}]$.</span>
@@ -1235,6 +1434,31 @@
     }
 }
 
+<span class="doccomment">/// ## Trait methods as inherent methods, for convenience.</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">L</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span>, <span class="ident">L</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_slice</span>(<span class="ident">slice</span>: <span class="kw-2">&amp;</span>[<span class="ident">Digit</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="ident">FromSlice</span>::<span class="ident">from_slice</span>(<span class="ident">slice</span>)
+    }
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">try_from_slice</span>(<span class="ident">slice</span>: <span class="kw-2">&amp;</span>[<span class="ident">Digit</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
+        <span class="ident">FromSlice</span>::<span class="ident">try_from_slice</span>(<span class="ident">slice</span>)
+    }
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">leading_digit</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Digit</span><span class="op">&gt;</span> {
+        <span class="ident">Number</span>::<span class="ident">leading_digit</span>(<span class="self">self</span>)
+    }
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">try_into_unsigned</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">M</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">N</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">M</span>, <span class="ident">N</span><span class="op">&gt;</span><span class="op">&gt;</span> {
+        <span class="ident">Number</span>::<span class="ident">try_into_unsigned</span>(<span class="self">self</span>)
+    }
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">into_unsigned</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">M</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">N</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">M</span>, <span class="ident">N</span><span class="op">&gt;</span> {
+        <span class="ident">Number</span>::<span class="ident">into_unsigned</span>(<span class="self">self</span>)
+    }
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">one</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="ident">One</span>::<span class="ident">one</span>()
+    }
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">zero</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="ident">Zero</span>::<span class="ident">zero</span>()
+    }
+}
+
 <span class="comment">// unsafe impl&lt;const M: usize, const N: usize&gt; Number for Unsigned&lt;M, N&gt; {</span>
 <span class="comment">//     const CAPACITY: usize = M + N;</span>
 
@@ -1252,9 +1476,6 @@
 <span class="comment">//         self.l = None</span>
 <span class="comment">//     }</span>
 <span class="comment">// }</span>
-
-<span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">FromSlice</span> <span class="kw">for</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {}
-<span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">L</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">FromSlice</span> <span class="kw">for</span> <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span>, <span class="ident">L</span><span class="op">&gt;</span> {}
 
 <span class="doccomment">/// Fails for D + E = 0, bound not expressable.</span>
 <span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">Digit</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
@@ -1276,13 +1497,30 @@
 }
 
 <span class="doccomment">/// Representation of [`Unsigned`] as big-endian bytes.</span>
-<span class="attribute">#[<span class="ident">repr</span>(<span class="ident">C</span>)]</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// `RefCast` is *not* what we want, as &amp;BigEndian is big-endian, unlike &amp;Unsigned which is</span>
+<span class="doccomment">/// little-endian!</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Maybe rename to `BigEndianBytes`</span>
+<span class="attribute">#[<span class="ident">repr</span>(<span class="ident">transparent</span>)]</span>
+<span class="comment">// #[derive(RefCast)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">BigEndian</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>);
+
+<span class="attribute">#[<span class="ident">repr</span>(<span class="ident">transparent</span>)]</span>
+<span class="comment">// #[derive(RefCast)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">BigEndianArray</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">L</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="ident">Array</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span>, <span class="ident">L</span><span class="op">&gt;</span>);
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">BigEndian</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
     <span class="doccomment">/// TODO: consider truncating leading zero bytes (needs some pointer arithmetique)</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">as_be_bytes</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span>[<span class="ident">u8</span>] {
         <span class="kw">unsafe</span> { <span class="ident">core</span>::<span class="ident">slice</span>::<span class="ident">from_raw_parts</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>[<span class="number">0</span>] <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">Digit</span> <span class="kw">as</span> <span class="kw">_</span>, <span class="ident">core</span>::<span class="ident">mem</span>::<span class="ident">size_of</span>::<span class="op">&lt;</span><span class="ident">Digit</span><span class="op">&gt;</span>() <span class="op">*</span> (<span class="ident">D</span> <span class="op">+</span> <span class="ident">E</span>)) }
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">L</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">BigEndianArray</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span>, <span class="ident">L</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// TODO: consider truncating leading zero bytes (needs some pointer arithmetique)</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">as_be_bytes</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span>[<span class="ident">u8</span>] {
+        <span class="kw">unsafe</span> { <span class="ident">core</span>::<span class="ident">slice</span>::<span class="ident">from_raw_parts</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>[<span class="number">0</span>] <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">Digit</span> <span class="kw">as</span> <span class="kw">_</span>, <span class="ident">core</span>::<span class="ident">mem</span>::<span class="ident">size_of</span>::<span class="op">&lt;</span><span class="ident">Digit</span><span class="op">&gt;</span>() <span class="op">*</span> (<span class="ident">D</span> <span class="op">+</span> <span class="ident">E</span>) <span class="op">*</span> <span class="ident">L</span>) }
     }
 }
 
@@ -1293,14 +1531,33 @@
     <span class="doccomment">/// i.e.</span>
     <span class="doccomment">/// - swap words + endianness on self.0</span>
     <span class="doccomment">/// - return BigEndian(self.0)</span>
-    <span class="kw">fn</span> <span class="ident">to_be_bytes</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">BigEndian</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">to_be_bytes</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">BigEndian</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">big_endian</span> <span class="op">=</span> <span class="ident">BigEndian</span>(<span class="ident">Zero</span>::<span class="ident">zero</span>());
         <span class="comment">// we need to store word such that it bytes are big-endian, whatever</span>
         <span class="comment">// the native architecture (although PC/Cortex are both little-endian).</span>
         <span class="kw">let</span> <span class="ident">l</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">len</span>();
         <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">l</span> {
             <span class="comment">// &quot;On big endian this is a no-op. On little endian the bytes are swapped.&quot;</span>
-            <span class="ident">big_endian</span>.<span class="number">0</span>[<span class="ident">l</span> <span class="op">-</span> <span class="ident">i</span> <span class="op">-</span> <span class="number">1</span>] <span class="op">=</span> <span class="ident">Digit</span>::<span class="ident">from_be</span>(<span class="self">self</span>[<span class="ident">i</span>]);
+            <span class="ident">big_endian</span>.<span class="number">0</span>[<span class="self">Self</span>::<span class="ident">CAPACITY</span> <span class="op">-</span> <span class="ident">i</span> <span class="op">-</span> <span class="number">1</span>] <span class="op">=</span> <span class="ident">Digit</span>::<span class="ident">from_be</span>(<span class="self">self</span>[<span class="ident">i</span>]);
+        }
+        <span class="ident">big_endian</span>
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">L</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span>, <span class="ident">L</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// TODO: consider `into_be_bytes`, reusing the buffer.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// i.e.</span>
+    <span class="doccomment">/// - swap words + endianness on self.0</span>
+    <span class="doccomment">/// - return BigEndian(self.0)</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">to_be_bytes</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">BigEndianArray</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span>, <span class="ident">L</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">big_endian</span> <span class="op">=</span> <span class="ident">BigEndianArray</span>(<span class="ident">Zero</span>::<span class="ident">zero</span>());
+        <span class="comment">// we need to store word such that it bytes are big-endian, whatever</span>
+        <span class="comment">// the native architecture (although PC/Cortex are both little-endian).</span>
+        <span class="kw">let</span> <span class="ident">l</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">len</span>();
+        <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">l</span> {
+            <span class="comment">// &quot;On big endian this is a no-op. On little endian the bytes are swapped.&quot;</span>
+            <span class="ident">big_endian</span>.<span class="number">0</span>[<span class="self">Self</span>::<span class="ident">CAPACITY</span> <span class="op">-</span> <span class="ident">i</span> <span class="op">-</span> <span class="number">1</span>] <span class="op">=</span> <span class="ident">Digit</span>::<span class="ident">from_be</span>(<span class="self">self</span>[<span class="ident">i</span>]);
         }
         <span class="ident">big_endian</span>
     }
@@ -1371,6 +1628,9 @@
 <span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_slice</span>(<span class="ident">slice</span>: <span class="kw-2">&amp;</span>[<span class="ident">Digit</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="ident">FromSlice</span>::<span class="ident">from_slice</span>(<span class="ident">slice</span>)
+    }
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">try_from_slice</span>(<span class="ident">slice</span>: <span class="kw-2">&amp;</span>[<span class="ident">Digit</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
+        <span class="ident">FromSlice</span>::<span class="ident">try_from_slice</span>(<span class="ident">slice</span>)
     }
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">leading_digit</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Digit</span><span class="op">&gt;</span> {
         <span class="ident">Number</span>::<span class="ident">leading_digit</span>(<span class="self">self</span>)
