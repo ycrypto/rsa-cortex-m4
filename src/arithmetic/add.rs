@@ -2,18 +2,7 @@ use core::ops::{Add, AddAssign};
 
 use crate::{Digit, DoubleDigit, Modular, Montgomery, Unsigned};
 use crate::numbers::Bits;
-
-/// Intention is to replace this with the UMAAL assembly instruction on Cortex-M4.
-///
-/// Operation: `(hi, lo) = m*n + hi + lo`
-///
-/// This works, because `(2^32 - 1)^2 + 2*(2^32 - 1) = 2^64 - 1`.
-#[allow(dead_code)]
-pub fn umaal(hi: &mut Digit, lo: &mut Digit, m: Digit, n: Digit) {
-    let result = ((m as DoubleDigit) * (n as DoubleDigit)) + (*hi as DoubleDigit) + (*lo as DoubleDigit);
-    *hi = (result >> Digit::BITS) as Digit;
-    *lo = result as Digit;
-}
+use crate::umaal;
 
 /// place (a + b + c) in r with carry c
 #[allow(dead_code)]

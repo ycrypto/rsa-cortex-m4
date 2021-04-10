@@ -52,6 +52,8 @@ pub struct Unsigned<const D: usize, const E: usize> {  // this is a kind of "dua
     cached_len: Option<usize>,
 }
 
+// pub type Unsigned<const D: usize, const E: usize> = Array<D, E, 1>;
+
 // pub struct MultiDual<const D: usize, const E: usize, const L: usize>([Dual<D, E>; L]);
 
 #[repr(transparent)]
@@ -97,6 +99,25 @@ pub type Long<const D: usize> = Unsigned<D, D>;  // duplex with equal limb size
 /// [`Unsigned`] with only one limb (e.g., private prime). Short only in comparison to [`Long`].
 pub type Short<const D: usize> = Unsigned<D, 0>;  // duplex with empty hi limb
 
+// DO NOT DO THIS
+//
+// it's way too unsafe, can call self.padded_number() on result
+//
+//impl<const D: usize> Short<D> {
+//    /// TODO.
+//    ///
+//    /// Idea: Can implement truncating arithmetic on Unsigned<D, E>,
+//    /// and where needed, instead do:
+//    ///
+//    /// let (p, q): (Short<D>, Short<D>) = generate_primes();
+//    /// let n: Product<D, D> = p.as_long() * q.as_long()  // <- using Mul for &Unsigned<D, D>
+//    ///
+//    /// to use "long" arithmetic on short unsigned numbers.
+//    pub fn as_long(&self) -> &Long<D> {
+//        unsafe { &*(self as *const _ as *const _) }
+//    }
+//}
+
 #[repr(C)]
 #[derive(Clone, Eq/*, Zeroize*/)]
 /// Array of [`Unsigned`].
@@ -109,6 +130,16 @@ pub struct Array<const D: usize, const E: usize, const L: usize> {
 // double duplex?
 /// Big enough to fit the product of two [`Unsigned`].
 pub type Product<const D: usize, const E: usize> = Array<D, E, 2>;
+
+impl <const D: usize> Product<D, 0> {
+    pub fn to_long(self) -> Long<D> {
+        Unsigned::<D, D> { lo: self.lo[0], hi: self.lo[1], cached_len: self.cached_len }
+    }
+
+    pub fn as_long(&self) -> &Long<D> {
+        unsafe { &*(self as *const _ as *const _) }
+    }
+}
 
 // pub type Long<const D: usize> = MultiUnsigned<D, D, 2>;
 
@@ -328,6 +359,16 @@ pub trait FromSlice: NumberMut + Zero {
         owned.cache_len();
         owned
     }
+    fn try_from_slice(slice: &[Digit]) -> Result<Self> {
+        if slice.len() > Self::CAPACITY {
+            Err(Error)
+        } else {
+            let mut owned = Self::zero();
+            owned[..slice.len()].copy_from_slice(slice);
+            owned.cache_len();
+            Ok(owned)
+        }
+    }
 }
 
 impl<const D: usize, const E: usize> FromSlice for Unsigned<D, E> {}
@@ -487,6 +528,31 @@ impl<const D: usize, const E: usize, const L: usize> NumberMut for Array<D, E, L
     }
 }
 
+/// ## Trait methods as inherent methods, for convenience.
+impl<const D: usize, const E: usize, const L: usize> Array<D, E, L> {
+    pub fn from_slice(slice: &[Digit]) -> Self {
+        FromSlice::from_slice(slice)
+    }
+    pub fn try_from_slice(slice: &[Digit]) -> Result<Self> {
+        FromSlice::try_from_slice(slice)
+    }
+    pub fn leading_digit(&self) -> Option<Digit> {
+        Number::leading_digit(self)
+    }
+    pub fn try_into_unsigned<const M: usize, const N: usize>(&self) -> Result<Unsigned<M, N>> {
+        Number::try_into_unsigned(self)
+    }
+    pub fn into_unsigned<const M: usize, const N: usize>(&self) -> Unsigned<M, N> {
+        Number::into_unsigned(self)
+    }
+    pub fn one() -> Self {
+        One::one()
+    }
+    pub fn zero() -> Self {
+        Zero::zero()
+    }
+}
+
 // unsafe impl<const M: usize, const N: usize> Number for Unsigned<M, N> {
 //     const CAPACITY: usize = M + N;
 
@@ -554,7 +620,7 @@ impl<const D: usize, const E: usize> Unsigned<D, E> {
     /// i.e.
     /// - swap words + endianness on self.0
     /// - return BigEndian(self.0)
-    fn to_be_bytes(&self) -> BigEndian<D, E> {
+    pub fn to_be_bytes(&self) -> BigEndian<D, E> {
         let mut big_endian = BigEndian(Zero::zero());
         // we need to store word such that it bytes are big-endian, whatever
         // the native architecture (although PC/Cortex are both little-endian).
@@ -573,7 +639,7 @@ impl<const D: usize, const E: usize, const L: usize> Array<D, E, L> {
     /// i.e.
     /// - swap words + endianness on self.0
     /// - return BigEndian(self.0)
-    fn to_be_bytes(&self) -> BigEndianArray<D, E, L> {
+    pub fn to_be_bytes(&self) -> BigEndianArray<D, E, L> {
         let mut big_endian = BigEndianArray(Zero::zero());
         // we need to store word such that it bytes are big-endian, whatever
         // the native architecture (although PC/Cortex are both little-endian).
@@ -651,6 +717,9 @@ impl<const D: usize, const E: usize, const L: usize> Array<D, E, L> {
 impl<const D: usize, const E: usize> Unsigned<D, E> {
     pub fn from_slice(slice: &[Digit]) -> Self {
         FromSlice::from_slice(slice)
+    }
+    pub fn try_from_slice(slice: &[Digit]) -> Result<Self> {
+        FromSlice::try_from_slice(slice)
     }
     pub fn leading_digit(&self) -> Option<Digit> {
         Number::leading_digit(self)

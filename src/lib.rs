@@ -17,10 +17,12 @@ pub use numbers::{
 };
 
 /// A word on the machine. [`Unsigned`] is composed of many digits.
-#[cfg(feature = "always-u32-digits")]
+#[cfg(feature = "u32")]
 pub type Digit = u32;
-#[cfg(not(feature = "always-u32-digits"))]
+#[cfg(not(feature = "u32"))]
 pub type Digit = usize;
+
+pub type Digits = [Digit];
 
 // The DIGIT_SIZE_CHECK is a compile-time assertion
 // that Digit is of expected bit size.
@@ -33,20 +35,20 @@ pub type Digit = usize;
 // #[cfg(target_pointer_width = "16")]
 // pub(crate) type SignedDoubleDigit = i32;
 
-#[cfg(any(target_pointer_width = "32", feature = "always-u32-digits"))]
+#[cfg(any(target_pointer_width = "32", feature = "u32"))]
 #[allow(dead_code)]
 const DIGIT_SIZE_CHECK: usize = (core::mem::size_of::<Digit>() == core::mem::size_of::<u32>()) as usize - 1;
-#[cfg(any(target_pointer_width = "32", feature = "always-u32-digits"))]
+#[cfg(any(target_pointer_width = "32", feature = "u32"))]
 pub(crate) type DoubleDigit = u64;
-#[cfg(any(target_pointer_width = "32", feature = "always-u32-digits"))]
+#[cfg(any(target_pointer_width = "32", feature = "u32"))]
 pub(crate) type SignedDoubleDigit = i64;
 
-#[cfg(all(target_pointer_width = "64", not(feature = "always-u32-digits")))]
+#[cfg(all(target_pointer_width = "64", not(feature = "u32")))]
 #[allow(dead_code)]
 const DIGIT_SIZE_CHECK: usize = (core::mem::size_of::<Digit>() == core::mem::size_of::<u64>()) as usize - 1;
-#[cfg(all(target_pointer_width = "64", not(feature = "always-u32-digits")))]
+#[cfg(all(target_pointer_width = "64", not(feature = "u32")))]
 pub(crate) type DoubleDigit = u128;
-#[cfg(all(target_pointer_width = "64", not(feature = "always-u32-digits")))]
+#[cfg(all(target_pointer_width = "64", not(feature = "u32")))]
 pub(crate) type SignedDoubleDigit = i128;
 
 // mod primitive;
@@ -60,3 +62,19 @@ pub(crate) type SignedDoubleDigit = i128;
 /// more generally, there seems no need to have too many knobs to turn.
 ///
 pub const F4: Digit = 0x1_0001;
+
+
+/// Intention is to replace this with the UMAAL assembly instruction on Cortex-M4.
+///
+/// Operation: `(hi, lo) = m*n + hi + lo`
+///
+/// This works, because `(2^32 - 1)^2 + 2*(2^32 - 1) = 2^64 - 1`.
+#[allow(dead_code)]
+#[allow(unstable_name_collisions)]
+pub fn umaal(hi: &mut Digit, lo: &mut Digit, m: Digit, n: Digit) {
+    use crate::numbers::Bits;
+    let result = ((m as DoubleDigit) * (n as DoubleDigit)) + (*hi as DoubleDigit) + (*lo as DoubleDigit);
+    *hi = (result >> Digit::BITS) as Digit;
+    *lo = result as Digit;
+}
+

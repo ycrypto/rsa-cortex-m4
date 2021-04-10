@@ -88,9 +88,9 @@ mod test {
         let candidate = e_inverse_digit_joye_paillier(e);
         assert_eq!(candidate.wrapping_mul(e), 1);
 
-        #[cfg(any(target_pointer_width = "32", feature = "always-u32-digits"))]
+        #[cfg(any(target_pointer_width = "32", feature = "u32"))]
         assert_eq!(candidate, 4294901761);
-        #[cfg(all(target_pointer_width = "64", not(feature = "always-u32-digits")))]
+        #[cfg(all(target_pointer_width = "64", not(feature = "u32")))]
         assert_eq!(candidate, 18446462603027742721);
 
         #[cfg(not(debug_assertions))]
@@ -108,9 +108,9 @@ mod test {
         let candidate = x_inverse_digit_dusse_kaliski(crate::F4);
         assert_eq!(candidate.wrapping_mul(crate::F4), 1);
 
-        #[cfg(any(target_pointer_width = "32", feature = "always-u32-digits"))]
+        #[cfg(any(target_pointer_width = "32", feature = "u32"))]
         assert_eq!(candidate, 4294901761);
-        #[cfg(all(target_pointer_width = "64", not(feature = "always-u32-digits")))]
+        #[cfg(all(target_pointer_width = "64", not(feature = "u32")))]
         assert_eq!(candidate, 18446462603027742721);
 
         // too slow for full test, even in release mode
