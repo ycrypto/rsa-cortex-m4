@@ -603,6 +603,14 @@
 <span id="584">584</span>
 <span id="585">585</span>
 <span id="586">586</span>
+<span id="587">587</span>
+<span id="588">588</span>
+<span id="589">589</span>
+<span id="590">590</span>
+<span id="591">591</span>
+<span id="592">592</span>
+<span id="593">593</span>
+<span id="594">594</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Large unsized integers (specialized to our *allocation-free* purposes).</span>
 <span class="doccomment">//!</span>
@@ -766,7 +774,7 @@
 <span class="doccomment">/// The type should consist of non-trivial consecutive Digit &quot;plain old data&quot;, and be `Clone + Debug + Default`.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// Then the following is all that is needed:</span>
-<span class="doccomment">/// ```rust,skip</span>
+<span class="doccomment">/// ```rust,ignore</span>
 <span class="doccomment">/// impl Deref for T {</span>
 <span class="doccomment">///   type Target = [Digit];</span>
 <span class="doccomment">///   fn deref(&amp;self) -&gt; &amp;Self::Target {</span>
@@ -782,7 +790,15 @@
 <span class="doccomment">/// impl NumberMut for T {}</span>
 <span class="doccomment">/// ```</span>
 
-<span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">trait</span> <span class="ident">Number</span>: <span class="ident">Deref</span><span class="op">&lt;</span><span class="ident">Target</span> <span class="op">=</span> [<span class="ident">Digit</span>]<span class="op">&gt;</span> <span class="op">+</span> <span class="ident">Clone</span> <span class="op">+</span> <span class="ident">core</span>::<span class="ident">fmt</span>::<span class="ident">Debug</span> <span class="op">+</span> <span class="ident">Default</span> { <span class="comment">// + PartialEq + PartialOrd {</span>
+<span class="comment">// Not a huge fan of &quot;sealing&quot;, but we could do it.</span>
+<span class="comment">// mod sealed {</span>
+<span class="comment">//     pub trait Number {}</span>
+<span class="comment">//     impl&lt;const D: usize, const E: usize, const L: usize&gt; Number for crate::numbers::Array&lt;D, E, L&gt; {}</span>
+<span class="comment">//     impl&lt;const D: usize, const E: usize&gt; Number for crate::Unsigned&lt;D, E&gt; {}</span>
+<span class="comment">//     impl&lt;T: Number&gt; Number for crate::arithmetic::Wrapping&lt;T&gt; {}</span>
+<span class="comment">// }</span>
+
+<span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">trait</span> <span class="ident">Number</span>: <span class="comment">/*sealed::Number +*/</span> <span class="ident">Deref</span><span class="op">&lt;</span><span class="ident">Target</span> <span class="op">=</span> [<span class="ident">Digit</span>]<span class="op">&gt;</span> <span class="op">+</span> <span class="ident">Clone</span> <span class="op">+</span> <span class="ident">core</span>::<span class="ident">fmt</span>::<span class="ident">Debug</span> <span class="op">+</span> <span class="ident">Default</span> { <span class="comment">// + PartialEq + PartialOrd {</span>
 
     <span class="doccomment">/// The number of bits that fit in this number.</span>
     <span class="kw">const</span> <span class="ident">BITS</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="ident">core</span>::<span class="ident">mem</span>::<span class="ident">size_of</span>::<span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>() <span class="op">*</span> <span class="number">8</span>;
@@ -822,7 +838,7 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// Not expressable as `TryInto`, as it would clash with blanket implementations,</span>
     <span class="doccomment">/// e.g. for Unsigned&lt;X&gt; with D = X.</span>
-    <span class="kw">fn</span> <span class="ident">try_to_unsigned</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">to_unsigned</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">digits</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">significant_digits</span>();
         <span class="kw">if</span> <span class="ident">digits</span>.<span class="ident">len</span>() <span class="op">&lt;</span><span class="op">=</span> <span class="ident">D</span> <span class="op">+</span> <span class="ident">E</span> {
             <span class="prelude-val">Ok</span>(<span class="ident">Unsigned</span>::<span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>::<span class="ident">from_slice</span>(<span class="ident">digits</span>))
@@ -831,13 +847,13 @@
         }
     }
 
-    <span class="doccomment">/// Panics iff [`Self::try_to_unsigned`] fails.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Internal use of this embedding of abstract `Number`s in `Unsigned`s never</span>
-    <span class="doccomment">/// actually panics, bar implementation errors.</span>
-    <span class="kw">fn</span> <span class="ident">to_unsigned</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">try_to_unsigned</span>().<span class="ident">unwrap</span>()
-    }
+    <span class="comment">///// Panics iff [`Self::try_to_unsigned`] fails.</span>
+    <span class="comment">/////</span>
+    <span class="comment">///// Internal use of this embedding of abstract `Number`s in `Unsigned`s never</span>
+    <span class="comment">///// actually panics, bar implementation errors.</span>
+    <span class="comment">//fn to_unsigned&lt;const D: usize, const E: usize&gt;(&amp;self) -&gt; Unsigned&lt;D, E&gt; {</span>
+    <span class="comment">//    self.try_to_unsigned().unwrap()</span>
+    <span class="comment">//}</span>
 
     <span class="kw">fn</span> <span class="ident">zero</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="self">Self</span>::<span class="ident">default</span>()

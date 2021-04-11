@@ -683,7 +683,7 @@
 
     <span class="ident">r</span> <span class="op">&gt;</span><span class="op">&gt;</span><span class="op">=</span> <span class="ident">shift_bits</span>;
     <span class="comment">// `a` and its shift are guaranteed to be smaller than the divisor, hence fit in `N` digits</span>
-    (<span class="ident">q</span>, <span class="ident">r</span>.<span class="ident">to_unsigned</span>())
+    (<span class="ident">q</span>, <span class="ident">r</span>.<span class="ident">to_unsigned</span>().<span class="ident">unwrap</span>())
 }
 
 
