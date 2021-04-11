@@ -24,16 +24,8 @@ impl Bits for u128 {
     const BITS: usize = 128;
 }
 
-// impl<const D: usize, const E: usize> Bits for Unsigned<D, E> {
-//     const BITS: usize = Digit::BITS * (D + E);
-// }
-
-// impl<const D: usize, const E: usize, const L: usize> Bits for Array<D, E, L> {
-//     const BITS: usize = Digit::BITS * (D + E) * L;
-// }
-
 impl<T: Number> Bits for T {
-    const BITS: usize = Digit::BITS * T::CAPACITY;
+    const BITS: usize = T::BITS;
 }
 
 impl<const D: usize, const E: usize> Deref for Unsigned<D, E> {
@@ -117,10 +109,7 @@ impl<T: Number + NumberMut> DerefMut for Wrapping<T> {
     }
 }
 
-unsafe impl<T: Number> Number for Wrapping<T> {
-    const CAPACITY: usize = T::CAPACITY;
-}
-
+unsafe impl<T: Number> Number for Wrapping<T> {}
 impl<T: Number + NumberMut> NumberMut for Wrapping<T> {}
 
 
@@ -154,7 +143,7 @@ impl<const D: usize, const E: usize> TryFrom<Unsigned<D, E>> for Convenient<D, E
             return Err(Error);
         }
 
-        if !unsigned.significant_digits().len() != Unsigned::<D, E>::CAPACITY {
+        if !unsigned.significant_digits().len() != Unsigned::<D, E>::DIGITS {
             panic!("logic error");
             // return Err(Error);
         }
@@ -247,7 +236,7 @@ impl<const D: usize, const E: usize> fmt::Debug for Unsigned<D, E> {
     /// TODO: Do we want debug output to be big-endian bytes (as currently implemented)?
     /// Or stick with internal representation?
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Debug::fmt(self.to_be_bytes().as_be_bytes(), f)
+        fmt::Debug::fmt(&*self.to_bytes(), f)
     }
 }
 
@@ -255,7 +244,7 @@ impl<const D: usize, const E: usize, const L: usize> fmt::Debug for Array<D, E, 
     /// TODO: Do we want debug output to be big-endian bytes (as currently implemented)?
     /// Or stick with internal representation?
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Debug::fmt(self.to_be_bytes().as_be_bytes(), f)
+        fmt::Debug::fmt(&*self.to_bytes(), f)
     }
 }
 

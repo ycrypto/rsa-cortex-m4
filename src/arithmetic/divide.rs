@@ -22,7 +22,6 @@ pub fn wrapping_invert_odd<const D: usize, const E: usize>(x: &Odd<D, E>) -> Odd
     Odd(y)
 }
 
-#[allow(dead_code)]
 pub fn wrapping_invert<const D: usize, const E: usize>(unsigned: &Unsigned<D, E>) -> Result<Unsigned<D, E>> {
     let odd: &Odd<D, E> = unsigned.try_into()?;
     Ok(wrapping_invert_odd(odd).into())
@@ -98,7 +97,7 @@ pub fn div_rem_assign_digit(number: &mut impl NumberMut, modulus: Digit) -> Digi
 // N,M in "reversed" order in Product to cover UnsignedCarry case (M = 1).
 //
 // TODO: See if we can't set `x: &T` where `T: AsNormalizedLittleEndianWords`, and just
-// debug_assert that T::CAPACITY > N.
+// debug_assert that T::DIGITS > N.
 pub fn generic_div_rem<T, const D: usize, const E: usize>(x: &T, n: &Unsigned<D, E>) -> (T, Unsigned<D, E>)
 where
     T: NumberMut + PartialOrd,
@@ -185,7 +184,7 @@ where
 
     r >>= shift_bits;
     // `a` and its shift are guaranteed to be smaller than the divisor, hence fit in `N` digits
-    (q, r.to_unsigned())
+    (q, r.to_unsigned().unwrap())
 }
 
 

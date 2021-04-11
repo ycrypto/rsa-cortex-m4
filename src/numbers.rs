@@ -11,7 +11,7 @@
 //! [min-const-generics]: https://blog.rust-lang.org/2021/03/25/Rust-1.51.0.html#const-generics-mvp
 #![allow(unstable_name_collisions)]  // for Bits::BITS
 
-use core::{cmp::Ordering, ops::{Deref, DerefMut}};
+use core::{cmp::Ordering, mem::{align_of, size_of}, ops::{Deref, DerefMut}};
 
 use ref_cast::RefCast;
 use zeroize::Zeroize;
@@ -134,7 +134,7 @@ impl <const D: usize> Product<D, 0> {
 /// Something similar to a `Vec<u32>`, without allocations.
 ///
 /// The dereferenced slice is treated as little-endian digits of a big unsigned integer;
-/// this slice must be of length `Self::CAPACITY`.
+/// this slice must be of length `Self::DIGITS`.
 ///
 /// There is no need to "extend" the allocation as in, say, `heapless`.
 /// Simply write to the desired index / slice (via DerefMut).
@@ -153,9 +153,54 @@ impl <const D: usize> Product<D, 0> {
 /// considered const (which they are not in Rust 1.51's `min_const_generics`.
 ///
 /// All we really want is to have two "Short" primes $P, Q$, and their "Long" product $N = PQ$.
-pub unsafe trait Number: Deref<Target = [Digit]> + Clone + core::fmt::Debug + Default { // + PartialEq + PartialOrd {
+///
+///
+/// ## Implementing this trait
+///
+/// The type should consist of non-trivial consecutive Digit "plain old data", and be `Clone + Debug + Default`.
+///
+/// Then the following is all that is needed:
+/// ```rust,ignore
+/// impl Deref for T {
+///   type Target = [Digit];
+///   fn deref(&self) -> &Self::Target {
+///     Number::deref(self)
+///   }
+/// }
+/// impl DerefMut for T {
+///   fn deref_mut(&mut self) -> &mut Self::Target {
+///     Number::deref_mut(self)
+///   }
+/// }
+/// unsafe impl Number for T {}
+/// impl NumberMut for T {}
+/// ```
 
-    const CAPACITY: usize;
+// Not a huge fan of "sealing", but we could do it.
+// mod sealed {
+//     pub trait Number {}
+//     impl<const D: usize, const E: usize, const L: usize> Number for crate::numbers::Array<D, E, L> {}
+//     impl<const D: usize, const E: usize> Number for crate::Unsigned<D, E> {}
+//     impl<T: Number> Number for crate::arithmetic::Wrapping<T> {}
+// }
+
+pub unsafe trait Number: /*sealed::Number +*/ Deref<Target = [Digit]> + Clone + core::fmt::Debug + Default { // + PartialEq + PartialOrd {
+
+    /// The number of bits that fit in this number.
+    const BITS: usize = core::mem::size_of::<Self>() * 8;
+
+    #[deny(const_err)]
+    /// The number of digits that fit in this number.
+    ///
+    /// There are compile-time checks that alignment and size of implementing types are compatible (i.e., multiples)
+    /// with those of the digit type. If not, there are error messages of the form
+    /// ``attempt to compute `0_usize - 1_usize`, which would overflow``.
+    const DIGITS: usize = size_of::<Self>() / size_of::<Digit>()
+        // check that size of self is multiple of size of digit
+        + ((size_of::<Digit>() * (size_of::<Self>() / size_of::<Digit>()) == size_of::<Self>()) as usize - 1)
+        // check that alignment of self is multiple of alignment of digit
+        + ((align_of::<Digit>() * (align_of::<Self>() / align_of::<Digit>()) == align_of::<Self>()) as usize - 1)
+    ;
 
     /// The significant digits of the number (little-endian).
     fn significant_digits(&self) -> &[Digit] {
@@ -179,7 +224,7 @@ pub unsafe trait Number: Deref<Target = [Digit]> + Clone + core::fmt::Debug + De
     ///
     /// Not expressable as `TryInto`, as it would clash with blanket implementations,
     /// e.g. for Unsigned<X> with D = X.
-    fn try_into_unsigned<const D: usize, const E: usize>(&self) -> Result<Unsigned<D, E>> {
+    fn to_unsigned<const D: usize, const E: usize>(&self) -> Result<Unsigned<D, E>> {
         let digits = self.significant_digits();
         if digits.len() <= D + E {
             Ok(Unsigned::<D, E>::from_slice(digits))
@@ -188,13 +233,13 @@ pub unsafe trait Number: Deref<Target = [Digit]> + Clone + core::fmt::Debug + De
         }
     }
 
-    /// Panics iff [`Self::try_into_unsigned`] fails.
-    ///
-    /// Internal use of this embedding of abstract `Number`s in `Unsigned`s never
-    /// actually panics, bar implementation errors.
-    fn to_unsigned<const D: usize, const E: usize>(&self) -> Unsigned<D, E> {
-        self.try_into_unsigned().unwrap()
-    }
+    ///// Panics iff [`Self::try_to_unsigned`] fails.
+    /////
+    ///// Internal use of this embedding of abstract `Number`s in `Unsigned`s never
+    ///// actually panics, bar implementation errors.
+    //fn to_unsigned<const D: usize, const E: usize>(&self) -> Unsigned<D, E> {
+    //    self.try_to_unsigned().unwrap()
+    //}
 
     fn zero() -> Self {
         Self::default()
@@ -244,14 +289,27 @@ pub unsafe trait Number: Deref<Target = [Digit]> + Clone + core::fmt::Debug + De
     }
 
     fn deref(&self) -> &[Digit] {
-        unsafe { core::slice::from_raw_parts(self as *const _ as _, Self::CAPACITY) }
+        unsafe { core::slice::from_raw_parts(self as *const _ as _, Self::DIGITS) }
     }
 
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { core::slice::from_raw_parts_mut(self as *mut _ as _, Self::CAPACITY) }
+        unsafe { core::slice::from_raw_parts_mut(self as *mut _ as _, Self::DIGITS) }
     }
 
 }
+
+// Fails to compile!
+//
+// #[derive(Clone, Debug, Default)]
+// pub struct Fake(u16);
+// impl Deref for Fake {
+//     type Target = [Digit];
+//     fn deref(&self) -> &Self::Target {
+//         Number::deref(self)
+//     }
+// }
+// impl Number for Fake {}
+
 
 /// Mutable access to a [`Number`].
 pub trait NumberMut: Number + DerefMut {
@@ -264,7 +322,7 @@ pub trait NumberMut: Number + DerefMut {
     }
 
     fn try_from_slice(slice: &[Digit]) -> Result<Self> {
-        if slice.len() > Self::CAPACITY {
+        if slice.len() > Self::DIGITS {
             Err(Error)
         } else {
             let mut owned = Self::default();
@@ -317,16 +375,10 @@ pub trait NumberMut: Number + DerefMut {
 //    }
 //}
 
-unsafe impl<const D: usize, const E: usize> Number for Unsigned<D, E> {
-    const CAPACITY: usize = D + E;
-}
-
+unsafe impl<const D: usize, const E: usize> Number for Unsigned<D, E> {}
 impl<const D: usize, const E: usize> NumberMut for Unsigned<D, E> {}
 
-unsafe impl<const D: usize, const E: usize, const L: usize> Number for Array<D, E, L> {
-    const CAPACITY: usize = (D + E)*L;
-}
-
+unsafe impl<const D: usize, const E: usize, const L: usize> Number for Array<D, E, L> {}
 impl<const D: usize, const E: usize, const L: usize> NumberMut for Array<D, E, L> {}
 
 // /// ## Trait methods as inherent methods, for convenience.
@@ -371,60 +423,59 @@ impl<const D: usize, const E: usize> From<[Digit; D]> for Unsigned<D, E> {
 /// Maybe rename to `BigEndianBytes`
 #[repr(transparent)]
 // #[derive(RefCast)]
-pub struct BigEndian<const D: usize, const E: usize>(Unsigned<D, E>);
+pub struct BigEndian<const D: usize, const E: usize, const L: usize>(Array<D, E, L>);
 
-#[repr(transparent)]
-// #[derive(RefCast)]
-pub struct BigEndianArray<const D: usize, const E: usize, const L: usize>(Array<D, E, L>);
+// #[repr(transparent)]
+// // #[derive(RefCast)]
+// pub struct BigEndianArray<const D: usize, const E: usize, const L: usize>(Array<D, E, L>);
 
-impl<const D: usize, const E: usize> BigEndian<D, E> {
-    /// TODO: consider truncating leading zero bytes (needs some pointer arithmetique)
-    pub fn as_be_bytes(&self) -> &[u8] {
-        unsafe { core::slice::from_raw_parts(&self.0[0] as *const Digit as _, core::mem::size_of::<Digit>() * (D + E)) }
+impl<const D: usize, const E: usize, const L: usize> Deref for BigEndian<D, E, L> {
+    type Target = [u8];
+    fn deref(&self) -> &Self::Target {
+        unsafe { core::slice::from_raw_parts(&self.0[0] as *const _ as _, core::mem::size_of::<Self>()) }
     }
-}
 
-impl<const D: usize, const E: usize, const L: usize> BigEndianArray<D, E, L> {
-    /// TODO: consider truncating leading zero bytes (needs some pointer arithmetique)
-    pub fn as_be_bytes(&self) -> &[u8] {
-        unsafe { core::slice::from_raw_parts(&self.0[0] as *const Digit as _, core::mem::size_of::<Digit>() * (D + E) * L) }
-    }
 }
+// impl<const D: usize, const E: usize> BigEndian<D, E> {
+//     /// TODO: consider truncating leading zero bytes (needs some pointer arithmetique)
+//     pub fn as_be_bytes(&self) -> &[u8] {
+//         unsafe { core::slice::from_raw_parts(&self.0[0] as *const Digit as _, core::mem::size_of::<Digit>() * (D + E)) }
+//     }
+// }
+
+// impl<const D: usize, const E: usize, const L: usize> BigEndianArray<D, E, L> {
+//     /// TODO: consider truncating leading zero bytes (needs some pointer arithmetique)
+//     pub fn as_be_bytes(&self) -> &[u8] {
+//         unsafe { core::slice::from_raw_parts(&self.0[0] as *const Digit as _, core::mem::size_of::<Digit>() * (D + E) * L) }
+//     }
+// }
 
 // c'tors and such
 impl<const D: usize, const E: usize> Unsigned<D, E> {
-    /// TODO: consider `into_be_bytes`, reusing the buffer.
-    ///
-    /// i.e.
-    /// - swap words + endianness on self.0
-    /// - return BigEndian(self.0)
-    pub fn to_be_bytes(&self) -> BigEndian<D, E> {
-        let mut big_endian = BigEndian(Unsigned::zero());
+    /// Return buffer that dereferences as big-endian bytes.
+    pub fn to_bytes(&self) -> BigEndian<D, E, 1> {
+        let mut big_endian = BigEndian(Array::zero());
         // we need to store word such that it bytes are big-endian, whatever
         // the native architecture (although PC/Cortex are both little-endian).
         let l = self.len();
         for i in 0..l {
             // "On big endian this is a no-op. On little endian the bytes are swapped."
-            big_endian.0[Self::CAPACITY - i - 1] = Digit::from_be(self[i]);
+            big_endian.0[Self::DIGITS - i - 1] = Digit::from_be(self[i]);
         }
         big_endian
     }
 }
 
 impl<const D: usize, const E: usize, const L: usize> Array<D, E, L> {
-    /// TODO: consider `into_be_bytes`, reusing the buffer.
-    ///
-    /// i.e.
-    /// - swap words + endianness on self.0
-    /// - return BigEndian(self.0)
-    pub fn to_be_bytes(&self) -> BigEndianArray<D, E, L> {
-        let mut big_endian = BigEndianArray(Array::zero());
+    /// Return buffer that dereferences as big-endian bytes.
+    pub fn to_bytes(&self) -> BigEndian<D, E, L> {
+        let mut big_endian = BigEndian(Array::zero());
         // we need to store word such that it bytes are big-endian, whatever
         // the native architecture (although PC/Cortex are both little-endian).
         let l = self.len();
         for i in 0..l {
             // "On big endian this is a no-op. On little endian the bytes are swapped."
-            big_endian.0[Self::CAPACITY - i - 1] = Digit::from_be(self[i]);
+            big_endian.0[Self::DIGITS - i - 1] = Digit::from_be(self[i]);
         }
         big_endian
     }
