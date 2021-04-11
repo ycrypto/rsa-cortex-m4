@@ -83,16 +83,28 @@ impl<const D: usize, const E: usize> DerefMut for Odd<D, E> {
     }
 }
 
-impl<const D: usize> Deref for Prime<D> {
-    type Target = Convenient<D, 0>;
+impl<const D: usize, const E: usize> Deref for Prime<D, E> {
+    type Target = Convenient<D, E>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<const D: usize> DerefMut for Prime<D> {
+impl<const D: usize, const E: usize> DerefMut for Prime<D, E> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+impl<const D: usize, const E: usize> AsRef<crate::Convenient<D, E>> for Prime<D, E> {
+    fn as_ref(&self) -> &crate::Convenient<D, E> {
+        &self.0
+    }
+}
+
+impl<const D: usize, const E: usize> AsRef<crate::Unsigned<D, E>> for Convenient<D, E> {
+    fn as_ref(&self) -> &crate::Unsigned<D, E> {
+        &self.0.0
     }
 }
 
@@ -213,9 +225,12 @@ where
     }
 }
 
-impl<T: Number, const D: usize, const E: usize> PartialEq<T> for Convenient<D, E> {
+impl<T, const D: usize, const E: usize> PartialEq<T> for Convenient<D, E>
+where
+    T: Number, //AsRef<S: Number>,
+{
     fn eq(&self, other: &T) -> bool {
-        Number::eq(&**self, other)
+        Number::eq(&**self, other)//.as_ref())
     }
 }
 

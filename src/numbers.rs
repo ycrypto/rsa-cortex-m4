@@ -45,20 +45,31 @@ pub type Limb<const D: usize> = [Digit; D];
 // possible synonyms: Duplex, Twofold, (Dual)
 // goal is not to evoke "twin", "double", which would imply both limbs are the same
 #[repr(C)]
-#[derive(Clone, Eq, Zeroize)]
+#[derive(Clone, Copy, Eq, Zeroize)]
 pub struct Unsigned<const D: usize, const E: usize> {  // this is a kind of "dual number"
     lo: Limb<D>,
     hi: Limb<E>,
 }
 
+impl<const D: usize, const E: usize> subtle::ConditionallySelectable for Unsigned<D, E> {
+    fn conditional_select(a: &Self, b: &Self, c: subtle::Choice) -> Self {
+        let mut selected = Unsigned::zero();
+        for (s, (a, b)) in selected.iter_mut().zip(a.iter().zip(b.iter())) {
+            *s = Digit::conditional_select(a, b, c);
+        }
+        selected
+
+    }
+}
+
 // pub type Unsigned<const D: usize, const E: usize> = Array<D, E, 1>;
 
 #[repr(transparent)]
-#[derive(RefCast)]
+#[derive(Clone, Debug, RefCast)]
 pub struct Odd<const D: usize, const E: usize>(pub(crate) Unsigned<D, E>);
 
 #[repr(transparent)]
-#[derive(RefCast)]
+#[derive(Clone, Debug, RefCast)]
 /// Unsigned numbers with both their top and bottom bits set – highly convenient for modular
 /// arithmetic!
 ///
@@ -78,12 +89,14 @@ pub struct Odd<const D: usize, const E: usize>(pub(crate) Unsigned<D, E>);
 /// $T := S + F < (2^m - 2) + 2^{m - 1} < 2^{m - 1}$.
 ///
 /// [yanik-savas-koc]: https://api.semanticscholar.org/CorpusID:17543811
-pub struct Convenient<const D: usize, const E: usize>(Odd<D, E>);
+pub struct Convenient<const D: usize, const E: usize>(pub(crate) Odd<D, E>);
 
 #[repr(transparent)]
-#[derive(RefCast)]
+#[derive(Clone, Debug, RefCast)]
 /// Prime number (passing primality tests); convenient by definition.
-pub struct Prime<const P: usize>(Convenient<P, 0>);
+pub struct Prime<const D: usize, const E: usize>(pub(crate) Convenient<D, E>);
+
+pub type ShortPrime<const D: usize> = Prime<D, 0>;
 
 /// [`Unsigned`] with equal limbs (e.g., public key). If only we had `[T; 2*D]`...
 pub type Long<const D: usize> = Unsigned<D, D>;  // duplex with equal limb size
@@ -121,7 +134,7 @@ pub struct Array<const D: usize, const E: usize, const L: usize> {
 /// Big enough to fit the product of two [`Unsigned`].
 pub type Product<const D: usize, const E: usize> = Array<D, E, 2>;
 
-impl <const D: usize> Product<D, 0> {
+impl <const D: usize> Product<D, 0> {//Array<D, 0, 2> {
     pub fn into_long(self) -> Long<D> {
         Unsigned::<D, D> { lo: self.lo[0], hi: self.lo[1] }
     }
@@ -331,6 +344,24 @@ pub trait NumberMut: Number + DerefMut {
         }
     }
 
+    fn from_bytes(bytes: &[u8]) -> Self {
+        debug_assert!(Self::BITS >= 8*bytes.len());
+
+        let mut owned = Self::default();
+        let owned_bytes: &mut [u8] = unsafe { core::slice::from_raw_parts_mut(&mut owned[0] as *mut _ as _, Self::BITS / 8) };
+
+        let offset = owned_bytes.len() - bytes.len();
+        owned_bytes[offset..].copy_from_slice(bytes);
+
+        let mut reversed = Self::default();
+        let l = owned.len();
+        for i in 0..l {
+            reversed[Self::DIGITS - i - 1] = Digit::from_be(owned[i]);
+        }
+
+        reversed
+    }
+
     fn set_zero(&mut self) {
         self.fill(0)
     }
@@ -381,31 +412,42 @@ impl<const D: usize, const E: usize> NumberMut for Unsigned<D, E> {}
 unsafe impl<const D: usize, const E: usize, const L: usize> Number for Array<D, E, L> {}
 impl<const D: usize, const E: usize, const L: usize> NumberMut for Array<D, E, L> {}
 
-// /// ## Trait methods as inherent methods, for convenience.
-// impl<const D: usize, const E: usize, const L: usize> Array<D, E, L> {
-//     pub fn from_slice(slice: &[Digit]) -> Self {
-//         NumberMut::from_slice(slice)
-//     }
-//     pub fn try_from_slice(slice: &[Digit]) -> Result<Self> {
-//         NumberMut::try_from_slice(slice)
-//     }
-//     pub fn leading_digit(&self) -> Option<Digit> {
-//         Number::leading_digit(self)
-//     }
-//     pub fn try_into_unsigned<const M: usize, const N: usize>(&self) -> Result<Unsigned<M, N>> {
-//         Number::try_into_unsigned(self)
-//     }
-//     pub fn into_unsigned<const M: usize, const N: usize>(&self) -> Unsigned<M, N> {
-//         Number::into_unsigned(self)
-//     }
-// }
+/// ## Trait methods as inherent methods, for convenience.
+impl<const D: usize, const E: usize, const L: usize> Array<D, E, L> {
+    pub fn from_slice(slice: &[Digit]) -> Self {
+        NumberMut::from_slice(slice)
+    }
+    pub fn try_from_slice(slice: &[Digit]) -> Result<Self> {
+        NumberMut::try_from_slice(slice)
+    }
+    pub fn leading_digit(&self) -> Option<Digit> {
+        Number::leading_digit(self)
+    }
+    pub fn significant_digits(&self) -> &[Digit] {
+        Number::significant_digits(self)
+    }
+    pub fn to_unsigned<const M: usize, const N: usize>(&self) -> Result<Unsigned<M, N>> {
+        Number::to_unsigned(self)
+    }
+}
 
 /// Fails for D + E = 0, bound not expressable.
 impl<const D: usize, const E: usize> From<Digit> for Unsigned<D, E> {
-    fn from(unsigned: Digit) -> Self {
+    fn from(digit: Digit) -> Self {
         let mut r = Self::default();
-        r[0] = unsigned;
+        r[0] = digit;
         r
+    }
+}
+
+impl Short<1> {
+    /// `const` implementation
+    pub const fn from_digit(digit: Digit) -> Self {
+        Self { lo: [digit], hi: [] }
+    }
+
+    pub const fn digit(&self) -> Digit {
+        self.lo[0]
     }
 }
 
@@ -481,68 +523,37 @@ impl<const D: usize, const E: usize, const L: usize> Array<D, E, L> {
     }
 }
 
-// /// ## Trait methods as inherent methods, for convenience.
-// impl<const D: usize, const E: usize> Unsigned<D, E> {
-//     pub fn from_slice(slice: &[Digit]) -> Self {
-//         NumberMut::from_slice(slice)
-//     }
-//     pub fn try_from_slice(slice: &[Digit]) -> Result<Self> {
-//         NumberMut::try_from_slice(slice)
-//     }
-//     pub fn leading_digit(&self) -> Option<Digit> {
-//         Number::leading_digit(self)
-//     }
-//     pub fn significant_digits(&self) -> &[Digit] {
-//         Number::significant_digits(self)
-//     }
-//     pub fn try_into_unsigned<const M: usize, const N: usize>(&self) -> Result<Unsigned<M, N>> {
-//         Number::try_into_unsigned(self)
-//     }
-//     pub fn into_unsigned<const M: usize, const N: usize>(&self) -> Unsigned<M, N> {
-//         Number::into_unsigned(self)
-//     }
-// }
+impl<const D: usize, const E: usize, const L: usize> BigEndian<D, E, L> {
+    const CAPACITY: usize = L * (D + E);
 
-///// `Unsigned<L + 1>` aka `Product<L, 1>`.
-/////
-///// Due to limitations in const-generics on stable, we can't express
-///// `Unsigned<L + 1>`. This is a workaround type.
-//pub type UnsignedCarry<const L: usize> = Product<L, 1>;
+    pub fn trimmed(&self) -> &[u8] {
+        let offset = self.iter()
+            .enumerate()
+            .find(|(_, &x)| x != 0)
+            .map(|(i, _)| i)
+            .unwrap_or(Self::CAPACITY);
+        &self[offset..]
+    }
+}
 
-//// c'tors and such
-//impl<const L: usize> UnsignedCarry<L> {
-//    pub fn from_array_and_carry(array: [u32; L], carry: u32) -> Self {
-//        let mut result = Self {
-//            lo: array,
-//            hi:[carry],
-//            l: None
-//        };
-//        result.cache_len();
-//        result
-//    }
-//    pub fn from_slice_and_carry(slice: &[u32], carry: u32) -> Self {
-//        let mut array = [0; L];
-//        array[..slice.len()].copy_from_slice(slice);
-//        Self::from_array_and_carry(array, carry)
-//    }
-//}
-
-///// `Product<L, L>`
-//pub type Square<const L: usize> = Product<L, L>;
-
-///// Unsigned integer that is odd.
-/////
-///// These are used as moduli.
-/////
-///// The oddness condition ensures we can use Montgomery multiplication/reduction.
-//#[derive(Clone, Debug, Eq, PartialEq, Zeroize)]
-//// Q: rename to `Odd`? :)
-//pub struct Odd<const L: usize>(pub Unsigned<L>);
-
-///// Odd prime.
-//#[derive(Clone, Eq, PartialEq, Zeroize)]
-//#[zeroize(drop)]
-//pub struct Prime<const L: usize>(pub Odd<L>);
+/// ## Trait methods as inherent methods, for convenience.
+impl<const D: usize, const E: usize> Unsigned<D, E> {
+    pub fn from_slice(slice: &[Digit]) -> Self {
+        NumberMut::from_slice(slice)
+    }
+    pub fn try_from_slice(slice: &[Digit]) -> Result<Self> {
+        NumberMut::try_from_slice(slice)
+    }
+    pub fn leading_digit(&self) -> Option<Digit> {
+        Number::leading_digit(self)
+    }
+    pub fn significant_digits(&self) -> &[Digit] {
+        Number::significant_digits(self)
+    }
+    pub fn to_unsigned<const M: usize, const N: usize>(&self) -> Result<Unsigned<M, N>> {
+        Number::to_unsigned(self)
+    }
+}
 
 #[cfg(test)]
 mod test {
@@ -553,6 +564,15 @@ mod test {
     fn debug() {
         let u = Short::from([0x76543210, 0xFEDCBA98]);
         assert_eq!(format!("{:X?}", u), "[FE, DC, BA, 98, 76, 54, 32, 10]");
+    }
+
+    #[test]
+    fn big_endian() {
+        let some_bytes = hex_literal::hex!("cd58cd8accf2db4c839d2553116bef81f0292b4e2d2b3f7df0e5dc8a0721398f");
+        let x = Short::<8>::from_bytes(&some_bytes);
+        assert_eq!(x.to_bytes().trimmed(), some_bytes);
+        let x = Short::<9>::from_bytes(&some_bytes);
+        assert_eq!(x.to_bytes().trimmed(), some_bytes);
     }
 
     #[test]
@@ -573,7 +593,7 @@ mod test {
     fn partial_eq() {
         use core::convert::TryFrom;
         let d = (1 as Digit) << 31;
-        let p = Prime(Convenient::try_from(Short::from([17, d])).unwrap());
+        let p = ShortPrime(Convenient::try_from(Short::from([17, d])).unwrap());
         let u = Short::from([17, d]);
         assert_eq!(&p.0.0, &u);
     }

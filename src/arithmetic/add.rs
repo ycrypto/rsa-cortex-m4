@@ -64,7 +64,7 @@ pub fn adc(a: Digit, b: Digit, acc: &mut DoubleDigit) -> Digit {
 /// resizing a to max(a.len(), b.len()) + 1, to fit a possible carry.
 ///
 /// TODO: should this return a result (Err(digit) if digit != 0) to enforce explicit handling?
-fn add_assign_carry(a: &mut [Digit], b: &[Digit]) -> Digit {
+pub(crate) fn add_assign_carry(a: &mut [Digit], b: &[Digit]) -> Digit {
     debug_assert!(a.len() >= b.len());
 
     let mut carry = 0;
@@ -182,7 +182,7 @@ impl<'a, 'n, const D: usize, const E: usize> Add for &'a Modular<'n, D, E> {
 
 impl<'a, 'b, const D: usize, const E: usize, const F: usize, const G: usize> AddAssign<&'b Unsigned<F, G>> for Modular<'a, D, E> {
     fn add_assign(&mut self, summand: &'b Unsigned<F, G>) {
-        *self += &Modular { x: summand.partially_reduce(), n: self.n }
+        *self += &Modular { x: summand.reduce(self.n), n: self.n }
     }
 }
 

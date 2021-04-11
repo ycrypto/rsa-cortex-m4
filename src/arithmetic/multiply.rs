@@ -53,7 +53,7 @@ fn add_product_into_digit(a: &mut Digit, b: Digit, c: Digit, acc: &mut DoubleDig
     *acc >>= Digit::BITS;
 }
 
-fn add_product_by_digit_into(a: &mut [Digit], b: &[Digit], c: Digit) -> Digit {
+pub(crate) fn add_product_by_digit_into(a: &mut [Digit], b: &[Digit], c: Digit) -> Digit {
     debug_assert!(a.len() >= b.len());
 
     let mut acc: DoubleDigit = 0;
@@ -102,6 +102,18 @@ impl <const D: usize, const E: usize> Mul for &Wrapping<Unsigned<D, E>> {
 
     fn mul(self, other: Self) -> Self::Output {
         Wrapping(wrapping_mul(&self.0, &other.0))
+    }
+}
+
+impl <const D: usize> Mul<Digit> for &crate::Short<D> {
+
+    type Output = Unsigned<D, 1>;
+
+    /// *not* product-scanning implementation of multiplication, that overflowed
+    fn mul(self, digit: Digit) -> Self::Output {
+        let mut product = Unsigned::<D, 1>::zero();
+        add_product_by_digit_into(&mut product, self, digit);
+        product
     }
 }
 
@@ -234,4 +246,15 @@ mod test {
         // assert_eq!(&product_be[..32], &reference_be[..32]);
     }
 
+    #[test]
+    fn big_multiply() {
+        use crate::fixtures::*;
+        let p1024 = p1024();
+        let p = p1024.as_ref().as_ref();
+        let q1024 = q1024();
+        let q = q1024.as_ref().as_ref();
+        let n = n2048();
+        assert_eq!(p * q, n);
+        assert_eq!(p.wrapping_mul(&q), Short1024::from_bytes(&n.to_bytes()[128..]));
+    }
 }

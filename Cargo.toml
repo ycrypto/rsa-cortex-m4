@@ -15,7 +15,15 @@ rustdoc-args = [ "--html-in-header", "./src/docs-header.html" ]
 # num-traits = { version = "0.2.14", default-features = false }
 rand_core = { version = "0.6", default-features = false }
 ref-cast = "1"
+subtle = "2.4"
 zeroize = { version = "1.2.0", default-features = false, features = ["zeroize_derive"] }
 
+[dev-dependencies]
+hex-literal = "0.3"
+
 [features]
+default = ["u32"]
 u32 = []
+
+[patch.crates-io]
+subtle = { git = "https://github.com/nickray/subtle", branch = "conditionally-select-usize" }

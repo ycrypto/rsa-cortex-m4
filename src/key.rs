@@ -11,7 +11,7 @@
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
-use crate::{Odd, Prime, Result, Unsigned};
+use crate::{Long, Odd, ShortPrime, Result};
 
 /// RSA public key.
 ///
@@ -19,14 +19,28 @@ use crate::{Odd, Prime, Result, Unsigned};
 /// `e` is fixed to be 65537 = 0x10001.
 #[allow(non_snake_case)]
 #[derive(Zeroize)]
-pub struct PublicKey<const L: usize> {
-    pub N: Unsigned<L, L>,
+pub struct PublicKey<const D: usize> {
+    pub N: Long<D>,
 }
 
 #[derive(Zeroize)]
 pub struct Precomputed<const L: usize> {
     dp: Odd<L, 0>,
     dq: Odd<L, 0>,
+}
+
+impl<const D: usize> From<(&ShortPrime<D>, &ShortPrime<D>)> for Precomputed<D> {
+    fn from(prime_pair: (&ShortPrime<D>, &ShortPrime<D>)) -> Self {
+        // the trick here is to use Arazi Inversion as in JP03.
+        //
+        // We have $e = F4 = 65537$, and want
+        // $d_p = e^{-1} mod p$ and $d_q$, the private exponents.
+        let (p, q) = prime_pair;
+        let dp = crate::F4::inv_mod(p);
+        let dq = crate::F4::inv_mod(q);
+
+        Self { dp, dq }
+    }
 }
 
 /// RSA private key.
@@ -37,19 +51,52 @@ pub struct Precomputed<const L: usize> {
 ///
 /// It's quite sad, but we can't enforce the bound `L2 = 2*L`.
 #[derive(Zeroize)]
-pub struct PrivateKey<const L: usize> {
-    p: Prime<L>,
+pub struct PrivateKey<const D: usize> {
+    p: ShortPrime<D>,
     // dp: ModInt<L>,
-    q: Prime<L>,
+    q: ShortPrime<D>,
     // dq: ModInt<L>,
-    precomputed: Precomputed<L>,
-    public: PublicKey<L>,
+    precomputed: Precomputed<D>,
+    public_key: PublicKey<D>,
+}
+
+impl<const D: usize> From<(ShortPrime<D>, ShortPrime<D>)> for PrivateKey<D> {
+    fn from(prime_pair: (ShortPrime<D>, ShortPrime<D>)) -> Self {
+        let (p, q) = prime_pair;
+        #[allow(non_snake_case)]
+        let N: Long<D> = (p.as_ref().as_ref() * q.as_ref().as_ref()).into_long();
+        let public_key = PublicKey { N };
+        let precomputed: Precomputed<D> = (&p, &q).into();
+
+        let private_key = PrivateKey { p, q, precomputed, public_key };
+        private_key
+    }
 }
 
 #[allow(dead_code)]
-fn generate_prime_pair<const L: usize>() -> (Prime<L>, Prime<L>) {
+fn generate_prime_pair<const D: usize>() -> (ShortPrime<D>, ShortPrime<D>) {
     todo!();
 }
+
+// fn generate_rsa2k_prime_pair() -> (ShortPrime<4>, ShortPrime<4>) {
+//     use crate::Short;
+//     use crate::numbers::{Convenient, NumberMut};
+
+//     #[cfg(any(target_pointer_width = "32", feature = "u32"))]
+//     let p = Short::<4>::from_slice(
+//         &[0x7cd022f9, 0xab998f98, 0x7ee8dd0c, 0xca27a8bd, 0xbd5ad74a, 0xdf02e961, 0x1af83b2a, 0xddbb94f1]);
+//     #[cfg(all(target_pointer_width = "64", not(feature = "u32")))]
+//     let p = Short::<2>::from_slice(
+//         &[0xab998f987cd022f9, 0xca27a8bd7ee8dd0c, 0xdf02e961bd5ad74a, 0xddbb94f11af83b2a]);
+//     #[cfg(any(target_pointer_width = "32", feature = "u32"))]
+//     let q = Short::<4>::from_slice(
+//         &[0x0721398f, 0xf0e5dc8a, 0x2d2b3f7d, 0xf0292b4e, 0x116bef81, 0x839d2553, 0xccf2db4c, 0xcd58cd8a]);
+//     #[cfg(all(target_pointer_width = "64", not(feature = "u32")))]
+//     let q = Short::<2>::from_slice(
+//         &[0xf0e5dc8a0721398f, 0xf0292b4e2d2b3f7d, 0x839d2553116bef81, 0xcd58cd8accf2db4c]);
+
+//     (ShortPrime(Convenient(Odd(p))), ShortPrime(Convenient(Odd(q))))
+// }
 
 // Since e = 65537 is prime, can use Arazi's inversion formula
 // to calculate `e^{-1} (mod p - 1)`:
@@ -81,7 +128,7 @@ fn generate_prime_pair<const L: usize>() -> (Prime<L>, Prime<L>) {
 // ? lift((1 + f*Mod(5511, 2^fbits))*(1/Mod(e, 2^fbits)))
 // %41 = 666365342789576177051567
 
-// fn precompute_e_inverse<const L: usize>(p: &Prime<L>) -> Unsigned<L> {
+// fn precompute_e_inverse<const L: usize>(p: &ShortPrime<L>) -> Unsigned<L> {
 //     let f = p - 1;
 //     // Since e is prime, inverses modulo e are given by x.power(e - 2), by Fermat's little theorem.
 //     // This is a small exponentiation to the 0xFFFF
@@ -106,14 +153,15 @@ impl<const L: usize> PrivateKey<L> {
 }
 
 // 32 digits for the primes of a private key
-const RSA_2K_SIZE: usize = 2048 / 32 / 2;
+const RSA_2K_DIGITS: usize = 2048 / 32 / 2;
 
 // 48 digits for the primes of a private key
-const RSA_3K_SIZE: usize = 3072 / 32 / 2;
+const RSA_3K_DIGITS: usize = 3072 / 32 / 2;
 
 // 64 digits for the primes of a private key
-const RSA_4K_SIZE: usize = 4096 / 32 / 2;
+const RSA_4K_DIGITS: usize = 4096 / 32 / 2;
 
+/// The RSA cryptosystem. Sealed trait to avoid experiments.
 pub trait Rsa<const L: usize>: sealed::Rsa {
     type PrivateKey;//: crate::primitive::DecryptionPrimitive<L>;
     type PublicKey;
@@ -136,25 +184,25 @@ mod sealed {
 
 /// The RSA cryptosystem with 2048 bit size keys.
 pub struct Rsa2k;
-impl Rsa<RSA_2K_SIZE> for Rsa2k {
-    type PrivateKey = PrivateKey<RSA_2K_SIZE>;
-    type PublicKey = PublicKey<RSA_2K_SIZE>;
+impl Rsa<RSA_2K_DIGITS> for Rsa2k {
+    type PrivateKey = PrivateKey<RSA_2K_DIGITS>;
+    type PublicKey = PublicKey<RSA_2K_DIGITS>;
 }
 
 /// The RSA cryptosystem with 3072 bit size keys.
 ///
 /// Corresponds roughly to 128-bit security.
 pub struct Rsa3k;
-impl Rsa<RSA_3K_SIZE> for Rsa3k {
-    type PrivateKey = PrivateKey<RSA_3K_SIZE>;
-    type PublicKey = PublicKey<RSA_3K_SIZE>;
+impl Rsa<RSA_3K_DIGITS> for Rsa3k {
+    type PrivateKey = PrivateKey<RSA_3K_DIGITS>;
+    type PublicKey = PublicKey<RSA_3K_DIGITS>;
 }
 
 /// The RSA cryptosystem with 4096 bit size keys.
 pub struct Rsa4k;
-impl Rsa<RSA_4K_SIZE> for Rsa4k {
-    type PrivateKey = PrivateKey<RSA_4K_SIZE>;
-    type PublicKey = PublicKey<RSA_4K_SIZE>;
+impl Rsa<RSA_4K_DIGITS> for Rsa4k {
+    type PrivateKey = PrivateKey<RSA_4K_DIGITS>;
+    type PublicKey = PublicKey<RSA_4K_DIGITS>;
 }
 
 

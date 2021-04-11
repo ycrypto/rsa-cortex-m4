@@ -145,7 +145,7 @@ impl<const D: usize, const E: usize> Unsigned<D, E> {
         (borrow != 0).then(|| difference)
     }
 
-    pub fn wrapping_sub_assign(&mut self, subtrahend: &Self) {
+    pub fn wrapping_sub_assign<T: Number>(&mut self, subtrahend: &T) {
         *Wrapping::ref_cast_mut(self) -= Wrapping::ref_cast(subtrahend);
     }
 
@@ -272,13 +272,20 @@ impl<'a, 'n, const D: usize, const E: usize> Sub for &'a Modular<'n, D, E> {
     }
 }
 
+impl<'n, const D: usize, const E: usize> Neg for &Modular<'n, D, E> {
+    type Output = Modular<'n, D, E>;
+
+    fn neg(self) -> Self::Output {
+        &Self::Output::zero(&self.n) - self
+    }
+}
 
 // Subtraction of Unsigned from Modular
 // Simply delegates to subtraction in Modular, after partial reduction.
 
 impl<'a, 'b, const D: usize, const E: usize, const F: usize, const G: usize> SubAssign<&'b Unsigned<F, G>> for Modular<'a, D, E> {
     fn sub_assign(&mut self, subtrahend: &'b Unsigned<F, G>) {
-        *self -= &Modular { x: subtrahend.partially_reduce(), n: self.n }
+        *self -= &Modular { x: subtrahend.reduce(self.n), n: self.n }
     }
 }
 
