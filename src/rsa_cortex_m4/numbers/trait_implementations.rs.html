@@ -274,6 +274,10 @@
 <span id="255">255</span>
 <span id="256">256</span>
 <span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">core</span>::{<span class="ident">cmp</span>::<span class="ident">Ordering</span>, <span class="ident">convert</span>::<span class="ident">TryFrom</span>, <span class="ident">fmt</span>, <span class="ident">ops</span>::{<span class="ident">Deref</span>, <span class="ident">DerefMut</span>}};
 
@@ -431,10 +435,14 @@
             <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>);
         }
 
-        <span class="kw">if</span> <span class="op">!</span><span class="ident">unsigned</span>.<span class="ident">significant_digits</span>().<span class="ident">len</span>() <span class="op">=</span><span class="op">=</span> <span class="ident">D</span> <span class="op">+</span> <span class="ident">E</span> {
-            <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;think about this case&quot;</span>);
+        <span class="kw">if</span> <span class="op">!</span><span class="ident">unsigned</span>.<span class="ident">significant_digits</span>().<span class="ident">len</span>() <span class="op">!</span><span class="op">=</span> <span class="ident">Unsigned</span>::<span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>::<span class="ident">CAPACITY</span> {
+            <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;logic error&quot;</span>);
+            <span class="comment">// return Err(Error);</span>
         }
 
+        <span class="comment">// if unsigned.leading_digit().unwrap().leading_zeros() != 0 {</span>
+        <span class="comment">//     return Err(Error);</span>
+        <span class="comment">// }</span>
         <span class="kw">let</span> <span class="ident">top_bit</span> <span class="op">=</span> <span class="ident">unsigned</span>.<span class="ident">leading_digit</span>().<span class="ident">unwrap</span>() <span class="op">&gt;</span><span class="op">&gt;</span> (<span class="ident">Digit</span>::<span class="ident">BITS</span> <span class="op">-</span> <span class="number">1</span>);
         <span class="kw">if</span> <span class="ident">top_bit</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span> {
             <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>);
