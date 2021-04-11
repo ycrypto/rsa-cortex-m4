@@ -267,17 +267,6 @@
 <span id="248">248</span>
 <span id="249">249</span>
 <span id="250">250</span>
-<span id="251">251</span>
-<span id="252">252</span>
-<span id="253">253</span>
-<span id="254">254</span>
-<span id="255">255</span>
-<span id="256">256</span>
-<span id="257">257</span>
-<span id="258">258</span>
-<span id="259">259</span>
-<span id="260">260</span>
-<span id="261">261</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">core</span>::{<span class="ident">cmp</span>::<span class="ident">Ordering</span>, <span class="ident">convert</span>::<span class="ident">TryFrom</span>, <span class="ident">fmt</span>, <span class="ident">ops</span>::{<span class="ident">Deref</span>, <span class="ident">DerefMut</span>}};
 
@@ -305,16 +294,8 @@
     <span class="kw">const</span> <span class="ident">BITS</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">128</span>;
 }
 
-<span class="comment">// impl&lt;const D: usize, const E: usize&gt; Bits for Unsigned&lt;D, E&gt; {</span>
-<span class="comment">//     const BITS: usize = Digit::BITS * (D + E);</span>
-<span class="comment">// }</span>
-
-<span class="comment">// impl&lt;const D: usize, const E: usize, const L: usize&gt; Bits for Array&lt;D, E, L&gt; {</span>
-<span class="comment">//     const BITS: usize = Digit::BITS * (D + E) * L;</span>
-<span class="comment">// }</span>
-
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Number</span><span class="op">&gt;</span> <span class="ident">Bits</span> <span class="kw">for</span> <span class="ident">T</span> {
-    <span class="kw">const</span> <span class="ident">BITS</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="ident">Digit</span>::<span class="ident">BITS</span> <span class="op">*</span> <span class="ident">T</span>::<span class="ident">CAPACITY</span>;
+    <span class="kw">const</span> <span class="ident">BITS</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="ident">T</span>::<span class="ident">BITS</span>;
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">Deref</span> <span class="kw">for</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
@@ -398,10 +379,7 @@
     }
 }
 
-<span class="kw">unsafe</span> <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Number</span><span class="op">&gt;</span> <span class="ident">Number</span> <span class="kw">for</span> <span class="ident">Wrapping</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
-    <span class="kw">const</span> <span class="ident">CAPACITY</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="ident">T</span>::<span class="ident">CAPACITY</span>;
-}
-
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Number</span><span class="op">&gt;</span> <span class="ident">Number</span> <span class="kw">for</span> <span class="ident">Wrapping</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {}
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Number</span> <span class="op">+</span> <span class="ident">NumberMut</span><span class="op">&gt;</span> <span class="ident">NumberMut</span> <span class="kw">for</span> <span class="ident">Wrapping</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {}
 
 
@@ -435,7 +413,7 @@
             <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>);
         }
 
-        <span class="kw">if</span> <span class="op">!</span><span class="ident">unsigned</span>.<span class="ident">significant_digits</span>().<span class="ident">len</span>() <span class="op">!</span><span class="op">=</span> <span class="ident">Unsigned</span>::<span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>::<span class="ident">CAPACITY</span> {
+        <span class="kw">if</span> <span class="op">!</span><span class="ident">unsigned</span>.<span class="ident">significant_digits</span>().<span class="ident">len</span>() <span class="op">!</span><span class="op">=</span> <span class="ident">Unsigned</span>::<span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>::<span class="ident">DIGITS</span> {
             <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;logic error&quot;</span>);
             <span class="comment">// return Err(Error);</span>
         }

@@ -496,7 +496,6 @@
 <span id="477">477</span>
 <span id="478">478</span>
 <span id="479">479</span>
-<span id="480">480</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">core</span>::{<span class="ident">cmp</span>::<span class="ident">Ordering</span>, <span class="ident">convert</span>::<span class="ident">TryInto</span>, <span class="ident">ops</span>::{<span class="ident">Div</span>, <span class="ident">Rem</span>}};
 
@@ -522,7 +521,6 @@
     <span class="ident">Odd</span>(<span class="ident">y</span>)
 }
 
-<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">dead_code</span>)]</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">wrapping_invert</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="ident">unsigned</span>: <span class="kw-2">&amp;</span><span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span><span class="op">&gt;</span> {
     <span class="kw">let</span> <span class="ident">odd</span>: <span class="kw-2">&amp;</span><span class="ident">Odd</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">unsigned</span>.<span class="ident">try_into</span>()<span class="question-mark">?</span>;
     <span class="prelude-val">Ok</span>(<span class="ident">wrapping_invert_odd</span>(<span class="ident">odd</span>).<span class="ident">into</span>())
@@ -598,7 +596,7 @@
 <span class="comment">// N,M in &quot;reversed&quot; order in Product to cover UnsignedCarry case (M = 1).</span>
 <span class="comment">//</span>
 <span class="comment">// TODO: See if we can&#39;t set `x: &amp;T` where `T: AsNormalizedLittleEndianWords`, and just</span>
-<span class="comment">// debug_assert that T::CAPACITY &gt; N.</span>
+<span class="comment">// debug_assert that T::DIGITS &gt; N.</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">generic_div_rem</span><span class="op">&lt;</span><span class="ident">T</span>, <span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="ident">x</span>: <span class="kw-2">&amp;</span><span class="ident">T</span>, <span class="ident">n</span>: <span class="kw-2">&amp;</span><span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">T</span>, <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>)
 <span class="kw">where</span>
     <span class="ident">T</span>: <span class="ident">NumberMut</span> <span class="op">+</span> <span class="ident">PartialOrd</span>,
