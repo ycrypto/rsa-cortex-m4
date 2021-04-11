@@ -175,20 +175,22 @@
 <span id="156">156</span>
 <span id="157">157</span>
 <span id="158">158</span>
+<span id="159">159</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">ops</span>::{<span class="ident">Shl</span>, <span class="ident">ShlAssign</span>, <span class="ident">Shr</span>, <span class="ident">ShrAssign</span>};
 
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">Digit</span>, <span class="ident">Unsigned</span>};
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">numbers</span>::{<span class="ident">Array</span>, <span class="ident">Bits</span>, <span class="ident">NumberMut</span>, <span class="ident">Zero</span>};
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">numbers</span>::{<span class="ident">Array</span>, <span class="ident">Bits</span>, <span class="ident">NumberMut</span>};
 
 <span class="doccomment">/// Compared to `num-bigint{,-dig}`, this is a truncating shift.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// Note that &quot;left&quot; means &quot;higher number&quot;.</span>
-<span class="kw">fn</span> <span class="ident">generic_shl_assign</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(<span class="ident">number</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">T</span>, <span class="ident">bits</span>: <span class="ident">usize</span>)
+<span class="kw">fn</span> <span class="ident">wrapping_shl_assign</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(<span class="ident">number</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">T</span>, <span class="ident">bits</span>: <span class="ident">usize</span>)
 <span class="kw">where</span>
-    <span class="ident">T</span>: <span class="ident">NumberMut</span> <span class="op">+</span> <span class="ident">Zero</span>
+    <span class="ident">T</span>: <span class="ident">NumberMut</span>
 {
-    <span class="kw">let</span> <span class="ident">l</span> <span class="op">=</span> <span class="ident">number</span>.<span class="ident">len</span>();
+    <span class="comment">// make this CT also?</span>
+    <span class="kw">let</span> <span class="ident">l</span> <span class="op">=</span> <span class="ident">number</span>.<span class="ident">significant_digits</span>().<span class="ident">len</span>();
     <span class="kw">let</span> <span class="ident">n_digits</span> <span class="op">=</span> <span class="ident">bits</span> <span class="op">/</span> <span class="ident">Digit</span>::<span class="ident">BITS</span>;
 
     <span class="comment">// shift back by n_digits</span>
@@ -209,30 +211,30 @@
 <span class="comment">// impl&lt;const L: usize&gt; ShlAssign&lt;usize&gt; for Unsigned&lt;L&gt; {</span>
 <span class="comment">//     #[inline]</span>
 <span class="comment">//     fn shl_assign(&amp;mut self, bits: usize) {</span>
-<span class="comment">//         generic_shl_assign(self, bits)</span>
+<span class="comment">//         wrapping_shl_assign(self, bits)</span>
 <span class="comment">//     }</span>
 <span class="comment">// }</span>
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">ShlAssign</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="kw">fn</span> <span class="ident">shl_assign</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">bits</span>: <span class="ident">usize</span>) {
-        <span class="ident">generic_shl_assign</span>(<span class="self">self</span>, <span class="ident">bits</span>)
+        <span class="ident">wrapping_shl_assign</span>(<span class="self">self</span>, <span class="ident">bits</span>)
     }
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">L</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">ShlAssign</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Array</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span>, <span class="ident">L</span><span class="op">&gt;</span> {
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="kw">fn</span> <span class="ident">shl_assign</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">bits</span>: <span class="ident">usize</span>) {
-        <span class="ident">generic_shl_assign</span>(<span class="self">self</span>, <span class="ident">bits</span>)
+        <span class="ident">wrapping_shl_assign</span>(<span class="self">self</span>, <span class="ident">bits</span>)
     }
 }
 
 <span class="doccomment">/// Note that &quot;right&quot; means &quot;lower number&quot;.</span>
 <span class="kw">fn</span> <span class="ident">generic_shr_assign</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(<span class="ident">number</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">T</span>, <span class="ident">bits</span>: <span class="ident">usize</span>)
 <span class="kw">where</span>
-    <span class="ident">T</span>: <span class="ident">NumberMut</span> <span class="op">+</span> <span class="ident">Zero</span>
+    <span class="ident">T</span>: <span class="ident">NumberMut</span>
 {
-    <span class="kw">let</span> <span class="ident">l</span> <span class="op">=</span> <span class="ident">number</span>.<span class="ident">len</span>();
+    <span class="kw">let</span> <span class="ident">l</span> <span class="op">=</span> <span class="ident">number</span>.<span class="ident">significant_digits</span>().<span class="ident">len</span>();
     <span class="kw">let</span> <span class="ident">n_digits</span> <span class="op">=</span> <span class="ident">bits</span> <span class="op">/</span> <span class="ident">Digit</span>::<span class="ident">BITS</span>;
 
     <span class="kw">if</span> <span class="ident">n_digits</span> <span class="op">&gt;</span><span class="op">=</span> <span class="ident">l</span> {

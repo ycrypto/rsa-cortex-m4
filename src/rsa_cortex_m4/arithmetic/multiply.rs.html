@@ -260,15 +260,15 @@
 <span class="kw">use</span> <span class="ident">ref_cast</span>::<span class="ident">RefCast</span>;
 
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">Digit</span>, <span class="ident">DoubleDigit</span>, <span class="ident">Modular</span>, <span class="ident">Montgomery</span>, <span class="ident">Unsigned</span>, <span class="ident">Wrapping</span>};
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">numbers</span>::{<span class="ident">Bits</span>, <span class="ident">Number</span>, <span class="ident">NumberMut</span>, <span class="ident">Product</span>, <span class="ident">Zero</span>};
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">numbers</span>::{<span class="ident">Bits</span>, <span class="ident">Number</span>, <span class="ident">NumberMut</span>, <span class="ident">Product</span>};
 
 <span class="doccomment">/// This just drops higher digits if `lhs * rhs` does not fit in a U.</span>
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">wrapping_mul</span><span class="op">&lt;</span><span class="ident">U</span>, <span class="ident">V</span><span class="op">&gt;</span>(<span class="ident">lhs</span>: <span class="kw-2">&amp;</span><span class="ident">U</span>, <span class="ident">rhs</span>: <span class="kw-2">&amp;</span><span class="ident">V</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">U</span>
 <span class="kw">where</span>
-    <span class="ident">U</span>: <span class="ident">NumberMut</span> <span class="op">+</span> <span class="ident">Zero</span> <span class="op">+</span> <span class="ident">core</span>::<span class="ident">fmt</span>::<span class="ident">Debug</span>,
-    <span class="ident">V</span>: <span class="ident">Number</span> <span class="op">+</span> <span class="ident">core</span>::<span class="ident">fmt</span>::<span class="ident">Debug</span>,
+    <span class="ident">U</span>: <span class="ident">NumberMut</span>,
+    <span class="ident">V</span>: <span class="ident">Number</span>,
 {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">product</span>: <span class="ident">U</span> <span class="op">=</span> <span class="ident">Zero</span>::<span class="ident">zero</span>();
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">product</span> <span class="op">=</span> <span class="ident">U</span>::<span class="ident">zero</span>();
 
     <span class="comment">// #[cfg(test)]</span>
     <span class="comment">// println!(&quot;BITS = {:?}&quot;, Digit::BITS);</span>
@@ -281,8 +281,8 @@
         <span class="kw">let</span> <span class="ident">yj</span> <span class="op">=</span> <span class="ident">rhs</span>[<span class="ident">j</span>] <span class="kw">as</span> <span class="ident">DoubleDigit</span>;
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">accumulator</span> <span class="op">=</span> <span class="number">0</span>;
         <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..(<span class="ident">U</span>::<span class="ident">CAPACITY</span> <span class="op">-</span> <span class="ident">j</span>) {
-            <span class="kw">let</span> <span class="ident">xi</span> <span class="op">=</span> <span class="ident">lhs</span>.<span class="ident">padded_number</span>()[<span class="ident">i</span>] <span class="kw">as</span> <span class="ident">DoubleDigit</span>;
-            <span class="ident">accumulator</span> <span class="op">+</span><span class="op">=</span> (<span class="ident">product</span>.<span class="ident">padded_number</span>()[<span class="ident">i</span> <span class="op">+</span> <span class="ident">j</span>] <span class="kw">as</span> <span class="ident">DoubleDigit</span>) <span class="op">+</span> <span class="ident">xi</span><span class="kw-2">*</span><span class="ident">yj</span>;
+            <span class="kw">let</span> <span class="ident">xi</span> <span class="op">=</span> <span class="ident">lhs</span>[<span class="ident">i</span>] <span class="kw">as</span> <span class="ident">DoubleDigit</span>;
+            <span class="ident">accumulator</span> <span class="op">+</span><span class="op">=</span> (<span class="ident">product</span>[<span class="ident">i</span> <span class="op">+</span> <span class="ident">j</span>] <span class="kw">as</span> <span class="ident">DoubleDigit</span>) <span class="op">+</span> <span class="ident">xi</span><span class="kw-2">*</span><span class="ident">yj</span>;
             <span class="ident">product</span>[<span class="ident">i</span> <span class="op">+</span> <span class="ident">j</span>] <span class="op">=</span> <span class="ident">accumulator</span> <span class="kw">as</span> <span class="ident">Digit</span>;
             <span class="ident">accumulator</span> <span class="op">&gt;</span><span class="op">&gt;</span><span class="op">=</span> <span class="ident">Digit</span>::<span class="ident">BITS</span>;
         }

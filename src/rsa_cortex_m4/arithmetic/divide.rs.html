@@ -497,161 +497,22 @@
 <span id="478">478</span>
 <span id="479">479</span>
 <span id="480">480</span>
-<span id="481">481</span>
-<span id="482">482</span>
-<span id="483">483</span>
-<span id="484">484</span>
-<span id="485">485</span>
-<span id="486">486</span>
-<span id="487">487</span>
-<span id="488">488</span>
-<span id="489">489</span>
-<span id="490">490</span>
-<span id="491">491</span>
-<span id="492">492</span>
-<span id="493">493</span>
-<span id="494">494</span>
-<span id="495">495</span>
-<span id="496">496</span>
-<span id="497">497</span>
-<span id="498">498</span>
-<span id="499">499</span>
-<span id="500">500</span>
-<span id="501">501</span>
-<span id="502">502</span>
-<span id="503">503</span>
-<span id="504">504</span>
-<span id="505">505</span>
-<span id="506">506</span>
-<span id="507">507</span>
-<span id="508">508</span>
-<span id="509">509</span>
-<span id="510">510</span>
-<span id="511">511</span>
-<span id="512">512</span>
-<span id="513">513</span>
-<span id="514">514</span>
-<span id="515">515</span>
-<span id="516">516</span>
-<span id="517">517</span>
-<span id="518">518</span>
-<span id="519">519</span>
-<span id="520">520</span>
-<span id="521">521</span>
-<span id="522">522</span>
-<span id="523">523</span>
-<span id="524">524</span>
-<span id="525">525</span>
-<span id="526">526</span>
-<span id="527">527</span>
-<span id="528">528</span>
-<span id="529">529</span>
-<span id="530">530</span>
-<span id="531">531</span>
-<span id="532">532</span>
-<span id="533">533</span>
-<span id="534">534</span>
-<span id="535">535</span>
-<span id="536">536</span>
-<span id="537">537</span>
-<span id="538">538</span>
-<span id="539">539</span>
-<span id="540">540</span>
-<span id="541">541</span>
-<span id="542">542</span>
-<span id="543">543</span>
-<span id="544">544</span>
-<span id="545">545</span>
-<span id="546">546</span>
-<span id="547">547</span>
-<span id="548">548</span>
-<span id="549">549</span>
-<span id="550">550</span>
-<span id="551">551</span>
-<span id="552">552</span>
-<span id="553">553</span>
-<span id="554">554</span>
-<span id="555">555</span>
-<span id="556">556</span>
-<span id="557">557</span>
-<span id="558">558</span>
-<span id="559">559</span>
-<span id="560">560</span>
-<span id="561">561</span>
-<span id="562">562</span>
-<span id="563">563</span>
-<span id="564">564</span>
-<span id="565">565</span>
-<span id="566">566</span>
-<span id="567">567</span>
-<span id="568">568</span>
-<span id="569">569</span>
-<span id="570">570</span>
-<span id="571">571</span>
-<span id="572">572</span>
-<span id="573">573</span>
-<span id="574">574</span>
-<span id="575">575</span>
-<span id="576">576</span>
-<span id="577">577</span>
-<span id="578">578</span>
-<span id="579">579</span>
-<span id="580">580</span>
-<span id="581">581</span>
-<span id="582">582</span>
-<span id="583">583</span>
-<span id="584">584</span>
-<span id="585">585</span>
-<span id="586">586</span>
-<span id="587">587</span>
-<span id="588">588</span>
-<span id="589">589</span>
-<span id="590">590</span>
-<span id="591">591</span>
-<span id="592">592</span>
-<span id="593">593</span>
-<span id="594">594</span>
-<span id="595">595</span>
-<span id="596">596</span>
-<span id="597">597</span>
-<span id="598">598</span>
-<span id="599">599</span>
-<span id="600">600</span>
-<span id="601">601</span>
-<span id="602">602</span>
-<span id="603">603</span>
-<span id="604">604</span>
-<span id="605">605</span>
-<span id="606">606</span>
-<span id="607">607</span>
-<span id="608">608</span>
-<span id="609">609</span>
-<span id="610">610</span>
-<span id="611">611</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">core</span>::{<span class="ident">cmp</span>::<span class="ident">Ordering</span>, <span class="ident">convert</span>::<span class="ident">TryInto</span>, <span class="ident">ops</span>::{<span class="ident">Div</span>, <span class="ident">Rem</span>}};
 
 <span class="kw">use</span> <span class="ident">ref_cast</span>::<span class="ident">RefCast</span>;
 
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">Digit</span>, <span class="ident">DoubleDigit</span>, <span class="ident">Odd</span>, <span class="prelude-ty">Result</span>, <span class="ident">Unsigned</span>, <span class="ident">Wrapping</span>};
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">numbers</span>::{<span class="ident">Array</span>, <span class="ident">Bits</span>, <span class="ident">FromSlice</span>, <span class="ident">Number</span>, <span class="ident">NumberMut</span>, <span class="ident">One</span>, <span class="ident">Zero</span>};
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">numbers</span>::{<span class="ident">Array</span>, <span class="ident">Bits</span>, <span class="ident">Number</span>, <span class="ident">NumberMut</span>};
 
-<span class="comment">// pub fn invert&lt;T&gt;(x: &amp;T) -&gt; T</span>
-<span class="comment">// where</span>
-<span class="comment">//     T: NumberMut + One,</span>
-<span class="comment">//     for&lt;&#39;a&gt; &amp;&#39;a T: core::ops::Add&lt;Output = T&gt;,</span>
-<span class="comment">//     for&lt;&#39;a&gt; &amp;&#39;a T: core::ops::Sub&lt;Output = T&gt;,</span>
-<span class="comment">//     for&lt;&#39;a&gt; &amp;&#39;a T: core::ops::Mul&lt;Output = T&gt;,</span>
-<span class="comment">//     for&lt;&#39;a&gt; T: core::ops::MulAssign&lt;&amp;&#39;a T&gt;,</span>
-<span class="comment">// {</span>
 <span class="doccomment">/// Odd numbers can be inverted modulo $2^m$</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">wrapping_invert_odd</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="ident">x</span>: <span class="kw-2">&amp;</span><span class="ident">Odd</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Odd</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
     <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">non_snake_case</span>)]</span>
     <span class="kw">let</span> <span class="ident">T</span> <span class="op">=</span> (<span class="ident">D</span> <span class="op">+</span> <span class="ident">E</span>) <span class="op">*</span> (<span class="ident">Digit</span>::<span class="ident">BITS</span>.<span class="ident">trailing_zeros</span>() <span class="kw">as</span> <span class="ident">usize</span>);
 
     <span class="kw">let</span> <span class="ident">x</span>: <span class="kw-2">&amp;</span><span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="ident">x</span>;
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">y</span>: <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">One</span>::<span class="ident">one</span>();
-    <span class="kw">let</span> <span class="ident">two</span> <span class="op">=</span> <span class="ident">y</span>.<span class="ident">wrapping_add</span>(<span class="kw-2">&amp;</span><span class="ident">y</span>);
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">y</span> <span class="op">=</span> <span class="ident">Unsigned</span>::<span class="ident">from</span>(<span class="number">1</span>);
+    <span class="kw">let</span> <span class="ident">two</span>: <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">Unsigned</span>::<span class="ident">from</span>(<span class="number">2</span>);
 
     <span class="kw">for</span> <span class="kw">_</span> <span class="kw">in</span> <span class="number">1</span>..<span class="op">=</span><span class="ident">T</span> {
         <span class="comment">// y = &amp;y * &amp;(&amp;two - &amp;(x * &amp;y));</span>
@@ -704,14 +565,14 @@
 }
 
 <span class="doccomment">/// Divides x in-place by digit n, returning the multiple of n and the remaining digit.</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">div_rem_assign_digit</span>(<span class="ident">x</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw">impl</span> <span class="ident">NumberMut</span>, <span class="ident">n</span>: <span class="ident">Digit</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Digit</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">div_rem_assign_digit</span>(<span class="ident">number</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw">impl</span> <span class="ident">NumberMut</span>, <span class="ident">modulus</span>: <span class="ident">Digit</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Digit</span> {
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">remainder</span> <span class="op">=</span> <span class="number">0</span>;
 
     <span class="comment">// run down the digits in x, dividing each by n, while carrying along the remainder</span>
-    <span class="kw">let</span> <span class="ident">l</span> <span class="op">=</span> <span class="ident">x</span>.<span class="ident">len</span>();
-    <span class="kw">for</span> <span class="ident">digit</span> <span class="kw">in</span> <span class="ident">x</span>[..<span class="ident">l</span>].<span class="ident">iter_mut</span>().<span class="ident">rev</span>() {
-        <span class="kw">let</span> (<span class="ident">q</span>, <span class="ident">r</span>) <span class="op">=</span> <span class="ident">div_digits</span>(<span class="ident">remainder</span>, <span class="kw-2">*</span><span class="ident">digit</span>, <span class="ident">n</span>);
-        <span class="kw-2">*</span><span class="ident">digit</span> <span class="op">=</span> <span class="ident">q</span>;
+    <span class="kw">let</span> <span class="ident">l</span> <span class="op">=</span> <span class="ident">number</span>.<span class="ident">significant_digits</span>().<span class="ident">len</span>();
+    <span class="kw">for</span> <span class="ident">digit</span> <span class="kw">in</span> <span class="ident">number</span>[..<span class="ident">l</span>].<span class="ident">iter_mut</span>().<span class="ident">rev</span>() {
+        <span class="kw">let</span> (<span class="ident">quotient</span>, <span class="ident">r</span>) <span class="op">=</span> <span class="ident">div_digits</span>(<span class="ident">remainder</span>, <span class="kw-2">*</span><span class="ident">digit</span>, <span class="ident">modulus</span>);
+        <span class="kw-2">*</span><span class="ident">digit</span> <span class="op">=</span> <span class="ident">quotient</span>;
         <span class="ident">remainder</span> <span class="op">=</span> <span class="ident">r</span>;
     }
 
@@ -734,137 +595,13 @@
 <span class="comment">////</span>
 <span class="comment">//// But, the `n` argument does not need to have N places, just because it fits into N words.</span>
 
-<span class="comment">//// pub fn div_rem&lt;const M: usize, const N: usize&gt;(x: &amp;Unsigned&lt;M + N&gt;, n: &amp;Unsigned&lt;N&gt;) -&gt; (Unsigned&lt;M + 1&gt;, Unsigned&lt;N&gt;) {</span>
-<span class="comment">//// pub fn div_rem&lt;const M: usize, const N: usize&gt;(x: &amp;Product&lt;M, N&gt;, n: &amp;Unsigned&lt;N&gt;) -&gt; (UnsignedCarry&lt;M&gt;, Unsigned&lt;N&gt;) {</span>
-<span class="comment">//pub fn div_rem&lt;const X: usize, const N: usize&gt;(x: &amp;Unsigned&lt;X&gt;, n: &amp;Unsigned&lt;N&gt;) -&gt; (Unsigned&lt;X&gt;, Unsigned&lt;N&gt;) {</span>
-<span class="comment">//    if n.is_zero() {</span>
-<span class="comment">//        todo!(&quot;specialize to `mod 2**{{32*N}}, maybe&quot;);</span>
-<span class="comment">//    }</span>
-<span class="comment">//    if x.is_zero() {</span>
-<span class="comment">//        return (Default::default(), Default::default());</span>
-<span class="comment">//    }</span>
-
-<span class="comment">//    if n.len() == 1 {</span>
-<span class="comment">//        let n = n[0];</span>
-
-<span class="comment">//        let mut div = x.clone();</span>
-<span class="comment">//        if n == 1 {</span>
-<span class="comment">//            return (div, Zero::zero());</span>
-<span class="comment">//        } else {</span>
-<span class="comment">//            let rem = div_rem_assign_digit(&amp;mut div, n);</span>
-<span class="comment">//            return (div, rem.into());</span>
-<span class="comment">//        }</span>
-<span class="comment">//    }</span>
-
-<span class="comment">//    // let n = n.as_le_words();</span>
-
-<span class="comment">//    // Required or the q_len calculation below can underflow:</span>
-<span class="comment">//    // match x.as_le_words().cmp(&amp;n.as_le_words()) {</span>
-<span class="comment">//    match x.partial_cmp(n).unwrap() {</span>
-<span class="comment">//        Ordering::Less =&gt; return (Zero::zero(), n.clone()),</span>
-<span class="comment">//        Ordering::Equal =&gt; return (One::one(), Zero::zero()),</span>
-<span class="comment">//        Ordering::Greater =&gt; {} // Do nothing</span>
-<span class="comment">//    }</span>
-
-<span class="comment">//    // This algorithm is from Knuth, TAOCP vol 2 section 4.3, algorithm D:</span>
-<span class="comment">//    //</span>
-<span class="comment">//    // Shift n to set highest bit (in its leading digit), so the generated guesses are as</span>
-<span class="comment">//    // large as possible in the following loop.</span>
-<span class="comment">//    //</span>
-<span class="comment">//    // This shift has no influence on `q`, and will be reverted for `r` at the end.</span>
-<span class="comment">//    // let shift = n.as_le_words().last().unwrap().leading_zeros() as usize;</span>
-<span class="comment">//    let shift = n.leading_digit().unwrap().leading_zeros() as usize;</span>
-
-<span class="comment">//    let mut r = x &lt;&lt; shift;</span>
-<span class="comment">//    // by the above, x &gt;= n, so `n` and its shift `b` must fit into Unsigned::&lt;X&gt;, as `x` does</span>
-<span class="comment">//    // let b: Unsigned&lt;X&gt; = (n &lt;&lt; shift).try_into().unwrap();</span>
-<span class="comment">//    let n: Unsigned&lt;X&gt; = (n &lt;&lt; shift).into_unsigned();</span>
-
-<span class="comment">//    // we now want to calculate a/b, in the sense a = qb + r</span>
-<span class="comment">//    // in this sense, a = r (starts at a, goes down to r by removing multiples of b, the</span>
-<span class="comment">//    // multipliers summed into q, which starts at 0)</span>
-
-<span class="comment">//    // The algorithm works by incrementally calculating &quot;guesses&quot;, q0, for part of the</span>
-<span class="comment">//    // remainder. Once we have any number q0 such that q0 * b &lt;= a, we can set</span>
-<span class="comment">//    //</span>
-<span class="comment">//    //     q += q0</span>
-<span class="comment">//    //     a -= q0 * b</span>
-<span class="comment">//    //</span>
-<span class="comment">//    // and then iterate until a &lt; b. Then, (q, a) will be our desired quotient and remainder.</span>
-<span class="comment">//    //</span>
-<span class="comment">//    // q0, our guess, is calculated by dividing the last few digits of a by the last digit of b</span>
-<span class="comment">//    // - this should give us a guess that is &quot;close&quot; to the actual quotient, but is possibly</span>
-<span class="comment">//    // greater than the actual quotient. If q0 * b &gt; a, we simply use iterated subtraction</span>
-<span class="comment">//    // until we have a guess such that q0 * b &lt;= a.</span>
-
-<span class="comment">//    let q_len = x.len() - n.len() + 1;</span>
-<span class="comment">//    let mut q = Unsigned::&lt;X&gt;::default();</span>
-
-<span class="comment">//    // We reuse the same temporary to avoid hitting the allocator in our inner loop - this is</span>
-<span class="comment">//    // sized to hold a0 (in the common case; if a particular digit of the quotient is zero a0</span>
-<span class="comment">//    // can be bigger).</span>
-<span class="comment">//    //</span>
-
-<span class="comment">//    // // this is the &quot;trial division&quot; that Montgomery would later refer to :)</span>
-<span class="comment">//    // let mut trial = Unsigned::&lt;X&gt;::default(); // SmallVec::with_capacity(2)</span>
-
-<span class="comment">//    for j in (0..q_len).rev() {</span>
-<span class="comment">//        /*</span>
-<span class="comment">//         * When calculating our next guess q0, we don&#39;t need to consider the digits below j</span>
-<span class="comment">//         * + b.len() - 1: we&#39;re guessing digit j of the quotient (i.e. q0 &lt;&lt; j) from</span>
-<span class="comment">//         * digit bn of the divisor (i.e. bn &lt;&lt; (b.data.len() - 1) - so the product of those</span>
-<span class="comment">//         * two numbers will be zero in all digits up to (j + b.data.len() - 1).</span>
-<span class="comment">//         */</span>
-<span class="comment">//        let offset = j + n.len() - 1;</span>
-<span class="comment">//        if offset &gt;= r.len() {</span>
-<span class="comment">//            continue;</span>
-<span class="comment">//        }</span>
-
-<span class="comment">//        // set &quot;trial&quot; to current remainder, immediately after we divide by highest digit of</span>
-<span class="comment">//        // divisor `n` to get a guess.</span>
-<span class="comment">//        // trial.set_zero();</span>
-<span class="comment">//        // trial[..r.len() - offset].copy_from_slice(&amp;r[offset..]);</span>
-<span class="comment">//        let mut trial = Unsigned::&lt;X&gt;::from_slice(&amp;r[offset..]);</span>
-
-<span class="comment">//        /*</span>
-<span class="comment">//         * q0 &lt;&lt; j * big_digit::BITS is our actual quotient estimate - we do the shifts</span>
-<span class="comment">//         * implicitly at the end, when adding and subtracting to a and q. Not only do we</span>
-<span class="comment">//         * save the cost of the shifts, the rest of the arithmetic gets to work with</span>
-<span class="comment">//         * smaller numbers.</span>
-<span class="comment">//         */</span>
-
-<span class="comment">//        div_rem_assign_digit(&amp;mut trial, n.leading_digit().unwrap());</span>
-<span class="comment">//        let mut prod: Unsigned&lt;X&gt; = (&amp;n * &amp;trial).into_unsigned();</span>
-
-<span class="comment">//        // if the product of the guess with the divisor is too big, replace the guess with one less</span>
-<span class="comment">//        // According to Knuth, this loop should only run 2 times max (or even just one time with a</span>
-<span class="comment">//        // smarter check).</span>
-<span class="comment">//        while prod &gt; Unsigned::&lt;X&gt;::from_slice(&amp;r[j..]) {</span>
-<span class="comment">//            trial -= &amp;Unsigned::&lt;X&gt;::one();</span>
-<span class="comment">//            prod -= &amp;n;</span>
-<span class="comment">//        }</span>
-
-<span class="comment">//        // Unfortunately, don&#39;t see a way to use operators here (wrapped types don&#39;t work,</span>
-<span class="comment">//        // and slices are foreign types).</span>
-<span class="comment">//        super::add::add_assign(&amp;mut q[j..], &amp;trial);</span>
-<span class="comment">//        super::subtract::sub_assign(&amp;mut r[j..], &amp;prod);</span>
-<span class="comment">//    }</span>
-
-<span class="comment">//    debug_assert!(n &gt; r);</span>
-<span class="comment">//    debug_assert!(r &lt; n);</span>
-
-<span class="comment">//    r &gt;&gt;= shift;</span>
-<span class="comment">//    // `a` and its shift are guaranteed to be smaller than the divisor, hence fit in `N` digits</span>
-<span class="comment">//    (q, r.into_unsigned())</span>
-<span class="comment">//}</span>
-
 <span class="comment">// N,M in &quot;reversed&quot; order in Product to cover UnsignedCarry case (M = 1).</span>
 <span class="comment">//</span>
 <span class="comment">// TODO: See if we can&#39;t set `x: &amp;T` where `T: AsNormalizedLittleEndianWords`, and just</span>
 <span class="comment">// debug_assert that T::CAPACITY &gt; N.</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">generic_div_rem</span><span class="op">&lt;</span><span class="ident">T</span>, <span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="ident">x</span>: <span class="kw-2">&amp;</span><span class="ident">T</span>, <span class="ident">n</span>: <span class="kw-2">&amp;</span><span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">T</span>, <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>)
 <span class="kw">where</span>
-    <span class="ident">T</span>: <span class="ident">Number</span> <span class="op">+</span> <span class="ident">Clone</span> <span class="op">+</span> <span class="ident">One</span> <span class="op">+</span> <span class="ident">Zero</span> <span class="op">+</span> <span class="ident">FromSlice</span> <span class="op">+</span> <span class="ident">PartialOrd</span> <span class="op">+</span> <span class="ident">core</span>::<span class="ident">ops</span>::<span class="ident">ShrAssign</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>,
+    <span class="ident">T</span>: <span class="ident">NumberMut</span> <span class="op">+</span> <span class="ident">PartialOrd</span>,
     <span class="ident">T</span>: <span class="ident">core</span>::<span class="ident">ops</span>::<span class="ident">ShrAssign</span><span class="op">&lt;</span><span class="ident">usize</span><span class="op">&gt;</span>,
     <span class="kw">for</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span>: <span class="ident">core</span>::<span class="ident">ops</span>::<span class="ident">Shl</span><span class="op">&lt;</span><span class="ident">usize</span>, <span class="ident">Output</span> <span class="op">=</span> <span class="ident">T</span><span class="op">&gt;</span>,
     <span class="kw">for</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">Wrapping</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>: <span class="ident">core</span>::<span class="ident">ops</span>::<span class="ident">SubAssign</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span><span class="op">&gt;</span>,
@@ -872,28 +609,26 @@
 {
 
     <span class="kw">if</span> <span class="ident">x</span>.<span class="ident">is_zero</span>() {
-        <span class="kw">return</span> (<span class="ident">Zero</span>::<span class="ident">zero</span>(), <span class="ident">Zero</span>::<span class="ident">zero</span>());
+        <span class="kw">return</span> (<span class="ident">T</span>::<span class="ident">zero</span>(), <span class="ident">Unsigned</span>::<span class="ident">zero</span>())
     }
 
-    <span class="kw">if</span> <span class="ident">n</span>.<span class="ident">len</span>() <span class="op">=</span><span class="op">=</span> <span class="number">1</span> {
+    <span class="kw">if</span> <span class="ident">n</span>.<span class="ident">is_digit</span>() {
         <span class="kw">let</span> <span class="ident">n</span> <span class="op">=</span> <span class="ident">n</span>[<span class="number">0</span>];
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">div</span> <span class="op">=</span> <span class="ident">x</span>.<span class="ident">clone</span>();
         <span class="kw">if</span> <span class="ident">n</span> <span class="op">=</span><span class="op">=</span> <span class="number">1</span> {
-            <span class="kw">return</span> (<span class="ident">div</span>, <span class="ident">Zero</span>::<span class="ident">zero</span>());
+            <span class="kw">return</span> (<span class="ident">div</span>, <span class="ident">Unsigned</span>::<span class="ident">zero</span>());
         } <span class="kw">else</span> {
             <span class="kw">let</span> <span class="ident">rem</span> <span class="op">=</span> <span class="ident">div_rem_assign_digit</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">div</span>, <span class="ident">n</span>);
             <span class="kw">return</span> (<span class="ident">div</span>, <span class="ident">rem</span>.<span class="ident">into</span>());
         }
     }
 
-    <span class="comment">// let n = n.as_le_words();</span>
-
     <span class="comment">// Required or the q_len calculation below can underflow:</span>
     <span class="comment">// match x.as_le_words().cmp(&amp;n.as_le_words()) {</span>
     <span class="kw">match</span> <span class="ident">n</span>.<span class="ident">partial_cmp</span>(<span class="ident">x</span>).<span class="ident">unwrap</span>() {
-        <span class="ident">Ordering</span>::<span class="ident">Greater</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> (<span class="ident">Zero</span>::<span class="ident">zero</span>(), <span class="ident">n</span>.<span class="ident">clone</span>()),
-        <span class="ident">Ordering</span>::<span class="ident">Equal</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> (<span class="ident">One</span>::<span class="ident">one</span>(), <span class="ident">Zero</span>::<span class="ident">zero</span>()),
+        <span class="ident">Ordering</span>::<span class="ident">Greater</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> (<span class="ident">T</span>::<span class="ident">zero</span>(), <span class="ident">n</span>.<span class="ident">clone</span>()),
+        <span class="ident">Ordering</span>::<span class="ident">Equal</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> (<span class="ident">T</span>::<span class="ident">one</span>(), <span class="ident">Unsigned</span>::<span class="ident">zero</span>()),
         <span class="ident">Ordering</span>::<span class="ident">Less</span> <span class="op">=</span><span class="op">&gt;</span> {} <span class="comment">// Do nothing</span>
     }
 
@@ -915,19 +650,22 @@
     <span class="comment">// in this sense, a = r (starts at a, goes down to r by removing multiples of b, the</span>
     <span class="comment">// multipliers summed into q, which starts at 0)</span>
 
-    <span class="kw">let</span> <span class="ident">q_len</span> <span class="op">=</span> <span class="ident">x</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="ident">n</span>.<span class="ident">len</span>() <span class="op">+</span> <span class="number">1</span>;
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">q</span>: <span class="ident">T</span> <span class="op">=</span> <span class="ident">Zero</span>::<span class="ident">zero</span>();
+    <span class="kw">let</span> <span class="ident">q_len</span> <span class="op">=</span> <span class="ident">x</span>.<span class="ident">significant_digits</span>().<span class="ident">len</span>() <span class="op">-</span> <span class="ident">n</span>.<span class="ident">significant_digits</span>().<span class="ident">len</span>() <span class="op">+</span> <span class="number">1</span>;
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">q</span> <span class="op">=</span> <span class="ident">T</span>::<span class="ident">zero</span>();
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">trial</span>: <span class="ident">T</span> <span class="op">=</span> <span class="ident">Zero</span>::<span class="ident">zero</span>();
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">trial</span> <span class="op">=</span> <span class="ident">T</span>::<span class="ident">zero</span>();
 
     <span class="kw">for</span> <span class="ident">j</span> <span class="kw">in</span> (<span class="number">0</span>..<span class="ident">q_len</span>).<span class="ident">rev</span>() {
-        <span class="kw">let</span> <span class="ident">offset</span> <span class="op">=</span> <span class="ident">j</span> <span class="op">+</span> <span class="ident">n</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="number">1</span>;
-        <span class="kw">if</span> <span class="ident">offset</span> <span class="op">&gt;</span><span class="op">=</span> <span class="ident">r</span>.<span class="ident">len</span>() {
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
+        <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;j = {}&quot;</span>, <span class="ident">j</span>);
+        <span class="kw">let</span> <span class="ident">offset</span> <span class="op">=</span> <span class="ident">j</span> <span class="op">+</span> <span class="ident">n</span>.<span class="ident">significant_digits</span>().<span class="ident">len</span>() <span class="op">-</span> <span class="number">1</span>;
+        <span class="kw">let</span> <span class="ident">r_len</span> <span class="op">=</span> <span class="ident">r</span>.<span class="ident">significant_digits</span>().<span class="ident">len</span>();
+        <span class="kw">if</span> <span class="ident">offset</span> <span class="op">&gt;</span><span class="op">=</span> <span class="ident">r</span>.<span class="ident">significant_digits</span>().<span class="ident">len</span>() {
             <span class="kw">continue</span>;
         }
 
         <span class="ident">trial</span>.<span class="ident">set_zero</span>();
-        <span class="ident">trial</span>[..<span class="ident">r</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="ident">offset</span>].<span class="ident">copy_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">r</span>[<span class="ident">offset</span>..]);
+        <span class="ident">trial</span>[..<span class="ident">r_len</span> <span class="op">-</span> <span class="ident">offset</span>].<span class="ident">copy_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">r</span>[<span class="ident">offset</span>..<span class="ident">r_len</span>]);
 
         <span class="ident">div_rem_assign_digit</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">trial</span>, <span class="ident">n</span>.<span class="ident">leading_digit</span>().<span class="ident">unwrap</span>());
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">prod</span> <span class="op">=</span> <span class="kw">super</span>::<span class="ident">multiply</span>::<span class="ident">wrapping_mul</span>(<span class="kw-2">&amp;</span><span class="ident">trial</span>, <span class="kw-2">&amp;</span><span class="ident">n</span>);
@@ -939,15 +677,15 @@
 
         <span class="comment">// Unfortunately, don&#39;t see a way to use operators here (wrapped types don&#39;t work,</span>
         <span class="comment">// and slices are foreign types).</span>
-        <span class="kw">super</span>::<span class="ident">add</span>::<span class="ident">wrapping_add_assign</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">q</span>[<span class="ident">j</span>..], <span class="kw-2">&amp;</span><span class="ident">trial</span>);
-        <span class="kw">super</span>::<span class="ident">subtract</span>::<span class="ident">sub_assign_borrow</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">r</span>[<span class="ident">j</span>..], <span class="kw-2">&amp;</span><span class="ident">prod</span>);
+        <span class="kw">super</span>::<span class="ident">add</span>::<span class="ident">wrapping_add_assign</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">q</span>[<span class="ident">j</span>..], <span class="ident">trial</span>.<span class="ident">significant_digits</span>());
+        <span class="kw">super</span>::<span class="ident">subtract</span>::<span class="ident">sub_assign_borrow</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">r</span>[<span class="ident">j</span>..], <span class="ident">prod</span>.<span class="ident">significant_digits</span>());
     }
 
     <span class="macro">debug_assert</span><span class="macro">!</span>(<span class="ident">n</span> <span class="op">&gt;</span> <span class="ident">r</span>);
 
     <span class="ident">r</span> <span class="op">&gt;</span><span class="op">&gt;</span><span class="op">=</span> <span class="ident">shift_bits</span>;
     <span class="comment">// `a` and its shift are guaranteed to be smaller than the divisor, hence fit in `N` digits</span>
-    (<span class="ident">q</span>, <span class="ident">r</span>.<span class="ident">into_unsigned</span>())
+    (<span class="ident">q</span>, <span class="ident">r</span>.<span class="ident">to_unsigned</span>())
 }
 
 
@@ -1187,7 +925,7 @@
                 <span class="comment">// assert_assign_op!(c /= a == b);</span>
                 <span class="comment">// assert_assign_op!(c %= a == Zero::zero());</span>
                 <span class="comment">// assert_eq!(c.div_rem(&amp;a), (b.clone(), Zero::zero()));</span>
-                <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">generic_div_rem</span>(<span class="kw-2">&amp;</span><span class="ident">c</span>, <span class="kw-2">&amp;</span><span class="ident">a</span>), (<span class="ident">b</span>.<span class="ident">clone</span>(), <span class="ident">Zero</span>::<span class="ident">zero</span>()));
+                <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">generic_div_rem</span>(<span class="kw-2">&amp;</span><span class="ident">c</span>, <span class="kw-2">&amp;</span><span class="ident">a</span>), (<span class="ident">b</span>.<span class="ident">clone</span>(), <span class="ident">Unsigned</span>::<span class="ident">zero</span>()));
             }
             <span class="kw">if</span> <span class="op">!</span><span class="ident">b</span>.<span class="ident">is_zero</span>() {
                 <span class="macro">assert_op</span><span class="macro">!</span>(<span class="ident">c</span> <span class="op">/</span> <span class="ident">b</span> <span class="op">=</span><span class="op">=</span> <span class="ident">a</span>);
@@ -1195,23 +933,23 @@
                 <span class="comment">// assert_assign_op!(c /= b == a);</span>
                 <span class="comment">// assert_assign_op!(c %= b == Zero::zero());</span>
                 <span class="comment">// assert_eq!(c.div_rem(&amp;b), (a.clone(), Zero::zero()));</span>
-                <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">generic_div_rem</span>(<span class="kw-2">&amp;</span><span class="ident">c</span>, <span class="kw-2">&amp;</span><span class="ident">b</span>), (<span class="ident">a</span>.<span class="ident">clone</span>(), <span class="ident">Zero</span>::<span class="ident">zero</span>()));
+                <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">generic_div_rem</span>(<span class="kw-2">&amp;</span><span class="ident">c</span>, <span class="kw-2">&amp;</span><span class="ident">b</span>), (<span class="ident">a</span>.<span class="ident">clone</span>(), <span class="ident">Unsigned</span>::<span class="ident">zero</span>()));
             }
         }
 
-            <span class="kw">for</span> <span class="ident">case</span> <span class="kw">in</span> <span class="ident">DIV_REM_QUADRUPLES</span>.<span class="ident">iter</span>() {
-                <span class="kw">let</span> (<span class="ident">a_vec</span>, <span class="ident">b_vec</span>, <span class="ident">c_vec</span>, <span class="ident">d_vec</span>) <span class="op">=</span> <span class="kw-2">*</span><span class="ident">case</span>;
-                <span class="kw">let</span> <span class="ident">a</span> <span class="op">=</span> <span class="ident">Short</span>::<span class="op">&lt;</span><span class="number">7</span><span class="op">&gt;</span>::<span class="ident">from_slice</span>(<span class="ident">a_vec</span>);
-                <span class="kw">let</span> <span class="ident">b</span> <span class="op">=</span> <span class="ident">Short</span>::<span class="op">&lt;</span><span class="number">7</span><span class="op">&gt;</span>::<span class="ident">from_slice</span>(<span class="ident">b_vec</span>);
-                <span class="kw">let</span> <span class="ident">c</span> <span class="op">=</span> <span class="ident">Short</span>::<span class="op">&lt;</span><span class="number">7</span><span class="op">&gt;</span>::<span class="ident">from_slice</span>(<span class="ident">c_vec</span>);
-                <span class="kw">let</span> <span class="ident">d</span> <span class="op">=</span> <span class="ident">Short</span>::<span class="op">&lt;</span><span class="number">7</span><span class="op">&gt;</span>::<span class="ident">from_slice</span>(<span class="ident">d_vec</span>);
+        <span class="kw">for</span> <span class="ident">case</span> <span class="kw">in</span> <span class="ident">DIV_REM_QUADRUPLES</span>.<span class="ident">iter</span>() {
+            <span class="kw">let</span> (<span class="ident">a_vec</span>, <span class="ident">b_vec</span>, <span class="ident">c_vec</span>, <span class="ident">d_vec</span>) <span class="op">=</span> <span class="kw-2">*</span><span class="ident">case</span>;
+            <span class="kw">let</span> <span class="ident">a</span> <span class="op">=</span> <span class="ident">Short</span>::<span class="op">&lt;</span><span class="number">7</span><span class="op">&gt;</span>::<span class="ident">from_slice</span>(<span class="ident">a_vec</span>);
+            <span class="kw">let</span> <span class="ident">b</span> <span class="op">=</span> <span class="ident">Short</span>::<span class="op">&lt;</span><span class="number">7</span><span class="op">&gt;</span>::<span class="ident">from_slice</span>(<span class="ident">b_vec</span>);
+            <span class="kw">let</span> <span class="ident">c</span> <span class="op">=</span> <span class="ident">Short</span>::<span class="op">&lt;</span><span class="number">7</span><span class="op">&gt;</span>::<span class="ident">from_slice</span>(<span class="ident">c_vec</span>);
+            <span class="kw">let</span> <span class="ident">d</span> <span class="op">=</span> <span class="ident">Short</span>::<span class="op">&lt;</span><span class="number">7</span><span class="op">&gt;</span>::<span class="ident">from_slice</span>(<span class="ident">d_vec</span>);
 
-            <span class="kw">if</span> <span class="op">!</span><span class="ident">b</span>.<span class="ident">is_zero</span>() {
-                <span class="macro">assert_op</span><span class="macro">!</span>(<span class="ident">a</span> <span class="op">/</span> <span class="ident">b</span> <span class="op">=</span><span class="op">=</span> <span class="ident">c</span>);
-                <span class="macro">assert_op</span><span class="macro">!</span>(<span class="ident">a</span> <span class="op">%</span> <span class="ident">b</span> <span class="op">=</span><span class="op">=</span> <span class="ident">d</span>);
-        <span class="comment">//         assert_assign_op!(a /= b == c);</span>
-        <span class="comment">//         assert_assign_op!(a %= b == d);</span>
-                <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">generic_div_rem</span>(<span class="kw-2">&amp;</span><span class="ident">a</span>, <span class="kw-2">&amp;</span><span class="ident">b</span>) <span class="op">=</span><span class="op">=</span> (<span class="ident">c</span>, <span class="ident">d</span>));
+        <span class="kw">if</span> <span class="op">!</span><span class="ident">b</span>.<span class="ident">is_zero</span>() {
+            <span class="macro">assert_op</span><span class="macro">!</span>(<span class="ident">a</span> <span class="op">/</span> <span class="ident">b</span> <span class="op">=</span><span class="op">=</span> <span class="ident">c</span>);
+            <span class="macro">assert_op</span><span class="macro">!</span>(<span class="ident">a</span> <span class="op">%</span> <span class="ident">b</span> <span class="op">=</span><span class="op">=</span> <span class="ident">d</span>);
+    <span class="comment">//         assert_assign_op!(a /= b == c);</span>
+    <span class="comment">//         assert_assign_op!(a %= b == d);</span>
+            <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">generic_div_rem</span>(<span class="kw-2">&amp;</span><span class="ident">a</span>, <span class="kw-2">&amp;</span><span class="ident">b</span>) <span class="op">=</span><span class="op">=</span> (<span class="ident">c</span>, <span class="ident">d</span>));
             }
         }
     }
