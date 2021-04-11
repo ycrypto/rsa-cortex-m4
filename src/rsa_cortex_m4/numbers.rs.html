@@ -580,6 +580,29 @@
 <span id="561">561</span>
 <span id="562">562</span>
 <span id="563">563</span>
+<span id="564">564</span>
+<span id="565">565</span>
+<span id="566">566</span>
+<span id="567">567</span>
+<span id="568">568</span>
+<span id="569">569</span>
+<span id="570">570</span>
+<span id="571">571</span>
+<span id="572">572</span>
+<span id="573">573</span>
+<span id="574">574</span>
+<span id="575">575</span>
+<span id="576">576</span>
+<span id="577">577</span>
+<span id="578">578</span>
+<span id="579">579</span>
+<span id="580">580</span>
+<span id="581">581</span>
+<span id="582">582</span>
+<span id="583">583</span>
+<span id="584">584</span>
+<span id="585">585</span>
+<span id="586">586</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Large unsized integers (specialized to our *allocation-free* purposes).</span>
 <span class="doccomment">//!</span>
@@ -736,6 +759,29 @@
 <span class="doccomment">/// considered const (which they are not in Rust 1.51&#39;s `min_const_generics`.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// All we really want is to have two &quot;Short&quot; primes $P, Q$, and their &quot;Long&quot; product $N = PQ$.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// ## Implementing this trait</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// The type should consist of non-trivial consecutive Digit &quot;plain old data&quot;, and be `Clone + Debug + Default`.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Then the following is all that is needed:</span>
+<span class="doccomment">/// ```rust,skip</span>
+<span class="doccomment">/// impl Deref for T {</span>
+<span class="doccomment">///   type Target = [Digit];</span>
+<span class="doccomment">///   fn deref(&amp;self) -&gt; &amp;Self::Target {</span>
+<span class="doccomment">///     Number::deref(self)</span>
+<span class="doccomment">///   }</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">/// impl DerefMut for T {</span>
+<span class="doccomment">///   fn deref_mut(&amp;mut self) -&gt; &amp;mut Self::Target {</span>
+<span class="doccomment">///     Number::deref_mut(self)</span>
+<span class="doccomment">///   }</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">/// unsafe impl Number for T {}</span>
+<span class="doccomment">/// impl NumberMut for T {}</span>
+<span class="doccomment">/// ```</span>
+
 <span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">trait</span> <span class="ident">Number</span>: <span class="ident">Deref</span><span class="op">&lt;</span><span class="ident">Target</span> <span class="op">=</span> [<span class="ident">Digit</span>]<span class="op">&gt;</span> <span class="op">+</span> <span class="ident">Clone</span> <span class="op">+</span> <span class="ident">core</span>::<span class="ident">fmt</span>::<span class="ident">Debug</span> <span class="op">+</span> <span class="ident">Default</span> { <span class="comment">// + PartialEq + PartialOrd {</span>
 
     <span class="doccomment">/// The number of bits that fit in this number.</span>
