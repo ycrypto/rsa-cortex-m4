@@ -3,15 +3,15 @@ use core::ops::Mul;
 use ref_cast::RefCast;
 
 use crate::{Digit, DoubleDigit, Modular, Montgomery, Unsigned, Wrapping};
-use crate::numbers::{Bits, Number, NumberMut, Product, Zero};
+use crate::numbers::{Bits, Number, NumberMut, Product};
 
 /// This just drops higher digits if `lhs * rhs` does not fit in a U.
 pub(crate) fn wrapping_mul<U, V>(lhs: &U, rhs: &V) -> U
 where
-    U: NumberMut + Zero + core::fmt::Debug,
-    V: Number + core::fmt::Debug,
+    U: NumberMut,
+    V: Number,
 {
-    let mut product: U = Zero::zero();
+    let mut product = U::zero();
 
     // #[cfg(test)]
     // println!("BITS = {:?}", Digit::BITS);
@@ -24,8 +24,8 @@ where
         let yj = rhs[j] as DoubleDigit;
         let mut accumulator = 0;
         for i in 0..(U::CAPACITY - j) {
-            let xi = lhs.padded_number()[i] as DoubleDigit;
-            accumulator += (product.padded_number()[i + j] as DoubleDigit) + xi*yj;
+            let xi = lhs[i] as DoubleDigit;
+            accumulator += (product[i + j] as DoubleDigit) + xi*yj;
             product[i + j] = accumulator as Digit;
             accumulator >>= Digit::BITS;
         }

@@ -3,7 +3,7 @@ use crate::numbers::Bits;
 
 #[inline]
 fn mod_two(x: Digit, i: usize) -> Digit {
-    x & (((1 as Digit) << i) - 1)
+    x & ((1 << i) - 1)
 }
 
 /// Inverse of odd number modulo power of two: $x^{-1}\text{ mod }b$
@@ -20,13 +20,13 @@ fn x_inverse_digit_dusse_kaliski(x: Digit) -> Digit {
 
     let mut y: Digit = 1;
     for i in 2..Digit::BITS {
-        let two_to_the_i_minus_1 = (1 as Digit) << (i - 1);
+        let two_to_the_i_minus_1 = 1 << (i - 1);
         if mod_two(x.wrapping_mul(y), i) >= two_to_the_i_minus_1 {
             y = y.wrapping_add(two_to_the_i_minus_1);
         }
     }
 
-    let two_to_the_b_minus_1 = (1 as Digit) << (Digit::BITS - 1);
+    let two_to_the_b_minus_1 = 1 << (Digit::BITS - 1);
     if x.wrapping_mul(y) >= two_to_the_b_minus_1 {
         y = y.wrapping_add(two_to_the_b_minus_1)
     }

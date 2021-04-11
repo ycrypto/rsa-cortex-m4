@@ -107,6 +107,7 @@ impl<const D: usize, const E: usize> Unsigned<D, E> {
     ///
     /// Cf. [`Modular`].
     pub fn partially_reduce<const F: usize, const G: usize>(&self) -> Unsigned<F, G> {
+        use crate::numbers::NumberMut;
         Unsigned::from_slice(&self[..(F + G)])
     }
 

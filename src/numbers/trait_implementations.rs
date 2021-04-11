@@ -36,46 +36,34 @@ impl<T: Number> Bits for T {
     const BITS: usize = Digit::BITS * T::CAPACITY;
 }
 
-// // Unfortunately, implementing Deref for <T: AsNormalizedLittleEndianWords>
-// // leads to "conflicting implementations"
-// impl<const L: usize> Deref for Unsigned<L> {
-//     type Target = [Digit];
-//     fn deref(&self) -> &Self::Target {
-//         self.words()
-//     }
-// }
-
-// impl<const L: usize> DerefMut for Unsigned<L> {
-//     fn deref_mut(&mut self) -> &mut Self::Target {
-//         self.words_mut()
-//     }
-// }
-
 impl<const D: usize, const E: usize> Deref for Unsigned<D, E> {
     type Target = [Digit];
     fn deref(&self) -> &Self::Target {
-        self.number()
+        Number::deref(self)
     }
 }
 
 impl<const D: usize, const E: usize> DerefMut for Unsigned<D, E> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.padded_number_mut()
+        Number::deref_mut(self)
     }
 }
 
 impl<const D: usize, const E: usize, const L: usize> Deref for Array<D, E, L> {
     type Target = [Digit];
     fn deref(&self) -> &Self::Target {
-        self.number()
+        Number::deref(self)
     }
 }
 
 impl<const D: usize, const E: usize, const L: usize> DerefMut for Array<D, E, L> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.padded_number_mut()
+        Number::deref_mut(self)
     }
 }
+
+// TODO: Maybe Deref to &[Digit] directly?
+// And add some From/Into games.
 
 impl<const D: usize, const E: usize> Deref for Convenient<D, E> {
     type Target = Unsigned<D, E>;
@@ -131,21 +119,9 @@ impl<T: Number + NumberMut> DerefMut for Wrapping<T> {
 
 unsafe impl<T: Number> Number for Wrapping<T> {
     const CAPACITY: usize = T::CAPACITY;
-
-    fn len(&self) -> usize {
-        self.0.len()
-    }
 }
 
-impl<T: Number + NumberMut> NumberMut for Wrapping<T> {
-    fn cache_len(&mut self) -> usize {
-        self.0.cache_len()
-    }
-
-    fn invalidate_len(&mut self) {
-        self.0.invalidate_len();
-    }
-}
+impl<T: Number + NumberMut> NumberMut for Wrapping<T> {}
 
 
 impl<const D: usize, const E: usize> TryFrom<Unsigned<D, E>> for Odd<D, E> {
@@ -174,18 +150,24 @@ impl<const D: usize, const E: usize> TryFrom<Unsigned<D, E>> for Convenient<D, E
     type Error = Error;
     /// Enforces odd parity.
     fn try_from(unsigned: Unsigned<D, E>) -> Result<Self> {
-        // non-zero (so we can index in next step)
-        let (l, c) = (unsigned.len(), D + E);
-        if c == 0 || l < c {
+        if !unsigned.is_odd() {
             return Err(Error);
         }
-        if unsigned[0] & 1 == 0 {
+
+        if !unsigned.significant_digits().len() != Unsigned::<D, E>::CAPACITY {
+            panic!("logic error");
+            // return Err(Error);
+        }
+
+        // if unsigned.leading_digit().unwrap().leading_zeros() != 0 {
+        //     return Err(Error);
+        // }
+        let top_bit = unsigned.leading_digit().unwrap() >> (Digit::BITS - 1);
+        if top_bit == 0 {
             return Err(Error);
         }
-        if unsigned.leading_digit().unwrap() >> (Digit::BITS - 1) == 0 {
-            return Err(Error);
-        }
-        Ok(Self(Odd(unsigned)))
+
+        Ok(Self(Odd(Unsigned::try_from_slice(&unsigned)?)))
     }
 }
 
@@ -195,48 +177,13 @@ impl<const D: usize, const E: usize> From<Convenient<D, E>> for Unsigned<D, E> {
     }
 }
 
-/// This is *little endian* ordering, as opposed to the default
-/// ordering on arrays and slices!
-// fn cmp_unsigned<const M: usize, const N: usize>(m: &Unsigned<M>, n: &Unsigned<N>) -> Ordering {
-fn generic_cmp_unsigned<M, N>(m: &M, n: &N) -> Ordering
-where
-    M: Number,
-    N: Number,
-{
-    let l_m = m.len();
-    let l_n = n.len();
-    match l_m.cmp(&l_n) {
-        Ordering::Equal => {}
-        not_equal => return not_equal,
-    }
-
-    for i in (0..l_m).rev() {
-        match m[i].cmp(&n[i]) {
-            Ordering::Equal => (),
-            not_equal => return not_equal
-        }
-    }
-    Ordering::Equal
-}
-
 // Since we store little-endian, comparison needs to start at the last
 // digit, instead of at the first as the derived / default implementation would.
 impl<const D: usize, const E: usize> Ord for Unsigned<D, E> {
     fn cmp(&self, other: &Self) -> Ordering {
-        generic_cmp_unsigned(self, other)
+        Number::cmp(self, other)
     }
 }
-
-// impl<T, const L: usize> PartialOrd<T> for Unsigned<L>
-// where
-//     T: AsNormalizedLittleEndianWords
-// {
-//     /// This is *little endian* ordering, as opposed to the default
-//     /// ordering on arrays and slices!
-//     fn partial_cmp(&self, other: &T) -> Option<Ordering> {
-//         Some(generic_cmp_unsigned(self, other))
-//     }
-// }
 
 impl<T, const D: usize, const E: usize> PartialOrd<T> for Unsigned<D, E>
 where
@@ -245,7 +192,8 @@ where
     /// This is *little endian* ordering, as opposed to the default
     /// ordering on arrays and slices!
     fn partial_cmp(&self, other: &T) -> Option<Ordering> {
-        Some(generic_cmp_unsigned(self, other))
+        // Some(generic_cmp_unsigned(self, other))
+        Some(Number::cmp(self, other))
     }
 }
 
@@ -254,25 +202,16 @@ where
     T: Number,
 {
     fn partial_cmp(&self, other: &T) -> Option<Ordering> {
-        Some(generic_cmp_unsigned(self, other))
+        Some(Number::cmp(self, other))
     }
 }
-
-// impl<T, const L: usize> PartialEq<T> for Unsigned<L>
-// where
-//     T: AsNormalizedLittleEndianWords
-// {
-//     fn eq(&self, other: &T) -> bool {
-//         **self == **other
-//     }
-// }
 
 impl<T, const D: usize, const E: usize> PartialEq<T> for Unsigned<D, E>
 where
     T: Number,
 {
     fn eq(&self, other: &T) -> bool {
-        self.number() == other.number()
+        Number::eq(self, other)
     }
 }
 
@@ -281,49 +220,26 @@ where
     T: Number,
 {
     fn eq(&self, other: &T) -> bool {
-        self.number() == other.number()
+        Number::eq(self, other)
     }
 }
 
 impl<T: Number, const D: usize, const E: usize> PartialEq<T> for Convenient<D, E> {
     fn eq(&self, other: &T) -> bool {
-        self.number() == other.number()
+        Number::eq(&**self, other)
     }
 }
 
-// impl<const D: usize, const E: usize> PartialEq<Odd<D, E>> for Unsigned<D, E> {
-//     fn eq(&self, other: &Odd<D, E>) -> bool {
-//         *self == **other//.words() == other.words()
-//     }
-// }
-
-// impl<const L: usize> PartialEq<Unsigned<L>> for Odd<L> {
-//     fn eq(&self, other: &Unsigned<L>) -> bool {
-//         **self == *other
-//     }
-// }
-
-// impl<const L: usize> PartialOrd<Odd<L>> for Unsigned<L> {
-//     fn partial_cmp(&self, other: &Odd<L>) -> Option<core::cmp::Ordering> {
-//         self.partial_cmp(&other.0)
-//     }
-// }
-
-// impl<const L: usize> PartialOrd<Unsigned<L>> for Odd<L> {
-//     fn partial_cmp(&self, other: &Unsigned<L>) -> Option<core::cmp::Ordering> {
-//         self.0.partial_cmp(other)
-//     }
-// }
 
 impl<const D: usize, const E: usize> Default for Unsigned<D, E> {
     fn default() -> Self {
-        Self { lo: [0; D], hi: [0; E], cached_len: Some(0) }
+        Self { lo: [0; D], hi: [0; E] }
     }
 }
 
 impl<const D: usize, const E: usize, const L: usize> Default for Array<D, E, L> {
     fn default() -> Self {
-        Self { lo: [[0; D]; L], hi: [[0; E]; L], cached_len: Some(0) }
+        Self { lo: [[0; D]; L], hi: [[0; E]; L] }
     }
 }
 

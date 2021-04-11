@@ -3,24 +3,16 @@ use core::{cmp::Ordering, convert::TryInto, ops::{Div, Rem}};
 use ref_cast::RefCast;
 
 use crate::{Digit, DoubleDigit, Odd, Result, Unsigned, Wrapping};
-use crate::numbers::{Array, Bits, FromSlice, Number, NumberMut, One, Zero};
+use crate::numbers::{Array, Bits, Number, NumberMut};
 
-// pub fn invert<T>(x: &T) -> T
-// where
-//     T: NumberMut + One,
-//     for<'a> &'a T: core::ops::Add<Output = T>,
-//     for<'a> &'a T: core::ops::Sub<Output = T>,
-//     for<'a> &'a T: core::ops::Mul<Output = T>,
-//     for<'a> T: core::ops::MulAssign<&'a T>,
-// {
 /// Odd numbers can be inverted modulo $2^m$
 pub fn wrapping_invert_odd<const D: usize, const E: usize>(x: &Odd<D, E>) -> Odd<D, E> {
     #[allow(non_snake_case)]
     let T = (D + E) * (Digit::BITS.trailing_zeros() as usize);
 
     let x: &Unsigned<D, E> = &*x;
-    let mut y: Unsigned<D, E> = One::one();
-    let two = y.wrapping_add(&y);
+    let mut y = Unsigned::from(1);
+    let two: Unsigned<D, E> = Unsigned::from(2);
 
     for _ in 1..=T {
         // y = &y * &(&two - &(x * &y));
@@ -73,14 +65,14 @@ pub fn div_digits(hi: Digit, lo: Digit, divisor: Digit) -> (Digit, Digit) {
 }
 
 /// Divides x in-place by digit n, returning the multiple of n and the remaining digit.
-pub fn div_rem_assign_digit(x: &mut impl NumberMut, n: Digit) -> Digit {
+pub fn div_rem_assign_digit(number: &mut impl NumberMut, modulus: Digit) -> Digit {
     let mut remainder = 0;
 
     // run down the digits in x, dividing each by n, while carrying along the remainder
-    let l = x.len();
-    for digit in x[..l].iter_mut().rev() {
-        let (q, r) = div_digits(remainder, *digit, n);
-        *digit = q;
+    let l = number.significant_digits().len();
+    for digit in number[..l].iter_mut().rev() {
+        let (quotient, r) = div_digits(remainder, *digit, modulus);
+        *digit = quotient;
         remainder = r;
     }
 
@@ -103,137 +95,13 @@ pub fn div_rem_assign_digit(x: &mut impl NumberMut, n: Digit) -> Digit {
 ////
 //// But, the `n` argument does not need to have N places, just because it fits into N words.
 
-//// pub fn div_rem<const M: usize, const N: usize>(x: &Unsigned<M + N>, n: &Unsigned<N>) -> (Unsigned<M + 1>, Unsigned<N>) {
-//// pub fn div_rem<const M: usize, const N: usize>(x: &Product<M, N>, n: &Unsigned<N>) -> (UnsignedCarry<M>, Unsigned<N>) {
-//pub fn div_rem<const X: usize, const N: usize>(x: &Unsigned<X>, n: &Unsigned<N>) -> (Unsigned<X>, Unsigned<N>) {
-//    if n.is_zero() {
-//        todo!("specialize to `mod 2**{{32*N}}, maybe");
-//    }
-//    if x.is_zero() {
-//        return (Default::default(), Default::default());
-//    }
-
-//    if n.len() == 1 {
-//        let n = n[0];
-
-//        let mut div = x.clone();
-//        if n == 1 {
-//            return (div, Zero::zero());
-//        } else {
-//            let rem = div_rem_assign_digit(&mut div, n);
-//            return (div, rem.into());
-//        }
-//    }
-
-//    // let n = n.as_le_words();
-
-//    // Required or the q_len calculation below can underflow:
-//    // match x.as_le_words().cmp(&n.as_le_words()) {
-//    match x.partial_cmp(n).unwrap() {
-//        Ordering::Less => return (Zero::zero(), n.clone()),
-//        Ordering::Equal => return (One::one(), Zero::zero()),
-//        Ordering::Greater => {} // Do nothing
-//    }
-
-//    // This algorithm is from Knuth, TAOCP vol 2 section 4.3, algorithm D:
-//    //
-//    // Shift n to set highest bit (in its leading digit), so the generated guesses are as
-//    // large as possible in the following loop.
-//    //
-//    // This shift has no influence on `q`, and will be reverted for `r` at the end.
-//    // let shift = n.as_le_words().last().unwrap().leading_zeros() as usize;
-//    let shift = n.leading_digit().unwrap().leading_zeros() as usize;
-
-//    let mut r = x << shift;
-//    // by the above, x >= n, so `n` and its shift `b` must fit into Unsigned::<X>, as `x` does
-//    // let b: Unsigned<X> = (n << shift).try_into().unwrap();
-//    let n: Unsigned<X> = (n << shift).into_unsigned();
-
-//    // we now want to calculate a/b, in the sense a = qb + r
-//    // in this sense, a = r (starts at a, goes down to r by removing multiples of b, the
-//    // multipliers summed into q, which starts at 0)
-
-//    // The algorithm works by incrementally calculating "guesses", q0, for part of the
-//    // remainder. Once we have any number q0 such that q0 * b <= a, we can set
-//    //
-//    //     q += q0
-//    //     a -= q0 * b
-//    //
-//    // and then iterate until a < b. Then, (q, a) will be our desired quotient and remainder.
-//    //
-//    // q0, our guess, is calculated by dividing the last few digits of a by the last digit of b
-//    // - this should give us a guess that is "close" to the actual quotient, but is possibly
-//    // greater than the actual quotient. If q0 * b > a, we simply use iterated subtraction
-//    // until we have a guess such that q0 * b <= a.
-
-//    let q_len = x.len() - n.len() + 1;
-//    let mut q = Unsigned::<X>::default();
-
-//    // We reuse the same temporary to avoid hitting the allocator in our inner loop - this is
-//    // sized to hold a0 (in the common case; if a particular digit of the quotient is zero a0
-//    // can be bigger).
-//    //
-
-//    // // this is the "trial division" that Montgomery would later refer to :)
-//    // let mut trial = Unsigned::<X>::default(); // SmallVec::with_capacity(2)
-
-//    for j in (0..q_len).rev() {
-//        /*
-//         * When calculating our next guess q0, we don't need to consider the digits below j
-//         * + b.len() - 1: we're guessing digit j of the quotient (i.e. q0 << j) from
-//         * digit bn of the divisor (i.e. bn << (b.data.len() - 1) - so the product of those
-//         * two numbers will be zero in all digits up to (j + b.data.len() - 1).
-//         */
-//        let offset = j + n.len() - 1;
-//        if offset >= r.len() {
-//            continue;
-//        }
-
-//        // set "trial" to current remainder, immediately after we divide by highest digit of
-//        // divisor `n` to get a guess.
-//        // trial.set_zero();
-//        // trial[..r.len() - offset].copy_from_slice(&r[offset..]);
-//        let mut trial = Unsigned::<X>::from_slice(&r[offset..]);
-
-//        /*
-//         * q0 << j * big_digit::BITS is our actual quotient estimate - we do the shifts
-//         * implicitly at the end, when adding and subtracting to a and q. Not only do we
-//         * save the cost of the shifts, the rest of the arithmetic gets to work with
-//         * smaller numbers.
-//         */
-
-//        div_rem_assign_digit(&mut trial, n.leading_digit().unwrap());
-//        let mut prod: Unsigned<X> = (&n * &trial).into_unsigned();
-
-//        // if the product of the guess with the divisor is too big, replace the guess with one less
-//        // According to Knuth, this loop should only run 2 times max (or even just one time with a
-//        // smarter check).
-//        while prod > Unsigned::<X>::from_slice(&r[j..]) {
-//            trial -= &Unsigned::<X>::one();
-//            prod -= &n;
-//        }
-
-//        // Unfortunately, don't see a way to use operators here (wrapped types don't work,
-//        // and slices are foreign types).
-//        super::add::add_assign(&mut q[j..], &trial);
-//        super::subtract::sub_assign(&mut r[j..], &prod);
-//    }
-
-//    debug_assert!(n > r);
-//    debug_assert!(r < n);
-
-//    r >>= shift;
-//    // `a` and its shift are guaranteed to be smaller than the divisor, hence fit in `N` digits
-//    (q, r.into_unsigned())
-//}
-
 // N,M in "reversed" order in Product to cover UnsignedCarry case (M = 1).
 //
 // TODO: See if we can't set `x: &T` where `T: AsNormalizedLittleEndianWords`, and just
 // debug_assert that T::CAPACITY > N.
 pub fn generic_div_rem<T, const D: usize, const E: usize>(x: &T, n: &Unsigned<D, E>) -> (T, Unsigned<D, E>)
 where
-    T: Number + Clone + One + Zero + FromSlice + PartialOrd + core::ops::ShrAssign<usize>,
+    T: NumberMut + PartialOrd,
     T: core::ops::ShrAssign<usize>,
     for<'a> &'a T: core::ops::Shl<usize, Output = T>,
     for<'a> Wrapping<T>: core::ops::SubAssign<&'a Unsigned<D, E>>,
@@ -241,28 +109,26 @@ where
 {
 
     if x.is_zero() {
-        return (Zero::zero(), Zero::zero());
+        return (T::zero(), Unsigned::zero())
     }
 
-    if n.len() == 1 {
+    if n.is_digit() {
         let n = n[0];
 
         let mut div = x.clone();
         if n == 1 {
-            return (div, Zero::zero());
+            return (div, Unsigned::zero());
         } else {
             let rem = div_rem_assign_digit(&mut div, n);
             return (div, rem.into());
         }
     }
 
-    // let n = n.as_le_words();
-
     // Required or the q_len calculation below can underflow:
     // match x.as_le_words().cmp(&n.as_le_words()) {
     match n.partial_cmp(x).unwrap() {
-        Ordering::Greater => return (Zero::zero(), n.clone()),
-        Ordering::Equal => return (One::one(), Zero::zero()),
+        Ordering::Greater => return (T::zero(), n.clone()),
+        Ordering::Equal => return (T::one(), Unsigned::zero()),
         Ordering::Less => {} // Do nothing
     }
 
@@ -284,19 +150,22 @@ where
     // in this sense, a = r (starts at a, goes down to r by removing multiples of b, the
     // multipliers summed into q, which starts at 0)
 
-    let q_len = x.len() - n.len() + 1;
-    let mut q: T = Zero::zero();
+    let q_len = x.significant_digits().len() - n.significant_digits().len() + 1;
+    let mut q = T::zero();
 
-    let mut trial: T = Zero::zero();
+    let mut trial = T::zero();
 
     for j in (0..q_len).rev() {
-        let offset = j + n.len() - 1;
-        if offset >= r.len() {
+        #[cfg(test)]
+        println!("j = {}", j);
+        let offset = j + n.significant_digits().len() - 1;
+        let r_len = r.significant_digits().len();
+        if offset >= r.significant_digits().len() {
             continue;
         }
 
         trial.set_zero();
-        trial[..r.len() - offset].copy_from_slice(&r[offset..]);
+        trial[..r_len - offset].copy_from_slice(&r[offset..r_len]);
 
         div_rem_assign_digit(&mut trial, n.leading_digit().unwrap());
         let mut prod = super::multiply::wrapping_mul(&trial, &n);
@@ -308,15 +177,15 @@ where
 
         // Unfortunately, don't see a way to use operators here (wrapped types don't work,
         // and slices are foreign types).
-        super::add::wrapping_add_assign(&mut q[j..], &trial);
-        super::subtract::sub_assign_borrow(&mut r[j..], &prod);
+        super::add::wrapping_add_assign(&mut q[j..], trial.significant_digits());
+        super::subtract::sub_assign_borrow(&mut r[j..], prod.significant_digits());
     }
 
     debug_assert!(n > r);
 
     r >>= shift_bits;
     // `a` and its shift are guaranteed to be smaller than the divisor, hence fit in `N` digits
-    (q, r.into_unsigned())
+    (q, r.to_unsigned())
 }
 
 
@@ -556,7 +425,7 @@ mod test {
                 // assert_assign_op!(c /= a == b);
                 // assert_assign_op!(c %= a == Zero::zero());
                 // assert_eq!(c.div_rem(&a), (b.clone(), Zero::zero()));
-                assert_eq!(generic_div_rem(&c, &a), (b.clone(), Zero::zero()));
+                assert_eq!(generic_div_rem(&c, &a), (b.clone(), Unsigned::zero()));
             }
             if !b.is_zero() {
                 assert_op!(c / b == a);
@@ -564,23 +433,23 @@ mod test {
                 // assert_assign_op!(c /= b == a);
                 // assert_assign_op!(c %= b == Zero::zero());
                 // assert_eq!(c.div_rem(&b), (a.clone(), Zero::zero()));
-                assert_eq!(generic_div_rem(&c, &b), (a.clone(), Zero::zero()));
+                assert_eq!(generic_div_rem(&c, &b), (a.clone(), Unsigned::zero()));
             }
         }
 
-            for case in DIV_REM_QUADRUPLES.iter() {
-                let (a_vec, b_vec, c_vec, d_vec) = *case;
-                let a = Short::<7>::from_slice(a_vec);
-                let b = Short::<7>::from_slice(b_vec);
-                let c = Short::<7>::from_slice(c_vec);
-                let d = Short::<7>::from_slice(d_vec);
+        for case in DIV_REM_QUADRUPLES.iter() {
+            let (a_vec, b_vec, c_vec, d_vec) = *case;
+            let a = Short::<7>::from_slice(a_vec);
+            let b = Short::<7>::from_slice(b_vec);
+            let c = Short::<7>::from_slice(c_vec);
+            let d = Short::<7>::from_slice(d_vec);
 
-            if !b.is_zero() {
-                assert_op!(a / b == c);
-                assert_op!(a % b == d);
-        //         assert_assign_op!(a /= b == c);
-        //         assert_assign_op!(a %= b == d);
-                assert!(generic_div_rem(&a, &b) == (c, d));
+        if !b.is_zero() {
+            assert_op!(a / b == c);
+            assert_op!(a % b == d);
+    //         assert_assign_op!(a /= b == c);
+    //         assert_assign_op!(a %= b == d);
+            assert!(generic_div_rem(&a, &b) == (c, d));
             }
         }
     }

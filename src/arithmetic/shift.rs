@@ -1,16 +1,17 @@
 use core::ops::{Shl, ShlAssign, Shr, ShrAssign};
 
 use crate::{Digit, Unsigned};
-use crate::numbers::{Array, Bits, NumberMut, Zero};
+use crate::numbers::{Array, Bits, NumberMut};
 
 /// Compared to `num-bigint{,-dig}`, this is a truncating shift.
 ///
 /// Note that "left" means "higher number".
-fn generic_shl_assign<T>(number: &mut T, bits: usize)
+fn wrapping_shl_assign<T>(number: &mut T, bits: usize)
 where
-    T: NumberMut + Zero
+    T: NumberMut
 {
-    let l = number.len();
+    // make this CT also?
+    let l = number.significant_digits().len();
     let n_digits = bits / Digit::BITS;
 
     // shift back by n_digits
@@ -31,30 +32,30 @@ where
 // impl<const L: usize> ShlAssign<usize> for Unsigned<L> {
 //     #[inline]
 //     fn shl_assign(&mut self, bits: usize) {
-//         generic_shl_assign(self, bits)
+//         wrapping_shl_assign(self, bits)
 //     }
 // }
 
 impl<const D: usize, const E: usize> ShlAssign<usize> for Unsigned<D, E> {
     #[inline]
     fn shl_assign(&mut self, bits: usize) {
-        generic_shl_assign(self, bits)
+        wrapping_shl_assign(self, bits)
     }
 }
 
 impl<const D: usize, const E: usize, const L: usize> ShlAssign<usize> for Array<D, E, L> {
     #[inline]
     fn shl_assign(&mut self, bits: usize) {
-        generic_shl_assign(self, bits)
+        wrapping_shl_assign(self, bits)
     }
 }
 
 /// Note that "right" means "lower number".
 fn generic_shr_assign<T>(number: &mut T, bits: usize)
 where
-    T: NumberMut + Zero
+    T: NumberMut
 {
-    let l = number.len();
+    let l = number.significant_digits().len();
     let n_digits = bits / Digit::BITS;
 
     if n_digits >= l {

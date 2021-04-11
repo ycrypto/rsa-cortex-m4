@@ -130,7 +130,6 @@ impl<const D: usize, const E: usize> Neg for &Wrapping<Unsigned<D, E>> {
     type Output = Wrapping<Unsigned<D, E>>;
 
     fn neg(self) -> Self::Output {
-        use crate::numbers::Zero;
         &Self::Output::zero() - self
     }
 }
@@ -289,7 +288,7 @@ impl<'a, 'b, const D: usize, const E: usize, const F: usize, const G: usize> Sub
     fn sub(self, subtrahend: &'b Unsigned<F, G>) -> Self::Output {
 
         let mut difference = self.clone();
-        difference += subtrahend;
+        difference -= subtrahend;
 
         difference
     }
