@@ -503,8 +503,6 @@
 <span id="484">484</span>
 <span id="485">485</span>
 <span id="486">486</span>
-<span id="487">487</span>
-<span id="488">488</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">core</span>::{<span class="ident">cmp</span>::<span class="ident">Ordering</span>, <span class="ident">convert</span>::<span class="ident">TryInto</span>, <span class="ident">ops</span>::{<span class="ident">Div</span>, <span class="ident">Rem</span>}};
 
@@ -664,8 +662,6 @@
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">trial</span> <span class="op">=</span> <span class="ident">T</span>::<span class="ident">zero</span>();
 
     <span class="kw">for</span> <span class="ident">j</span> <span class="kw">in</span> (<span class="number">0</span>..<span class="ident">q_len</span>).<span class="ident">rev</span>() {
-        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
-        <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;j = {}&quot;</span>, <span class="ident">j</span>);
         <span class="kw">let</span> <span class="ident">offset</span> <span class="op">=</span> <span class="ident">j</span> <span class="op">+</span> <span class="ident">n</span>.<span class="ident">significant_digits</span>().<span class="ident">len</span>() <span class="op">-</span> <span class="number">1</span>;
         <span class="kw">let</span> <span class="ident">r_len</span> <span class="op">=</span> <span class="ident">r</span>.<span class="ident">significant_digits</span>().<span class="ident">len</span>();
         <span class="kw">if</span> <span class="ident">offset</span> <span class="op">&gt;</span><span class="op">=</span> <span class="ident">r</span>.<span class="ident">significant_digits</span>().<span class="ident">len</span>() {
@@ -923,9 +919,9 @@
     <span class="kw">fn</span> <span class="ident">rem_of_1</span>() {
         <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">fixtures</span>::<span class="kw-2">*</span>;
         <span class="kw">let</span> <span class="ident">short1</span> <span class="op">=</span> <span class="ident">Short256</span>::<span class="ident">from</span>(<span class="number">1</span>);
-        <span class="kw">let</span> <span class="ident">p</span> <span class="op">=</span> <span class="ident">p256</span>();
+        <span class="kw">let</span> <span class="ident">p</span> <span class="op">=</span> <span class="ident">p256</span>().<span class="ident">into_unsigned</span>();
 
-        <span class="kw">let</span> <span class="ident">remainder</span> <span class="op">=</span> <span class="ident">short1</span> <span class="op">%</span> <span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">p</span>;
+        <span class="kw">let</span> <span class="ident">remainder</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">short1</span> <span class="op">%</span> <span class="kw-2">&amp;</span><span class="ident">p</span>;
 
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">remainder</span>, <span class="ident">short1</span>);
     }

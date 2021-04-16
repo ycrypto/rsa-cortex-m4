@@ -502,8 +502,18 @@
 <span id="483">483</span>
 <span id="484">484</span>
 <span id="485">485</span>
+<span id="486">486</span>
+<span id="487">487</span>
+<span id="488">488</span>
+<span id="489">489</span>
+<span id="490">490</span>
+<span id="491">491</span>
+<span id="492">492</span>
+<span id="493">493</span>
+<span id="494">494</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">ref_cast</span>::<span class="ident">RefCast</span>;
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;ct-maybe&quot;</span>)]</span>
 <span class="kw">use</span> <span class="ident">subtle</span>::{<span class="ident">ConditionallySelectable</span>, <span class="ident">ConstantTimeEq</span>};
 
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">Convenient</span>, <span class="ident">Digit</span>, <span class="ident">DoubleDigit</span>, <span class="ident">Modular</span>, <span class="ident">Montgomery</span>, <span class="ident">SignedDoubleDigit</span>};
@@ -600,7 +610,7 @@
 <span class="comment">// R mod p</span>
 <span class="attribute">#[<span class="ident">inline</span>]</span>
 <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">non_snake_case</span>)]</span>
-<span class="kw">fn</span> <span class="ident">R_mod_p</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="ident">n</span>: <span class="kw-2">&amp;</span><span class="ident">Convenient</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">R_mod_p</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="ident">n</span>: <span class="kw-2">&amp;</span><span class="ident">Convenient</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
     <span class="comment">// by &quot;convenience&quot;, R = R - p (mod p) = -p (mod R)</span>
     (<span class="op">-</span><span class="ident">Wrapping</span>::<span class="ident">ref_cast</span>(<span class="ident">n</span>.<span class="ident">as_ref</span>())).<span class="number">0</span>
 }
@@ -737,7 +747,15 @@
     }
     <span class="kw">let</span> <span class="ident">_ts</span> <span class="op">=</span> <span class="kw">super</span>::<span class="ident">subtract</span>::<span class="ident">sbb</span>(<span class="ident">us</span>, <span class="number">0</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">B</span>);
 
-    <span class="ident">Unsigned</span>::<span class="ident">conditional_select</span>(<span class="kw-2">&amp;</span><span class="ident">u</span>, <span class="kw-2">&amp;</span><span class="ident">t</span>, <span class="ident">B</span>.<span class="ident">ct_eq</span>(<span class="kw-2">&amp;</span><span class="number">0</span>))
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;ct-maybe&quot;</span>)]</span> {
+        <span class="ident">Unsigned</span>::<span class="ident">conditional_select</span>(<span class="kw-2">&amp;</span><span class="ident">u</span>, <span class="kw-2">&amp;</span><span class="ident">t</span>, <span class="ident">B</span>.<span class="ident">ct_eq</span>(<span class="kw-2">&amp;</span><span class="number">0</span>))
+    }
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;ct-maybe&quot;</span>))]</span>
+    <span class="kw">if</span> <span class="ident">B</span> <span class="op">!</span><span class="op">=</span> <span class="number">0</span> {
+        <span class="ident">u</span>.<span class="ident">clone</span>()
+    } <span class="kw">else</span> {
+        <span class="ident">t</span>
+    }
 }
 
 
