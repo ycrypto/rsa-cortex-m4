@@ -468,15 +468,11 @@ mod test {
 
     #[test]
     fn test_invert() {
-        use crate::Long;
+        use hex_literal::hex;
+        use crate::{fixtures::Long256, Long};
 
-        #[cfg(any(target_pointer_width = "32", feature = "u32"))]
-        let x = Long::<4>::from_slice(
-            &[0xb581f62d, 0x30a5bea0, 0x1ec39332, 0x825c3782, 0xff46a3d1, 0x481cd99e, 0x2952164f, 0x2f7c30a3]);
-
-        #[cfg(all(target_pointer_width = "64", not(feature = "u32")))]
-        let x = Long::<2>::from_slice(
-            &[0x9881a570678b33bb, 0xc071fc5a0d75de20, 0xae8303747b3db15d, 0x756a33dea26163df]);
+        let x = Long256::from_bytes(&hex!(
+            "756a33dea26163dfae8303747b3db15dc071fc5a0d75de209881a570678b33bb"));
 
         // unwrap does not fail since x is odd.
         let maybe_inverse = wrapping_invert(&x).unwrap();

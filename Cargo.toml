@@ -22,8 +22,9 @@ zeroize = { version = "1.2.0", default-features = false, features = ["zeroize_de
 hex-literal = "0.3"
 
 [features]
-default = ["u32"]
+default = []
 u32 = []
+u64 = []
 
 [patch.crates-io]
 subtle = { git = "https://github.com/nickray/subtle", branch = "conditionally-select-usize" }

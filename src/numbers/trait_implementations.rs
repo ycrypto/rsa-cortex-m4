@@ -20,6 +20,10 @@ impl Bits for u32 {
     const BITS: usize = 32;
 }
 
+impl Bits for u64 {
+    const BITS: usize = 64;
+}
+
 impl Bits for u128 {
     const BITS: usize = 128;
 }
@@ -155,7 +159,13 @@ impl<const D: usize, const E: usize> TryFrom<Unsigned<D, E>> for Convenient<D, E
             return Err(Error);
         }
 
-        if !unsigned.significant_digits().len() != Unsigned::<D, E>::DIGITS {
+        if unsigned.significant_digits().len() != Unsigned::<D, E>::DIGITS {
+            #[cfg(test)]
+            println!("unsigned = {:?}, len = {}, DIGITS = {}",
+                &unsigned,
+                unsigned.significant_digits().len(),
+                Unsigned::<D, E>::DIGITS,
+            );
             panic!("logic error");
             // return Err(Error);
         }

@@ -560,7 +560,7 @@ mod test {
     use super::*;
 
     #[test]
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(feature = "u32")]
     fn debug() {
         let u = Short::from([0x76543210, 0xFEDCBA98]);
         assert_eq!(format!("{:X?}", u), "[FE, DC, BA, 98, 76, 54, 32, 10]");
@@ -589,13 +589,13 @@ mod test {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(feature = "u32")]
     fn partial_eq() {
         use core::convert::TryFrom;
         let d = (1 as Digit) << 31;
-        let p = ShortPrime(Convenient::try_from(Short::from([17, d])).unwrap());
+        let p = Prime(Convenient::try_from(Short::from([17, d])).unwrap());
         let u = Short::from([17, d]);
-        assert_eq!(&p.0.0, &u);
+        assert_eq!(**p, u);
     }
 
     #[test]

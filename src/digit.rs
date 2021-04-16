@@ -1,7 +1,9 @@
 /// A word on the machine. [`Unsigned`] is composed of many digits.
 ///
 /// Feature `u32` forces the digit to be 32-bit even on 64-bit architectures,
-/// this is done only for easier testing (typically embedded targets are 32 bit,
+/// feature `u64` forces the digit to be 64-bit even on 32-bit architectures.
+///
+/// This is done only for easier testing (typically embedded targets are 32 bit,
 /// while desktop/server targets as 64 bit).
 pub type Digit = digit::Digit;
 
@@ -13,37 +15,23 @@ pub(crate) type DoubleDigit = digit::DoubleDigit;
 /// Signed type with twice as many bits as [`Digit`].
 pub(crate) type SignedDoubleDigit = digit::SignedDoubleDigit;
 
-// The DIGIT_SIZE_CHECK is a compile-time assertion
-// that Digit is of expected bit size.
+#[cfg(not(any(feature = "u32", feature = "u64")))]
+compile_error!("Either feature u32 or feature u64!");
 
-// #[cfg(target_pointer_width = "16")]
-// #[allow(dead_code)]
-// const DIGIT_SIZE_CHECK: usize = (core::mem::size_of::<Digit>() == core::mem::size_of::<u16>()) as usize - 1;
-// #[cfg(target_pointer_width = "16")]
-// pub(crate) type DoubleDigit = u32;
-// #[cfg(target_pointer_width = "16")]
-// pub(crate) type SignedDoubleDigit = i32;
+#[cfg(all(feature = "u32", feature = "u64"))]
+compile_error!("Either feature u32 or feature u64, not both!");
 
+#[cfg(feature = "u32")]
 mod digit {
-    #[cfg(feature = "u32")]
     pub type Digit = u32;
-    #[cfg(not(feature = "u32"))]
-    pub type Digit = usize;
+    pub type DoubleDigit = u64;
+    pub type SignedDoubleDigit = i64;
+}
 
-    #[cfg(any(target_pointer_width = "32", feature = "u32"))]
-    #[allow(dead_code)]
-    const DIGIT_SIZE_CHECK: usize = (core::mem::size_of::<Digit>() == core::mem::size_of::<u32>()) as usize - 1;
-    #[cfg(any(target_pointer_width = "32", feature = "u32"))]
-    pub(crate) type DoubleDigit = u64;
-    #[cfg(any(target_pointer_width = "32", feature = "u32"))]
-    pub(crate) type SignedDoubleDigit = i64;
-
-    #[cfg(all(target_pointer_width = "64", not(feature = "u32")))]
-    #[allow(dead_code)]
-    const DIGIT_SIZE_CHECK: usize = (core::mem::size_of::<Digit>() == core::mem::size_of::<u64>()) as usize - 1;
-    #[cfg(all(target_pointer_width = "64", not(feature = "u32")))]
-    pub(crate) type DoubleDigit = u128;
-    #[cfg(all(target_pointer_width = "64", not(feature = "u32")))]
-    pub(crate) type SignedDoubleDigit = i128;
+#[cfg(feature = "u64")]
+mod digit {
+    pub type Digit = u64;
+    pub type DoubleDigit = u128;
+    pub type SignedDoubleDigit = i128;
 }
 
