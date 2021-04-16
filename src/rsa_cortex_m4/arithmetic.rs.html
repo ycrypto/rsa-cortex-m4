@@ -261,6 +261,9 @@
 <span id="242">242</span>
 <span id="243">243</span>
 <span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Modular arithmetic (for moduli that are either [`Convenient`] or word-sized powers-of-two).</span>
 <span class="doccomment">//!</span>
@@ -281,6 +284,7 @@
 <span class="kw">use</span> <span class="ident">zeroize</span>::<span class="ident">Zeroize</span>;
 
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">Convenient</span>, <span class="ident">ShortPrime</span>, <span class="ident">Unsigned</span>};
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">numbers</span>::<span class="ident">Number</span>;
 
 <span class="kw">mod</span> <span class="ident">shift</span>;
 <span class="kw">mod</span> <span class="ident">add</span>;
@@ -414,7 +418,9 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// Cf. [`Modular`].</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">reduce</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">F</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">G</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">n</span>: <span class="kw-2">&amp;</span><span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">F</span>, <span class="ident">G</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">F</span>, <span class="ident">G</span><span class="op">&gt;</span> {
-        <span class="self">self</span> <span class="op">%</span> <span class="ident">n</span>
+        <span class="kw">let</span> <span class="ident">remainder</span> <span class="op">=</span> <span class="self">self</span> <span class="op">%</span> <span class="ident">n</span>;
+        <span class="macro">assert</span><span class="macro">!</span>(<span class="op">!</span><span class="ident">remainder</span>.<span class="ident">is_zero</span>());
+        <span class="ident">remainder</span>
     }
 
     <span class="comment">// /// For convenient moduli, complete reduction is just incomplete reduction followed</span>

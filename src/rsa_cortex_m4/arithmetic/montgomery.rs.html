@@ -485,6 +485,23 @@
 <span id="466">466</span>
 <span id="467">467</span>
 <span id="468">468</span>
+<span id="469">469</span>
+<span id="470">470</span>
+<span id="471">471</span>
+<span id="472">472</span>
+<span id="473">473</span>
+<span id="474">474</span>
+<span id="475">475</span>
+<span id="476">476</span>
+<span id="477">477</span>
+<span id="478">478</span>
+<span id="479">479</span>
+<span id="480">480</span>
+<span id="481">481</span>
+<span id="482">482</span>
+<span id="483">483</span>
+<span id="484">484</span>
+<span id="485">485</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">ref_cast</span>::<span class="ident">RefCast</span>;
 <span class="kw">use</span> <span class="ident">subtle</span>::{<span class="ident">ConditionallySelectable</span>, <span class="ident">ConstantTimeEq</span>};
@@ -599,15 +616,17 @@
 <span class="comment">// Essentially: MM(A, R*R) = A*R*R*R^{-1} = AR =: A&#39;</span>
 <span class="comment">//</span>
 <span class="comment">// This has an expensive step of multiplying [R]_p and then reducing mod p.</span>
+<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">non_snake_case</span>)]</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">to_montgomery</span><span class="op">&lt;</span><span class="lifetime">&#39;n</span>, <span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="ident">modular</span>: <span class="kw-2">&amp;</span><span class="ident">Modular</span><span class="op">&lt;</span><span class="lifetime">&#39;n</span>, <span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Montgomery</span><span class="op">&lt;</span><span class="lifetime">&#39;n</span>, <span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
 
-    <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">non_snake_case</span>)]</span>
     <span class="kw">let</span> <span class="ident">R2</span> <span class="op">=</span> <span class="ident">R2_mod_p</span>(<span class="ident">modular</span>.<span class="ident">n</span>);<span class="comment">//&amp;(&amp;R * &amp;R) % modular.n.as_ref();</span>
+
+    <span class="macro">debug_assert</span><span class="macro">!</span>(<span class="op">!</span><span class="ident">R2</span>.<span class="ident">is_zero</span>());
 
     <span class="kw">let</span> <span class="ident">q0</span> <span class="op">=</span> <span class="ident">q0_for_p</span>(<span class="ident">modular</span>.<span class="ident">n</span>);
 
     <span class="ident">Montgomery</span> {
-        <span class="ident">y</span>: <span class="ident">montgomery_multiply</span>(<span class="kw-2">&amp;</span><span class="ident">modular</span>.<span class="ident">x</span>, <span class="kw-2">&amp;</span><span class="ident">R2</span>, <span class="ident">modular</span>.<span class="ident">n</span>, <span class="ident">q0</span>),
+        <span class="ident">y</span>: <span class="ident">cios_montgomery_product</span>(<span class="kw-2">&amp;</span><span class="ident">modular</span>.<span class="ident">x</span>, <span class="kw-2">&amp;</span><span class="ident">R2</span>, <span class="ident">modular</span>.<span class="ident">n</span>, <span class="ident">q0</span>),
         <span class="ident">n</span>: <span class="ident">modular</span>.<span class="ident">n</span>,
     }
 }
@@ -616,7 +635,7 @@
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">to_modular</span><span class="op">&lt;</span><span class="lifetime">&#39;n</span>, <span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="ident">montgomery</span>: <span class="kw-2">&amp;</span><span class="ident">Montgomery</span><span class="op">&lt;</span><span class="lifetime">&#39;n</span>, <span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Modular</span><span class="op">&lt;</span><span class="lifetime">&#39;n</span>, <span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
     <span class="kw">let</span> <span class="ident">q0</span> <span class="op">=</span> <span class="ident">q0_for_p</span>(<span class="ident">montgomery</span>.<span class="ident">n</span>);
     <span class="ident">Modular</span> {
-        <span class="ident">x</span>: <span class="ident">montgomery_multiply</span>(<span class="kw-2">&amp;</span><span class="ident">montgomery</span>.<span class="ident">y</span>, <span class="kw-2">&amp;</span><span class="ident">Unsigned</span>::<span class="ident">from</span>(<span class="number">1</span>), <span class="ident">montgomery</span>.<span class="ident">n</span>, <span class="ident">q0</span>),
+        <span class="ident">x</span>: <span class="ident">cios_montgomery_product</span>(<span class="kw-2">&amp;</span><span class="ident">montgomery</span>.<span class="ident">y</span>, <span class="kw-2">&amp;</span><span class="ident">Unsigned</span>::<span class="ident">from</span>(<span class="number">1</span>), <span class="ident">montgomery</span>.<span class="ident">n</span>, <span class="ident">q0</span>),
         <span class="ident">n</span>: <span class="ident">montgomery</span>.<span class="ident">n</span>,
     }
 }
@@ -624,79 +643,80 @@
 <span class="comment">// the operation (C, S) := t + a*b + C</span>
 <span class="comment">// is: s = mac(t, a, b, &amp;mut c)</span>
 
-<span class="doccomment">/// Following [Incomplete Reduction in Modular Arithmetic (Yanik/Savaş/Koç, 2012)][ysk12].</span>
-<span class="doccomment">/// [ysk12]: https://api.semanticscholar.org/CorpusID:17543811</span>
+<span class="comment">// /// Following [Incomplete Reduction in Modular Arithmetic (Yanik/Savaş/Koç, 2012)][ysk12].</span>
+<span class="comment">// /// [ysk12]: https://api.semanticscholar.org/CorpusID:17543811</span>
+<span class="comment">// #[allow(non_snake_case)]</span>
+<span class="comment">// pub(crate) fn montgomery_multiply&lt;const D: usize, const E: usize&gt;(</span>
+<span class="comment">//     A: &amp;Unsigned&lt;D, E&gt;,</span>
+<span class="comment">//     B: &amp;Unsigned&lt;D, E&gt;,</span>
+<span class="comment">//     P: &amp;Convenient&lt;D, E&gt;,</span>
+<span class="comment">//     q0: Digit,</span>
+
+<span class="comment">// ) -&gt; Unsigned&lt;D, E&gt; {</span>
+
+<span class="comment">//     // step 1 + 2</span>
+<span class="comment">//     let mut T = Unsigned::&lt;D, E&gt;::zero();</span>
+
+<span class="comment">//     // steps 3-7: partial product T of length D + 1</span>
+<span class="comment">//     let mut c: Digit = 0;</span>
+
+<span class="comment">//     let s = D + E;</span>
+
+<span class="comment">//     for i in 0..s  {</span>
+<span class="comment">//         c = 0;</span>
+<span class="comment">//         // for j in 0..s {</span>
+<span class="comment">//         //     T[j] = mac(T[j], A[i], B[j], &amp;mut c);</span>
+<span class="comment">//         // }</span>
+<span class="comment">//         // let Ts = c;</span>
+
+<span class="comment">//         // This doesn&#39;t seem to work / coincide at all.</span>
+<span class="comment">//         let Ts = super::multiply::add_product_by_digit_into(&amp;mut T, &amp;B, A[i]);</span>
+
+<span class="comment">//         // steps 8-12: reduce T modulo p, to length D</span>
+<span class="comment">//         let M = T[0].wrapping_mul(q0);</span>
+<span class="comment">//         // let M = ((T[0] as DoubleDigit) * (q0 as DoubleDigit)) as Digit;</span>
+<span class="comment">//         assert_eq!(M.wrapping_mul(P[0]), T[0].wrapping_neg());</span>
+
+<span class="comment">//         // step 9</span>
+<span class="comment">//         let X = (T[0] as DoubleDigit) + (M as DoubleDigit)*(P[0] as DoubleDigit);</span>
+<span class="comment">//         debug_assert_eq!(X as Digit, 0);</span>
+<span class="comment">//         c = (X &gt;&gt; Digit::BITS) as Digit;</span>
+
+<span class="comment">//         // c = 0;  // the `as Digit` part (return value) is dropped anyway</span>
+<span class="comment">//         // mac(T[0], M, P[0], &amp;mut c);</span>
+
+<span class="comment">//         for j in 1..s {</span>
+<span class="comment">//             T[j - 1] = mac(T[j], M, P[j], &amp;mut c);</span>
+<span class="comment">//         }</span>
+
+<span class="comment">//         T[s - 1] = mac(Ts, 0, 0, &amp;mut c);</span>
+
+<span class="comment">//         // let T = (T + M*P) &gt;&gt; 1;</span>
+<span class="comment">//     }</span>
+
+<span class="comment">//     // return Short::from_slice(&amp;T[..D]);</span>
+
+<span class="comment">//     // step 13: can exceed R - 1 by at most p</span>
+<span class="comment">//     // if c == 0 {</span>
+<span class="comment">//         return T;</span>
+<span class="comment">//     // }</span>
+
+<span class="comment">//     // steps 14-16: print T to range $[0, R - 1]$.</span>
+<span class="comment">//     // T -= P;</span>
+<span class="comment">//     T.wrapping_sub_assign(P.as_ref());</span>
+<span class="comment">//     // let mut b: Digit = 0;</span>
+<span class="comment">//     // for j in 0..D {</span>
+<span class="comment">//     //     let outcome = (T[j] as DoubleDigit).wrapping_sub(P[j] as DoubleDigit).wrapping_sub(b as DoubleDigit);</span>
+<span class="comment">//     //     T[j] = outcome as Digit;</span>
+<span class="comment">//     //     b = (outcome &gt;&gt; Digit::BITS) as Digit;</span>
+<span class="comment">//     // }</span>
+
+<span class="comment">//     return T;</span>
+<span class="comment">// }</span>
+
+
 <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">non_snake_case</span>)]</span>
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">montgomery_multiply</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span>(
-    <span class="ident">A</span>: <span class="kw-2">&amp;</span><span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>,
-    <span class="ident">B</span>: <span class="kw-2">&amp;</span><span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>,
-    <span class="ident">P</span>: <span class="kw-2">&amp;</span><span class="ident">Convenient</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>,
-    <span class="ident">q0</span>: <span class="ident">Digit</span>,
-
-) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span> {
-
-    <span class="comment">// step 1 + 2</span>
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">T</span> <span class="op">=</span> <span class="ident">Unsigned</span>::<span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>::<span class="ident">zero</span>();
-
-    <span class="comment">// steps 3-7: partial product T of length D + 1</span>
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">c</span>: <span class="ident">Digit</span> <span class="op">=</span> <span class="number">0</span>;
-
-    <span class="kw">let</span> <span class="ident">s</span> <span class="op">=</span> <span class="ident">D</span> <span class="op">+</span> <span class="ident">E</span>;
-
-    <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">s</span>  {
-        <span class="ident">c</span> <span class="op">=</span> <span class="number">0</span>;
-        <span class="comment">// for j in 0..s {</span>
-        <span class="comment">//     T[j] = mac(T[j], A[i], B[j], &amp;mut c);</span>
-        <span class="comment">// }</span>
-        <span class="comment">// let Ts = c;</span>
-
-        <span class="comment">// This doesn&#39;t seem to work / coincide at all.</span>
-        <span class="kw">let</span> <span class="ident">Ts</span> <span class="op">=</span> <span class="kw">super</span>::<span class="ident">multiply</span>::<span class="ident">add_product_by_digit_into</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">T</span>, <span class="kw-2">&amp;</span><span class="ident">B</span>, <span class="ident">A</span>[<span class="ident">i</span>]);
-
-        <span class="comment">// steps 8-12: reduce T modulo p, to length D</span>
-        <span class="kw">let</span> <span class="ident">M</span> <span class="op">=</span> <span class="ident">T</span>[<span class="number">0</span>].<span class="ident">wrapping_mul</span>(<span class="ident">q0</span>);
-        <span class="comment">// let M = ((T[0] as DoubleDigit) * (q0 as DoubleDigit)) as Digit;</span>
-        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">M</span>.<span class="ident">wrapping_mul</span>(<span class="ident">P</span>[<span class="number">0</span>]), <span class="ident">T</span>[<span class="number">0</span>].<span class="ident">wrapping_neg</span>());
-
-        <span class="comment">// step 9</span>
-        <span class="kw">let</span> <span class="ident">X</span> <span class="op">=</span> (<span class="ident">T</span>[<span class="number">0</span>] <span class="kw">as</span> <span class="ident">DoubleDigit</span>) <span class="op">+</span> (<span class="ident">M</span> <span class="kw">as</span> <span class="ident">DoubleDigit</span>)<span class="kw-2">*</span>(<span class="ident">P</span>[<span class="number">0</span>] <span class="kw">as</span> <span class="ident">DoubleDigit</span>);
-        <span class="macro">debug_assert_eq</span><span class="macro">!</span>(<span class="ident">X</span> <span class="kw">as</span> <span class="ident">Digit</span>, <span class="number">0</span>);
-        <span class="ident">c</span> <span class="op">=</span> (<span class="ident">X</span> <span class="op">&gt;</span><span class="op">&gt;</span> <span class="ident">Digit</span>::<span class="ident">BITS</span>) <span class="kw">as</span> <span class="ident">Digit</span>;
-
-        <span class="comment">// c = 0;  // the `as Digit` part (return value) is dropped anyway</span>
-        <span class="comment">// mac(T[0], M, P[0], &amp;mut c);</span>
-
-        <span class="kw">for</span> <span class="ident">j</span> <span class="kw">in</span> <span class="number">1</span>..<span class="ident">s</span> {
-            <span class="ident">T</span>[<span class="ident">j</span> <span class="op">-</span> <span class="number">1</span>] <span class="op">=</span> <span class="ident">mac</span>(<span class="ident">T</span>[<span class="ident">j</span>], <span class="ident">M</span>, <span class="ident">P</span>[<span class="ident">j</span>], <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">c</span>);
-        }
-
-        <span class="ident">T</span>[<span class="ident">s</span> <span class="op">-</span> <span class="number">1</span>] <span class="op">=</span> <span class="ident">mac</span>(<span class="ident">Ts</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">c</span>);
-
-        <span class="comment">// let T = (T + M*P) &gt;&gt; 1;</span>
-    }
-
-    <span class="comment">// return Short::from_slice(&amp;T[..D]);</span>
-
-    <span class="comment">// step 13: can exceed R - 1 by at most p</span>
-    <span class="comment">// if c == 0 {</span>
-        <span class="kw">return</span> <span class="ident">T</span>;
-    <span class="comment">// }</span>
-
-    <span class="comment">// steps 14-16: print T to range $[0, R - 1]$.</span>
-    <span class="comment">// T -= P;</span>
-    <span class="ident">T</span>.<span class="ident">wrapping_sub_assign</span>(<span class="ident">P</span>.<span class="ident">as_ref</span>());
-    <span class="comment">// let mut b: Digit = 0;</span>
-    <span class="comment">// for j in 0..D {</span>
-    <span class="comment">//     let outcome = (T[j] as DoubleDigit).wrapping_sub(P[j] as DoubleDigit).wrapping_sub(b as DoubleDigit);</span>
-    <span class="comment">//     T[j] = outcome as Digit;</span>
-    <span class="comment">//     b = (outcome &gt;&gt; Digit::BITS) as Digit;</span>
-    <span class="comment">// }</span>
-
-    <span class="kw">return</span> <span class="ident">T</span>;
-}
-
-
-<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">non_snake_case</span>)]</span>
+<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">dead_code</span>)]</span>
 <span class="kw">fn</span> <span class="ident">ADD</span>(<span class="ident">target</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">Digit</span>], <span class="ident">top_word</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Digit</span>, <span class="ident">C</span>: <span class="ident">Digit</span>) {
     <span class="kw-2">*</span><span class="ident">top_word</span> <span class="op">+</span><span class="op">=</span> <span class="kw">super</span>::<span class="ident">add</span>::<span class="ident">add_assign_carry</span>(<span class="ident">target</span>, <span class="kw-2">&amp;</span>[<span class="ident">C</span>]);
 }
@@ -722,6 +742,7 @@
 
 
 <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">non_snake_case</span>)]</span>
+<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">dead_code</span>)]</span>
 <span class="doccomment">/// The Separated Operand Scanning (SOS) method</span>
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">sos_montgomery_product</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span>, <span class="kw">const</span> <span class="ident">E</span>: <span class="ident">usize</span><span class="op">&gt;</span>(
     <span class="ident">a</span>: <span class="kw-2">&amp;</span><span class="ident">Unsigned</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>,
@@ -785,7 +806,7 @@
     <span class="kw">let</span> <span class="ident">s</span> <span class="op">=</span> <span class="ident">D</span> <span class="op">+</span> <span class="ident">E</span>;
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">t</span> <span class="op">=</span> <span class="ident">Unsigned</span>::<span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">E</span><span class="op">&gt;</span>::<span class="ident">zero</span>();
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">ts</span>: <span class="ident">Digit</span> <span class="op">=</span> <span class="number">0</span>;
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">ts1</span>: <span class="ident">Digit</span> <span class="op">=</span> <span class="number">0</span>;
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">ts1</span>: <span class="ident">Digit</span>;
 
     <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="op">=</span>(<span class="ident">s</span><span class="op">-</span><span class="number">1</span>) {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">C</span>: <span class="ident">Digit</span> <span class="op">=</span> <span class="number">0</span>;
@@ -835,7 +856,10 @@
         <span class="comment">// assert_eq!(q0, 0x70940b4697af00b7);</span>
 
         <span class="kw">let</span> <span class="ident">expected</span> <span class="op">=</span> <span class="ident">Short256</span>::<span class="ident">from_bytes</span>(<span class="kw-2">&amp;</span><span class="macro">hex</span><span class="macro">!</span>(<span class="string">&quot;76902a464b9f6c0ecfc7f4db48e6c72cc08085cc9c7ab4b11a8a7e2fb418107d&quot;</span>));
-        <span class="kw">let</span> <span class="ident">truncated_non_reduced</span> <span class="op">=</span> <span class="ident">Short256</span>::<span class="ident">from_bytes</span>(<span class="kw-2">&amp;</span><span class="macro">hex</span><span class="macro">!</span>(<span class="string">&quot;544bbf376697a739aecade3d06419e778aa82e8a1b6391bdc6240dc830e83376&quot;</span>));
+        <span class="comment">// This is for debugging, when the Mongomery product function</span>
+        <span class="comment">// is modified to return early before the conditional subtraction,</span>
+        <span class="comment">// returning just the first s digits</span>
+        <span class="comment">// let truncated_non_reduced = Short256::from_bytes(&amp;hex!(&quot;544bbf376697a739aecade3d06419e778aa82e8a1b6391bdc6240dc830e83376&quot;));</span>
 
         <span class="comment">// SOS</span>
         <span class="kw">let</span> <span class="ident">m</span> <span class="op">=</span> <span class="ident">sos_montgomery_product</span>(<span class="ident">a</span>.<span class="ident">as_ref</span>().<span class="ident">as_ref</span>(), <span class="kw-2">&amp;</span><span class="ident">b</span>, <span class="kw-2">&amp;</span><span class="ident">p</span>, <span class="ident">q0</span>);
@@ -868,9 +892,24 @@
     }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">to_modular</span>() {
+        <span class="kw">let</span> <span class="ident">p</span> <span class="op">=</span> <span class="ident">p256</span>();
+
+        <span class="comment">// Check that &quot;1.to_modular() = R^{-1} works, i.e.: `Montgomery { y: 1, n: &amp;p}.to_modular() = R^{-1}`</span>
+        <span class="kw">let</span> <span class="ident">montgomery1</span> <span class="op">=</span> <span class="ident">Montgomery</span> { <span class="ident">y</span>: <span class="ident">Short256</span>::<span class="ident">from</span>(<span class="number">1</span>).<span class="ident">modulo</span>(<span class="kw-2">&amp;</span><span class="ident">p</span>).<span class="ident">canonical_lift</span>(), <span class="ident">n</span>: <span class="kw-2">&amp;</span><span class="ident">p</span> };
+        <span class="kw">let</span> <span class="ident">modular1</span> <span class="op">=</span> <span class="ident">montgomery1</span>.<span class="ident">to_modular</span>();
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="ident">modular1</span>.<span class="ident">x</span>,
+            <span class="comment">// hex(lift(1/Mod(R, p)))</span>
+            <span class="ident">Short256</span>::<span class="ident">from_bytes</span>(<span class="kw-2">&amp;</span><span class="macro">hex</span><span class="macro">!</span>(<span class="string">&quot;bfb1a42641b2bde4ee211b270ec59e39f54da8c5ed1723bc2ac70e40b6d8bf2a&quot;</span>))
+        );
+
+    }
+
+    <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">to_montgomery</span>() {
         <span class="kw">let</span> <span class="ident">p</span> <span class="op">=</span> <span class="ident">p256</span>();
-        <span class="kw">let</span> <span class="ident">x</span> <span class="op">=</span> <span class="ident">c256</span>();
+        <span class="comment">// let x = c256();</span>
 
         <span class="comment">// Check that &quot;R (mod p)&quot; works</span>
         <span class="kw">let</span> <span class="ident">r_mod_p</span>: <span class="ident">Short256</span> <span class="op">=</span> <span class="ident">R_mod_p</span>(<span class="ident">p</span>.<span class="ident">as_ref</span>());
@@ -886,23 +925,18 @@
             <span class="ident">Short256</span>::<span class="ident">from_bytes</span>(<span class="kw-2">&amp;</span><span class="macro">hex</span><span class="macro">!</span>(<span class="string">&quot;4ecdbb8d65834ef627fc1e45ba4c5229d38b34227250b466011b26f98c090f44&quot;</span>))
         );
 
-        <span class="comment">// // Check that &quot;1.to_modular() = R^{-1} works, i.e.: `Montgomery { y: 1, n: &amp;p}.to_modular() = R^{-1}`</span>
-        <span class="comment">// let montgomery1 = Montgomery { y: Short256::from(1).modulo(&amp;p).canonical_lift(), n: &amp;p };</span>
-        <span class="comment">// let modular1 = montgomery1.to_modular();</span>
-        <span class="comment">// assert_eq!(</span>
-        <span class="comment">//     modular1.x,</span>
-        <span class="comment">//     // hex(lift(1/Mod(R, p)))</span>
-        <span class="comment">//     Short256::from_bytes(&amp;hex!(&quot;bfb1a42641b2bde4ee211b270ec59e39f54da8c5ed1723bc2ac70e40b6d8bf2a&quot;))</span>
-        <span class="comment">// );</span>
+        <span class="comment">// Check that &quot;1.to_montgomery() = R&quot; works, i.e.: `Modular { y: 1, n: &amp;p}.to_montgomery() = R`</span>
+        <span class="kw">let</span> <span class="ident">short1</span> <span class="op">=</span> <span class="ident">Short256</span>::<span class="ident">from</span>(<span class="number">1</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">short1</span>, <span class="ident">Short256</span>::<span class="ident">from_bytes</span>(<span class="kw-2">&amp;</span><span class="macro">hex</span><span class="macro">!</span>(<span class="string">&quot;01&quot;</span>)));
 
-        <span class="comment">// // Check that &quot;1.to_montgomery() = R&quot; works, i.e.: `Modular { y: 1, n: &amp;p}.to_montgomery() = R`</span>
-        <span class="comment">// let modular1 = Short256::from(1).modulo(&amp;p);</span>
-        <span class="comment">// let montgomery1 = modular1.to_montgomery();</span>
-        <span class="comment">// assert_eq!(</span>
-        <span class="comment">//     montgomery1.y,</span>
-        <span class="comment">//     // hex(lift(Mod(R, p)))</span>
-        <span class="comment">//     Short256::from_bytes(&amp;hex!(&quot;22446b0ee507c4d520fd169e42a528b535d85742811722f354667067832fdd07&quot;))</span>
-        <span class="comment">// );</span>
+        <span class="kw">let</span> <span class="ident">modular1</span> <span class="op">=</span> <span class="ident">Short256</span>::<span class="ident">from</span>(<span class="number">1</span>).<span class="ident">modulo</span>(<span class="kw-2">&amp;</span><span class="ident">p</span>);
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">modular1</span>.<span class="ident">x</span>, <span class="ident">Short256</span>::<span class="ident">from_bytes</span>(<span class="kw-2">&amp;</span><span class="macro">hex</span><span class="macro">!</span>(<span class="string">&quot;01&quot;</span>)));
+        <span class="kw">let</span> <span class="ident">montgomery1</span> <span class="op">=</span> <span class="ident">modular1</span>.<span class="ident">to_montgomery</span>();
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="ident">montgomery1</span>.<span class="ident">y</span>,
+            <span class="comment">// hex(lift(Mod(R, p)))</span>
+            <span class="ident">Short256</span>::<span class="ident">from_bytes</span>(<span class="kw-2">&amp;</span><span class="macro">hex</span><span class="macro">!</span>(<span class="string">&quot;22446b0ee507c4d520fd169e42a528b535d85742811722f354667067832fdd07&quot;</span>))
+        );
 
         <span class="comment">// let modular = x.modulo(&amp;p);</span>
         <span class="comment">// let montgomery = modular.to_montgomery();</span>
@@ -918,9 +952,9 @@
         <span class="kw">let</span> <span class="ident">candidate</span> <span class="op">=</span> <span class="ident">e_inverse_digit_joye_paillier</span>(<span class="ident">e</span>);
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">candidate</span>.<span class="ident">wrapping_mul</span>(<span class="ident">e</span>), <span class="number">1</span>);
 
-        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">target_pointer_width</span> <span class="op">=</span> <span class="string">&quot;32&quot;</span>, <span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;u32&quot;</span>))]</span>
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;u32&quot;</span>)]</span>
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">candidate</span>, <span class="number">4294901761</span>);
-        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">all</span>(<span class="ident">target_pointer_width</span> <span class="op">=</span> <span class="string">&quot;64&quot;</span>, <span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;u32&quot;</span>)))]</span>
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;u64&quot;</span>)]</span>
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">candidate</span>, <span class="number">18446462603027742721</span>);
 
         <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">debug_assertions</span>))]</span>
@@ -938,9 +972,9 @@
         <span class="kw">let</span> <span class="ident">candidate</span> <span class="op">=</span> <span class="ident">x_inverse_digit_dusse_kaliski</span>(<span class="kw">crate</span>::<span class="ident">F4</span>::<span class="ident">DIGIT</span>);
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">candidate</span>.<span class="ident">wrapping_mul</span>(<span class="kw">crate</span>::<span class="ident">F4</span>::<span class="ident">DIGIT</span>), <span class="number">1</span>);
 
-        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">target_pointer_width</span> <span class="op">=</span> <span class="string">&quot;32&quot;</span>, <span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;u32&quot;</span>))]</span>
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;u32&quot;</span>)]</span>
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">candidate</span>, <span class="number">4294901761</span>);
-        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">all</span>(<span class="ident">target_pointer_width</span> <span class="op">=</span> <span class="string">&quot;64&quot;</span>, <span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;u32&quot;</span>)))]</span>
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;u64&quot;</span>)]</span>
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">candidate</span>, <span class="number">18446462603027742721</span>);
 
         <span class="comment">// too slow for full test, even in release mode</span>

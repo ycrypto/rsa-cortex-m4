@@ -496,6 +496,15 @@
 <span id="477">477</span>
 <span id="478">478</span>
 <span id="479">479</span>
+<span id="480">480</span>
+<span id="481">481</span>
+<span id="482">482</span>
+<span id="483">483</span>
+<span id="484">484</span>
+<span id="485">485</span>
+<span id="486">486</span>
+<span id="487">487</span>
+<span id="488">488</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">core</span>::{<span class="ident">cmp</span>::<span class="ident">Ordering</span>, <span class="ident">convert</span>::<span class="ident">TryInto</span>, <span class="ident">ops</span>::{<span class="ident">Div</span>, <span class="ident">Rem</span>}};
 
@@ -625,10 +634,11 @@
     <span class="comment">// Required or the q_len calculation below can underflow:</span>
     <span class="comment">// match x.as_le_words().cmp(&amp;n.as_le_words()) {</span>
     <span class="kw">match</span> <span class="ident">n</span>.<span class="ident">partial_cmp</span>(<span class="ident">x</span>).<span class="ident">unwrap</span>() {
-        <span class="ident">Ordering</span>::<span class="ident">Greater</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> (<span class="ident">T</span>::<span class="ident">zero</span>(), <span class="ident">n</span>.<span class="ident">clone</span>()),
+        <span class="ident">Ordering</span>::<span class="ident">Greater</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> (<span class="ident">T</span>::<span class="ident">zero</span>(), <span class="ident">Unsigned</span>::<span class="ident">from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">x</span>)),
         <span class="ident">Ordering</span>::<span class="ident">Equal</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> (<span class="ident">T</span>::<span class="ident">one</span>(), <span class="ident">Unsigned</span>::<span class="ident">zero</span>()),
         <span class="ident">Ordering</span>::<span class="ident">Less</span> <span class="op">=</span><span class="op">&gt;</span> {} <span class="comment">// Do nothing</span>
     }
+
 
     <span class="comment">// // 2021-04-06: workaround</span>
     <span class="comment">// let n =  Unsigned&lt;</span>
@@ -683,6 +693,7 @@
 
     <span class="ident">r</span> <span class="op">&gt;</span><span class="op">&gt;</span><span class="op">=</span> <span class="ident">shift_bits</span>;
     <span class="comment">// `a` and its shift are guaranteed to be smaller than the divisor, hence fit in `N` digits</span>
+    <span class="comment">// assert!(!r.to_unsigned::&lt;D, E&gt;().unwrap().is_zero());</span>
     (<span class="ident">q</span>, <span class="ident">r</span>.<span class="ident">to_unsigned</span>().<span class="ident">unwrap</span>())
 }
 
@@ -909,6 +920,17 @@
         ];
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">rem_of_1</span>() {
+        <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">fixtures</span>::<span class="kw-2">*</span>;
+        <span class="kw">let</span> <span class="ident">short1</span> <span class="op">=</span> <span class="ident">Short256</span>::<span class="ident">from</span>(<span class="number">1</span>);
+        <span class="kw">let</span> <span class="ident">p</span> <span class="op">=</span> <span class="ident">p256</span>();
+
+        <span class="kw">let</span> <span class="ident">remainder</span> <span class="op">=</span> <span class="ident">short1</span> <span class="op">%</span> <span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">p</span>;
+
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">remainder</span>, <span class="ident">short1</span>);
+    }
+
+    <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">test_div_rem</span>() {
         <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">Short</span>;
         <span class="kw">for</span> <span class="ident">case</span> <span class="kw">in</span> <span class="ident">MUL_TRIPLES</span>.<span class="ident">iter</span>() {
@@ -954,15 +976,11 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">test_invert</span>() {
-        <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">Long</span>;
+        <span class="kw">use</span> <span class="ident">hex_literal</span>::<span class="ident">hex</span>;
+        <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">fixtures</span>::<span class="ident">Long256</span>, <span class="ident">Long</span>};
 
-        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">target_pointer_width</span> <span class="op">=</span> <span class="string">&quot;32&quot;</span>, <span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;u32&quot;</span>))]</span>
-        <span class="kw">let</span> <span class="ident">x</span> <span class="op">=</span> <span class="ident">Long</span>::<span class="op">&lt;</span><span class="number">4</span><span class="op">&gt;</span>::<span class="ident">from_slice</span>(
-            <span class="kw-2">&amp;</span>[<span class="number">0xb581f62d</span>, <span class="number">0x30a5bea0</span>, <span class="number">0x1ec39332</span>, <span class="number">0x825c3782</span>, <span class="number">0xff46a3d1</span>, <span class="number">0x481cd99e</span>, <span class="number">0x2952164f</span>, <span class="number">0x2f7c30a3</span>]);
-
-        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">all</span>(<span class="ident">target_pointer_width</span> <span class="op">=</span> <span class="string">&quot;64&quot;</span>, <span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;u32&quot;</span>)))]</span>
-        <span class="kw">let</span> <span class="ident">x</span> <span class="op">=</span> <span class="ident">Long</span>::<span class="op">&lt;</span><span class="number">2</span><span class="op">&gt;</span>::<span class="ident">from_slice</span>(
-            <span class="kw-2">&amp;</span>[<span class="number">0x9881a570678b33bb</span>, <span class="number">0xc071fc5a0d75de20</span>, <span class="number">0xae8303747b3db15d</span>, <span class="number">0x756a33dea26163df</span>]);
+        <span class="kw">let</span> <span class="ident">x</span> <span class="op">=</span> <span class="ident">Long256</span>::<span class="ident">from_bytes</span>(<span class="kw-2">&amp;</span><span class="macro">hex</span><span class="macro">!</span>(
+            <span class="string">&quot;756a33dea26163dfae8303747b3db15dc071fc5a0d75de209881a570678b33bb&quot;</span>));
 
         <span class="comment">// unwrap does not fail since x is odd.</span>
         <span class="kw">let</span> <span class="ident">maybe_inverse</span> <span class="op">=</span> <span class="ident">wrapping_invert</span>(<span class="kw-2">&amp;</span><span class="ident">x</span>).<span class="ident">unwrap</span>();
