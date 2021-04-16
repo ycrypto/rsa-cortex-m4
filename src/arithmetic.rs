@@ -17,6 +17,7 @@ use ref_cast::RefCast;
 use zeroize::Zeroize;
 
 use crate::{Convenient, ShortPrime, Unsigned};
+use crate::numbers::Number;
 
 mod shift;
 mod add;
@@ -150,7 +151,9 @@ impl<const D: usize, const E: usize> Unsigned<D, E> {
     ///
     /// Cf. [`Modular`].
     pub fn reduce<const F: usize, const G: usize>(&self, n: &Unsigned<F, G>) -> Unsigned<F, G> {
-        self % n
+        let remainder = self % n;
+        assert!(!remainder.is_zero());
+        remainder
     }
 
     // /// For convenient moduli, complete reduction is just incomplete reduction followed

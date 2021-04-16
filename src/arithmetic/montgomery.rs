@@ -111,15 +111,17 @@ fn R2_mod_p<const D: usize, const E: usize>(n: &Convenient<D, E>) -> Unsigned<D,
 // Essentially: MM(A, R*R) = A*R*R*R^{-1} = AR =: A'
 //
 // This has an expensive step of multiplying [R]_p and then reducing mod p.
+#[allow(non_snake_case)]
 pub fn to_montgomery<'n, const D: usize, const E: usize>(modular: &Modular<'n, D, E>) -> Montgomery<'n, D, E> {
 
-    #[allow(non_snake_case)]
     let R2 = R2_mod_p(modular.n);//&(&R * &R) % modular.n.as_ref();
+
+    debug_assert!(!R2.is_zero());
 
     let q0 = q0_for_p(modular.n);
 
     Montgomery {
-        y: montgomery_multiply(&modular.x, &R2, modular.n, q0),
+        y: cios_montgomery_product(&modular.x, &R2, modular.n, q0),
         n: modular.n,
     }
 }
@@ -128,7 +130,7 @@ pub fn to_montgomery<'n, const D: usize, const E: usize>(modular: &Modular<'n, D
 pub fn to_modular<'n, const D: usize, const E: usize>(montgomery: &Montgomery<'n, D, E>) -> Modular<'n, D, E> {
     let q0 = q0_for_p(montgomery.n);
     Modular {
-        x: montgomery_multiply(&montgomery.y, &Unsigned::from(1), montgomery.n, q0),
+        x: cios_montgomery_product(&montgomery.y, &Unsigned::from(1), montgomery.n, q0),
         n: montgomery.n,
     }
 }
@@ -136,79 +138,80 @@ pub fn to_modular<'n, const D: usize, const E: usize>(montgomery: &Montgomery<'n
 // the operation (C, S) := t + a*b + C
 // is: s = mac(t, a, b, &mut c)
 
-/// Following [Incomplete Reduction in Modular Arithmetic (Yanik/Savaş/Koç, 2012)][ysk12].
-/// [ysk12]: https://api.semanticscholar.org/CorpusID:17543811
+// /// Following [Incomplete Reduction in Modular Arithmetic (Yanik/Savaş/Koç, 2012)][ysk12].
+// /// [ysk12]: https://api.semanticscholar.org/CorpusID:17543811
+// #[allow(non_snake_case)]
+// pub(crate) fn montgomery_multiply<const D: usize, const E: usize>(
+//     A: &Unsigned<D, E>,
+//     B: &Unsigned<D, E>,
+//     P: &Convenient<D, E>,
+//     q0: Digit,
+
+// ) -> Unsigned<D, E> {
+
+//     // step 1 + 2
+//     let mut T = Unsigned::<D, E>::zero();
+
+//     // steps 3-7: partial product T of length D + 1
+//     let mut c: Digit = 0;
+
+//     let s = D + E;
+
+//     for i in 0..s  {
+//         c = 0;
+//         // for j in 0..s {
+//         //     T[j] = mac(T[j], A[i], B[j], &mut c);
+//         // }
+//         // let Ts = c;
+
+//         // This doesn't seem to work / coincide at all.
+//         let Ts = super::multiply::add_product_by_digit_into(&mut T, &B, A[i]);
+
+//         // steps 8-12: reduce T modulo p, to length D
+//         let M = T[0].wrapping_mul(q0);
+//         // let M = ((T[0] as DoubleDigit) * (q0 as DoubleDigit)) as Digit;
+//         assert_eq!(M.wrapping_mul(P[0]), T[0].wrapping_neg());
+
+//         // step 9
+//         let X = (T[0] as DoubleDigit) + (M as DoubleDigit)*(P[0] as DoubleDigit);
+//         debug_assert_eq!(X as Digit, 0);
+//         c = (X >> Digit::BITS) as Digit;
+
+//         // c = 0;  // the `as Digit` part (return value) is dropped anyway
+//         // mac(T[0], M, P[0], &mut c);
+
+//         for j in 1..s {
+//             T[j - 1] = mac(T[j], M, P[j], &mut c);
+//         }
+
+//         T[s - 1] = mac(Ts, 0, 0, &mut c);
+
+//         // let T = (T + M*P) >> 1;
+//     }
+
+//     // return Short::from_slice(&T[..D]);
+
+//     // step 13: can exceed R - 1 by at most p
+//     // if c == 0 {
+//         return T;
+//     // }
+
+//     // steps 14-16: print T to range $[0, R - 1]$.
+//     // T -= P;
+//     T.wrapping_sub_assign(P.as_ref());
+//     // let mut b: Digit = 0;
+//     // for j in 0..D {
+//     //     let outcome = (T[j] as DoubleDigit).wrapping_sub(P[j] as DoubleDigit).wrapping_sub(b as DoubleDigit);
+//     //     T[j] = outcome as Digit;
+//     //     b = (outcome >> Digit::BITS) as Digit;
+//     // }
+
+//     return T;
+// }
+
+
 #[allow(non_snake_case)]
-pub(crate) fn montgomery_multiply<const D: usize, const E: usize>(
-    A: &Unsigned<D, E>,
-    B: &Unsigned<D, E>,
-    P: &Convenient<D, E>,
-    q0: Digit,
-
-) -> Unsigned<D, E> {
-
-    // step 1 + 2
-    let mut T = Unsigned::<D, E>::zero();
-
-    // steps 3-7: partial product T of length D + 1
-    let mut c: Digit = 0;
-
-    let s = D + E;
-
-    for i in 0..s  {
-        c = 0;
-        // for j in 0..s {
-        //     T[j] = mac(T[j], A[i], B[j], &mut c);
-        // }
-        // let Ts = c;
-
-        // This doesn't seem to work / coincide at all.
-        let Ts = super::multiply::add_product_by_digit_into(&mut T, &B, A[i]);
-
-        // steps 8-12: reduce T modulo p, to length D
-        let M = T[0].wrapping_mul(q0);
-        // let M = ((T[0] as DoubleDigit) * (q0 as DoubleDigit)) as Digit;
-        assert_eq!(M.wrapping_mul(P[0]), T[0].wrapping_neg());
-
-        // step 9
-        let X = (T[0] as DoubleDigit) + (M as DoubleDigit)*(P[0] as DoubleDigit);
-        debug_assert_eq!(X as Digit, 0);
-        c = (X >> Digit::BITS) as Digit;
-
-        // c = 0;  // the `as Digit` part (return value) is dropped anyway
-        // mac(T[0], M, P[0], &mut c);
-
-        for j in 1..s {
-            T[j - 1] = mac(T[j], M, P[j], &mut c);
-        }
-
-        T[s - 1] = mac(Ts, 0, 0, &mut c);
-
-        // let T = (T + M*P) >> 1;
-    }
-
-    // return Short::from_slice(&T[..D]);
-
-    // step 13: can exceed R - 1 by at most p
-    // if c == 0 {
-        return T;
-    // }
-
-    // steps 14-16: print T to range $[0, R - 1]$.
-    // T -= P;
-    T.wrapping_sub_assign(P.as_ref());
-    // let mut b: Digit = 0;
-    // for j in 0..D {
-    //     let outcome = (T[j] as DoubleDigit).wrapping_sub(P[j] as DoubleDigit).wrapping_sub(b as DoubleDigit);
-    //     T[j] = outcome as Digit;
-    //     b = (outcome >> Digit::BITS) as Digit;
-    // }
-
-    return T;
-}
-
-
-#[allow(non_snake_case)]
+#[allow(dead_code)]
 fn ADD(target: &mut [Digit], top_word: &mut Digit, C: Digit) {
     *top_word += super::add::add_assign_carry(target, &[C]);
 }
@@ -234,6 +237,7 @@ pub(crate) fn conditionally_subtract_n<const D: usize, const E: usize>(
 
 
 #[allow(non_snake_case)]
+#[allow(dead_code)]
 /// The Separated Operand Scanning (SOS) method
 pub(crate) fn sos_montgomery_product<const D: usize, const E: usize>(
     a: &Unsigned<D, E>,
@@ -297,7 +301,7 @@ pub(crate) fn cios_montgomery_product<const D: usize, const E: usize>(
     let s = D + E;
     let mut t = Unsigned::<D, E>::zero();
     let mut ts: Digit = 0;
-    let mut ts1: Digit = 0;
+    let mut ts1: Digit;
 
     for i in 0..=(s-1) {
         let mut C: Digit = 0;
@@ -347,7 +351,10 @@ mod test {
         // assert_eq!(q0, 0x70940b4697af00b7);
 
         let expected = Short256::from_bytes(&hex!("76902a464b9f6c0ecfc7f4db48e6c72cc08085cc9c7ab4b11a8a7e2fb418107d"));
-        let truncated_non_reduced = Short256::from_bytes(&hex!("544bbf376697a739aecade3d06419e778aa82e8a1b6391bdc6240dc830e83376"));
+        // This is for debugging, when the Mongomery product function
+        // is modified to return early before the conditional subtraction,
+        // returning just the first s digits
+        // let truncated_non_reduced = Short256::from_bytes(&hex!("544bbf376697a739aecade3d06419e778aa82e8a1b6391bdc6240dc830e83376"));
 
         // SOS
         let m = sos_montgomery_product(a.as_ref().as_ref(), &b, &p, q0);
@@ -380,9 +387,24 @@ mod test {
     }
 
     #[test]
+    fn to_modular() {
+        let p = p256();
+
+        // Check that "1.to_modular() = R^{-1} works, i.e.: `Montgomery { y: 1, n: &p}.to_modular() = R^{-1}`
+        let montgomery1 = Montgomery { y: Short256::from(1).modulo(&p).canonical_lift(), n: &p };
+        let modular1 = montgomery1.to_modular();
+        assert_eq!(
+            modular1.x,
+            // hex(lift(1/Mod(R, p)))
+            Short256::from_bytes(&hex!("bfb1a42641b2bde4ee211b270ec59e39f54da8c5ed1723bc2ac70e40b6d8bf2a"))
+        );
+
+    }
+
+    #[test]
     fn to_montgomery() {
         let p = p256();
-        let x = c256();
+        // let x = c256();
 
         // Check that "R (mod p)" works
         let r_mod_p: Short256 = R_mod_p(p.as_ref());
@@ -398,23 +420,18 @@ mod test {
             Short256::from_bytes(&hex!("4ecdbb8d65834ef627fc1e45ba4c5229d38b34227250b466011b26f98c090f44"))
         );
 
-        // // Check that "1.to_modular() = R^{-1} works, i.e.: `Montgomery { y: 1, n: &p}.to_modular() = R^{-1}`
-        // let montgomery1 = Montgomery { y: Short256::from(1).modulo(&p).canonical_lift(), n: &p };
-        // let modular1 = montgomery1.to_modular();
-        // assert_eq!(
-        //     modular1.x,
-        //     // hex(lift(1/Mod(R, p)))
-        //     Short256::from_bytes(&hex!("bfb1a42641b2bde4ee211b270ec59e39f54da8c5ed1723bc2ac70e40b6d8bf2a"))
-        // );
+        // Check that "1.to_montgomery() = R" works, i.e.: `Modular { y: 1, n: &p}.to_montgomery() = R`
+        let short1 = Short256::from(1);
+        assert_eq!(short1, Short256::from_bytes(&hex!("01")));
 
-        // // Check that "1.to_montgomery() = R" works, i.e.: `Modular { y: 1, n: &p}.to_montgomery() = R`
-        // let modular1 = Short256::from(1).modulo(&p);
-        // let montgomery1 = modular1.to_montgomery();
-        // assert_eq!(
-        //     montgomery1.y,
-        //     // hex(lift(Mod(R, p)))
-        //     Short256::from_bytes(&hex!("22446b0ee507c4d520fd169e42a528b535d85742811722f354667067832fdd07"))
-        // );
+        let modular1 = Short256::from(1).modulo(&p);
+        assert_eq!(modular1.x, Short256::from_bytes(&hex!("01")));
+        let montgomery1 = modular1.to_montgomery();
+        assert_eq!(
+            montgomery1.y,
+            // hex(lift(Mod(R, p)))
+            Short256::from_bytes(&hex!("22446b0ee507c4d520fd169e42a528b535d85742811722f354667067832fdd07"))
+        );
 
         // let modular = x.modulo(&p);
         // let montgomery = modular.to_montgomery();

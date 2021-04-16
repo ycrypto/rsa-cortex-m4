@@ -126,10 +126,11 @@ where
     // Required or the q_len calculation below can underflow:
     // match x.as_le_words().cmp(&n.as_le_words()) {
     match n.partial_cmp(x).unwrap() {
-        Ordering::Greater => return (T::zero(), n.clone()),
+        Ordering::Greater => return (T::zero(), Unsigned::from_slice(&x)),
         Ordering::Equal => return (T::one(), Unsigned::zero()),
         Ordering::Less => {} // Do nothing
     }
+
 
     // // 2021-04-06: workaround
     // let n =  Unsigned<
@@ -184,6 +185,7 @@ where
 
     r >>= shift_bits;
     // `a` and its shift are guaranteed to be smaller than the divisor, hence fit in `N` digits
+    // assert!(!r.to_unsigned::<D, E>().unwrap().is_zero());
     (q, r.to_unsigned().unwrap())
 }
 
@@ -408,6 +410,17 @@ mod test {
             (&[0, 1], &[N1], &[1], &[1]),
             (&[N1, N1], &[N2], &[2, 1], &[3]),
         ];
+
+    #[test]
+    fn rem_of_1() {
+        use crate::fixtures::*;
+        let short1 = Short256::from(1);
+        let p = p256();
+
+        let remainder = short1 % **p;
+
+        assert_eq!(remainder, short1);
+    }
 
     #[test]
     fn test_div_rem() {
