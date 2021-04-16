@@ -45,12 +45,13 @@ pub type Limb<const D: usize> = [Digit; D];
 // possible synonyms: Duplex, Twofold, (Dual)
 // goal is not to evoke "twin", "double", which would imply both limbs are the same
 #[repr(C)]
-#[derive(Clone, Copy, Eq, Zeroize)]
+#[derive(Clone, Eq, Zeroize)]
 pub struct Unsigned<const D: usize, const E: usize> {  // this is a kind of "dual number"
     lo: Limb<D>,
     hi: Limb<E>,
 }
 
+#[cfg(feature = "ct-maybe")]
 impl<const D: usize, const E: usize> subtle::ConditionallySelectable for Unsigned<D, E> {
     fn conditional_select(a: &Self, b: &Self, c: subtle::Choice) -> Self {
         let mut selected = Unsigned::zero();
@@ -67,6 +68,15 @@ impl<const D: usize, const E: usize> subtle::ConditionallySelectable for Unsigne
 #[repr(transparent)]
 #[derive(Clone, Debug, RefCast)]
 pub struct Odd<const D: usize, const E: usize>(pub(crate) Unsigned<D, E>);
+
+impl<const D: usize, const E: usize> Odd<D, E> {
+    pub fn as_unsigned(&self) -> &Unsigned<D, E> {
+        &self.0
+    }
+    pub fn into_unsigned(self) -> Unsigned<D, E> {
+        self.0
+    }
+}
 
 #[repr(transparent)]
 #[derive(Clone, Debug, RefCast)]
@@ -91,10 +101,46 @@ pub struct Odd<const D: usize, const E: usize>(pub(crate) Unsigned<D, E>);
 /// [yanik-savas-koc]: https://api.semanticscholar.org/CorpusID:17543811
 pub struct Convenient<const D: usize, const E: usize>(pub(crate) Odd<D, E>);
 
+impl<const D: usize, const E: usize> Convenient<D, E> {
+    pub fn as_odd(&self) -> &Odd<D, E> {
+        &self.0
+    }
+    pub fn into_odd(self) -> Odd<D, E> {
+        self.0
+    }
+    pub fn as_unsigned(&self) -> &Unsigned<D, E> {
+        &self.0.0
+    }
+    pub fn into_unsigned(self) -> Unsigned<D, E> {
+        self.0.0
+    }
+}
+
 #[repr(transparent)]
 #[derive(Clone, Debug, RefCast)]
 /// Prime number (passing primality tests); convenient by definition.
 pub struct Prime<const D: usize, const E: usize>(pub(crate) Convenient<D, E>);
+
+impl<const D: usize, const E: usize> Prime<D, E> {
+    pub fn as_convenient(&self) -> &Convenient<D, E> {
+        &self.0
+    }
+    pub fn into_convenient(self) -> Convenient<D, E> {
+        self.0
+    }
+    pub fn as_odd(&self) -> &Odd<D, E> {
+        &self.0.0
+    }
+    pub fn into_odd(self) -> Odd<D, E> {
+        self.0.0
+    }
+    pub fn as_unsigned(&self) -> &Unsigned<D, E> {
+        &self.0.0.0
+    }
+    pub fn into_unsigned(self) -> Unsigned<D, E> {
+        self.0.0.0
+    }
+}
 
 pub type ShortPrime<const D: usize> = Prime<D, 0>;
 
@@ -281,6 +327,13 @@ pub unsafe trait Number: /*sealed::Number +*/ Deref<Target = [Digit]> + Clone + 
     fn cmp(&self, other: &impl Number) -> Ordering {
         let l = self.significant_digits();
         let r = other.significant_digits();
+
+        // #[cfg(test)]
+        // println!("lhs has {}, rhs has {}", l.len(), r.len());
+        // #[cfg(test)]
+        // println!("lhs = {:x?}", &l);
+        // #[cfg(test)]
+        // println!("rhs = {:x?}", &r);
 
         match l.len().cmp(&r.len()) {
             Ordering::Equal => {}
@@ -560,10 +613,17 @@ mod test {
     use super::*;
 
     #[test]
-    #[cfg(feature = "u32")]
+    #[cfg(all(feature = "u32", not(feature = "hex-debug")))]
     fn debug() {
         let u = Short::from([0x76543210, 0xFEDCBA98]);
         assert_eq!(format!("{:X?}", u), "[FE, DC, BA, 98, 76, 54, 32, 10]");
+    }
+
+    #[test]
+    #[cfg(all(feature = "u32", feature = "hex-debug"))]
+    fn debug() {
+        let u = Short::from([0x76543210, 0xFEDCBA98]);
+        assert_eq!(format!("{:X?}", u), "FEDCBA9876543210");
     }
 
     #[test]

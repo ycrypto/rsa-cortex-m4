@@ -1,4 +1,4 @@
-use core::ops::Mul;
+use core::ops::{Mul, MulAssign};
 
 use ref_cast::RefCast;
 
@@ -179,8 +179,20 @@ impl<'l, 'n, const D: usize, const E: usize> Mul for &'l Modular<'n, D, E> {
 impl<'n, const D: usize, const E: usize> Mul for &Montgomery<'n, D, E> {
     type Output = Montgomery<'n, D, E>;
 
-    fn mul(self, _other: Self) -> Self::Output {
-        todo!();
+    fn mul(self, other: Self) -> Self::Output {
+        debug_assert_eq!(**self.n, **other.n);
+
+        let q0 = super::montgomery::q0_for_p(self.n);
+        Self::Output {
+            y: super::montgomery::cios_montgomery_product(&self.y, &other.y, self.n, q0),
+            n: self.n
+        }
+    }
+}
+
+impl<'n, const D: usize, const E: usize> MulAssign<&Montgomery<'n, D, E>> for Montgomery<'n, D, E> {
+    fn mul_assign(&mut self, other: &Self) {
+        *self = &*self * other
     }
 }
 
@@ -192,9 +204,9 @@ mod test {
     fn multiply() {
         use crate::fixtures::*;
         // p = 100292567896662137431268955658963309646243393373296740296994110575772313854713
-        let p = **p256();
+        let p = p256().into_unsigned();
         // q =  92881035101327452495721684699134578528389025346126041237323965302769971181967
-        let q = **q256();
+        let q = q256().into_unsigned();
 
         assert_eq!(&*p.to_bytes(), &[
             0xdd, 0xbb, 0x94, 0xf1, 0x1a, 0xf8, 0x3b, 0x2a, 0xdf, 0x2, 0xe9, 0x61, 0xbd, 0x5a, 0xd7, 0x4a,

@@ -1,4 +1,5 @@
 use ref_cast::RefCast;
+#[cfg(feature = "ct-maybe")]
 use subtle::{ConditionallySelectable, ConstantTimeEq};
 
 use crate::{Convenient, Digit, DoubleDigit, Modular, Montgomery, SignedDoubleDigit};
@@ -95,7 +96,7 @@ fn mac(t: Digit, a: Digit, b: Digit, c: &mut Digit) -> Digit {
 // R mod p
 #[inline]
 #[allow(non_snake_case)]
-fn R_mod_p<const D: usize, const E: usize>(n: &Convenient<D, E>) -> Unsigned<D, E> {
+pub(crate) fn R_mod_p<const D: usize, const E: usize>(n: &Convenient<D, E>) -> Unsigned<D, E> {
     // by "convenience", R = R - p (mod p) = -p (mod R)
     (-Wrapping::ref_cast(n.as_ref())).0
 }
@@ -232,7 +233,15 @@ pub(crate) fn conditionally_subtract_n<const D: usize, const E: usize>(
     }
     let _ts = super::subtract::sbb(us, 0, &mut B);
 
-    Unsigned::conditional_select(&u, &t, B.ct_eq(&0))
+    #[cfg(feature = "ct-maybe")] {
+        Unsigned::conditional_select(&u, &t, B.ct_eq(&0))
+    }
+    #[cfg(not(feature = "ct-maybe"))]
+    if B != 0 {
+        u.clone()
+    } else {
+        t
+    }
 }
 
 

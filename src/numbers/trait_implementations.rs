@@ -196,6 +196,27 @@ impl<const D: usize, const E: usize> Ord for Unsigned<D, E> {
     }
 }
 
+// Probably not very kosher ;)
+// We can't do the entire `ct_eq`, `ct_gt` dance on Number::cmp level
+// as subtle assume type(LHS) = type(RHS).
+
+#[cfg(feature = "ct-maybe")]
+impl<const D: usize, const E: usize> subtle::ConstantTimeEq for Unsigned<D, E> {
+    fn ct_eq(&self, other: &Self) -> subtle::Choice {
+        subtle::Choice::from((Number::cmp(self, other) == Ordering::Equal) as u8)
+    }
+}
+
+#[cfg(feature = "ct-maybe")]
+impl<const D: usize, const E: usize> subtle::ConstantTimeGreater for Unsigned<D, E> {
+    fn ct_gt(&self, other: &Self) -> subtle::Choice {
+        subtle::Choice::from((Number::cmp(self, other) == Ordering::Greater) as u8)
+    }
+}
+
+#[cfg(feature = "ct-maybe")]
+impl<const D: usize, const E: usize> subtle::ConstantTimeLess for Unsigned<D, E> {}
+
 impl<T, const D: usize, const E: usize> PartialOrd<T> for Unsigned<D, E>
 where
     T: Number,
@@ -203,7 +224,6 @@ where
     /// This is *little endian* ordering, as opposed to the default
     /// ordering on arrays and slices!
     fn partial_cmp(&self, other: &T) -> Option<Ordering> {
-        // Some(generic_cmp_unsigned(self, other))
         Some(Number::cmp(self, other))
     }
 }
@@ -260,6 +280,11 @@ impl<const D: usize, const E: usize, const L: usize> Default for Array<D, E, L> 
 impl<const D: usize, const E: usize> fmt::Debug for Unsigned<D, E> {
     /// TODO: Do we want debug output to be big-endian bytes (as currently implemented)?
     /// Or stick with internal representation?
+    #[cfg(feature = "hex-debug")]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(&delog::hex_str!(&*self.to_bytes(), 8), f)
+    }
+    #[cfg(not(feature = "hex-debug"))]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(&*self.to_bytes(), f)
     }
@@ -268,6 +293,11 @@ impl<const D: usize, const E: usize> fmt::Debug for Unsigned<D, E> {
 impl<const D: usize, const E: usize, const L: usize> fmt::Debug for Array<D, E, L> {
     /// TODO: Do we want debug output to be big-endian bytes (as currently implemented)?
     /// Or stick with internal representation?
+    #[cfg(feature = "hex-debug")]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(&delog::hex_str!(&*self.to_bytes(), 8), f)
+    }
+    #[cfg(not(feature = "hex-debug"))]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(&*self.to_bytes(), f)
     }

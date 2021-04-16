@@ -14,9 +14,11 @@
 #![allow(broken_intra_doc_links)]  // because `rustdoc` mistakes [x] for a link
 
 use ref_cast::RefCast;
+#[cfg(feature = "ct-maybe")]
+use subtle::{Choice, ConditionallySelectable};
 use zeroize::Zeroize;
 
-use crate::{Convenient, ShortPrime, Unsigned};
+use crate::{Convenient, Digit, ShortPrime, Unsigned};
 use crate::numbers::Number;
 
 mod shift;
@@ -124,6 +126,19 @@ pub struct Montgomery<'n, const D: usize, const E: usize> {
 
 pub type ShortMontgomery<'n, const D: usize> = Modular<'n, D, 0>;
 
+#[cfg(feature = "ct-maybe")]
+impl<const D: usize, const E: usize> subtle::ConditionallySelectable for Montgomery<'_, D, E> {
+    fn conditional_select(a: &Self, b: &Self, c: subtle::Choice) -> Self {
+        debug_assert_eq!(a.n.as_unsigned(), b.n.as_unsigned());
+
+        Self {
+            y: Unsigned::conditional_select(&a.y, &b.y, c),
+            n: a.n
+        }
+
+    }
+}
+
 /// ## Reduction of unsigned integers
 impl<const D: usize, const E: usize> Unsigned<D, E> {
     /// The associated residue class modulo n.
@@ -132,7 +147,7 @@ impl<const D: usize, const E: usize> Unsigned<D, E> {
     /// as the modulus (+ reference to it), not the original integer.
     ///
     /// This uses incomplete reduction ([`Self::partially_reduce`]) for efficiency.
-    pub fn modulo<const F: usize, const G: usize>(self, n: &Convenient<F, G>) -> Modular<'_, F, G> {
+    pub fn modulo<'n, const F: usize, const G: usize>(&self, n: &'n Convenient<F, G>) -> Modular<'n, F, G> {
         Modular { x: self.reduce(n), n }
     }
 
@@ -186,14 +201,30 @@ impl<'n, const D: usize, const E: usize> Modular<'n, D, E> {
     // pub fn lift<const L: usize>(self) -> Unsigned<L> {
     //     // TODO: if L < N (or rather, self.modulo.len()), then lift and project maybe? nah
     //     self.x.into_unsigned()
-    pub fn canonical_lift(self) -> Unsigned<D, E> {
-        // TODO: if L < N (or rather, self.modulo.len()), then lift and project maybe? nah
-        let residue = self.x;
-        if residue.as_ref() >= self.n {
-            residue.wrapping_sub(self.n)
-        } else {
-            residue
+    pub fn canonical_lift(&self) -> Unsigned<D, E> {
+
+
+        #[cfg(not(feature = "ct-maybe"))] {
+             let residue = self.x.clone();
+
+             if self.x >= **self.n {
+                 residue.wrapping_sub(self.n)
+             } else {
+                 residue
+             }
+         }
+
+        #[cfg(feature = "ct-maybe")] {
+            use subtle::ConstantTimeLess;
+            let must_reduce = !self.x.ct_lt(self.n.as_unsigned());
+
+            Unsigned::<D, E>::conditional_select(
+                &self.x,
+                &self.x.wrapping_sub(self.n),
+                must_reduce,
+            )
         }
+
     }
 
     pub fn to_montgomery(&self) -> Montgomery<'n, D, E> {
@@ -201,16 +232,46 @@ impl<'n, const D: usize, const E: usize> Modular<'n, D, E> {
     }
 
     // pub fn to_the(self, exponent: & impl Into<Unsigned<L>>) -> Self {
-    pub fn power(&self, _exponent: &Unsigned<D, E>) -> Self {
+    pub fn power<const F: usize, const G: usize>(&self, exponent: &Unsigned<F, G>) -> Self {
         // TODO: If exponent is a small prime, special-case.
         // self.to_montgomery().power(exponent).to_modular()
-        todo!();
+        self.to_montgomery().power(exponent).to_modular()
     }
 }
 
 impl<'n, const D: usize, const E: usize> Montgomery<'n, D, E> {
     pub fn to_modular(&self) -> Modular<'n, D, E> {
         montgomery::to_modular(self)
+    }
+
+    pub fn one(&self) -> Self {
+        Self { y: super::arithmetic::montgomery::R_mod_p(&self.n), n: self.n }
+    }
+
+    pub fn power<const F: usize, const G: usize>(&self, exponent: &Unsigned<F, G>) -> Self {
+        use crate::numbers::Bits;
+        let mut x = self.one();
+
+        for i in (0..(F + G)).rev() {
+            for j in (0..Digit::BITS).rev() {
+                x = &x * &x;
+
+                #[cfg(not(feature = "ct-maybe"))] {
+                    if (exponent[i] & (1 << j)) != 0 {
+                        x *= self;
+                    }
+                }
+
+                #[cfg(feature = "ct-maybe")] {
+                    x = Self::conditional_select(
+                        &x,
+                        &(&x * self),
+                        Choice::from(((exponent[i] >> j) & 1) as u8),
+                    )
+                }
+            }
+        }
+        x
     }
 }
 
@@ -219,17 +280,6 @@ impl<const D: usize, const E: usize> From<Modular<'_, D, E>> for Unsigned<D, E> 
         class.canonical_lift()
     }
 }
-
-// fn reduce_modulo_once<const L: usize>(c: Digit, x: &mut Unsigned<L>, n: &Odd<L>) {
-//     todo!();
-//     // if c > 0 || *x >= *n {
-//     //     sub_assign_unchecked(x, n);
-//     // }
-// }
-
-// fn reduce_modulo<const L: usize>(c: Digit, x: &mut Unsigned<L>, n: &Odd<L>) {
-//     todo!();
-// }
 
 #[repr(transparent)]
 #[derive(Clone, Debug, Default, PartialEq, RefCast)]
@@ -243,5 +293,52 @@ pub struct Wrapping<T>(pub T);
 
 #[cfg(test)]
 mod test {
-    // use super::*;
+    use crate::fixtures::*;
+
+    #[test]
+    fn power() {
+        let a = q256().into_unsigned();
+        // println!("a = {:?}", a);
+        let p = p256().into_convenient();
+        // println!("p = {:?}", **p);
+
+        let modular = a.modulo(&p);
+
+        // sanity
+        assert!(&a <= p.as_unsigned());
+        assert_eq!(modular.x, a);
+        // println!("modular.x = {:?}", modular.x);
+        // println!("modular.n = {:?}", **modular.n);
+        assert_eq!(modular.canonical_lift(), a);
+
+        // a^1
+        let itself = modular.power(&Short64::from(1));
+        assert_eq!(itself.canonical_lift(), a);
+
+        // a^2
+        let squared = modular.power(&Short64::from(2));
+        // GP/PARI: `hex(lift(Mod(q, p)^2))`
+        let expected = Short256::from_bytes(&hex!(
+            "31d9c0a7a9c089c4a8086da5fe743c1626423611222b7919f843e58138913299"));
+        assert_eq!(squared.canonical_lift(), expected);
+
+        // a^37
+        let result = modular.power(&Short64::from(37));
+        let expected = Short256::from_bytes(&hex!(
+            "731c4d5e69ac480ea2874bc44e05e99d2827a5b651f3ab199945fd1635968a9e"));
+        assert_eq!(result.canonical_lift(), expected);
+
+        // a^F4
+        let result = modular.power(&Short64::from(crate::F4::DIGIT));
+        let expected = Short256::from_bytes(&hex!(
+            "274f34228885e3cbc71cc20bcc25618d2589656efd14557a12b02ff89920d17a"));
+        assert_eq!(result.canonical_lift(), expected);
+
+        // a^c
+        let c = c256();
+        let result = modular.power(&c);
+        let expected = Short256::from_bytes(&hex!(
+            "a0aa5df2567cc062788a64714276c5373f2240589874d2143401dd9c3c2efae1"));
+        assert_eq!(result.canonical_lift(), expected);
+    }
 }

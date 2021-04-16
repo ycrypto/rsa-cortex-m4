@@ -2,7 +2,7 @@ use crate::{Convenient, Odd, Prime, Short};
 pub use crate::aliases::*;
 pub use crate::numbers::NumberMut;
 
-use hex_literal::hex;
+pub use hex_literal::hex;
 
 // Examples here were generated using pyca/cryptography 3.4.6:
 // cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(0x10001, <N bits>)

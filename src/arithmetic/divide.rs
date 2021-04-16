@@ -156,8 +156,6 @@ where
     let mut trial = T::zero();
 
     for j in (0..q_len).rev() {
-        #[cfg(test)]
-        println!("j = {}", j);
         let offset = j + n.significant_digits().len() - 1;
         let r_len = r.significant_digits().len();
         if offset >= r.significant_digits().len() {
@@ -415,9 +413,9 @@ mod test {
     fn rem_of_1() {
         use crate::fixtures::*;
         let short1 = Short256::from(1);
-        let p = p256();
+        let p = p256().into_unsigned();
 
-        let remainder = short1 % **p;
+        let remainder = &short1 % &p;
 
         assert_eq!(remainder, short1);
     }

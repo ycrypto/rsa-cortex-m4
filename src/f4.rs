@@ -20,8 +20,6 @@ impl F4 {
 
     pub fn wrapping_inv<const D: usize, const E: usize> () -> Unsigned<D, E> {
         Unsigned::from(Self::DIGIT).wrapping_inv().unwrap()
-        // crate::arithmetic::divide::wrapping_invert_odd(Self::Prime.as_ref().as_ref())
-
     }
 
     /// The inverse of $F4$ modulo other primes is used in RSA,
