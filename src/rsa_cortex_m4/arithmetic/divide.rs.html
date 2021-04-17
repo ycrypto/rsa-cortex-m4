@@ -465,8 +465,6 @@
 <span id="446">446</span>
 <span id="447">447</span>
 <span id="448">448</span>
-<span id="449">449</span>
-<span id="450">450</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">core</span>::{<span class="ident">cmp</span>::<span class="ident">Ordering</span>, <span class="ident">convert</span>::<span class="ident">TryInto</span>, <span class="ident">ops</span>::{<span class="ident">Div</span>, <span class="ident">Rem</span>}};
 
@@ -533,17 +531,15 @@
 }
 
 <span class="doccomment">/// Divides x in-place by digit n, returning the multiple of n and the remaining digit.</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">div_rem_assign_digit</span>(<span class="ident">number</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw">impl</span> <span class="ident">NumberMut</span>, <span class="ident">modulus</span>: <span class="ident">Digit</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Digit</span> {
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">div_rem_assign_digit</span><span class="op">&lt;</span><span class="ident">N</span>: <span class="ident">NumberMut</span><span class="op">&gt;</span>(<span class="ident">number</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">N</span>, <span class="ident">modulus</span>: <span class="ident">Digit</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Digit</span> {
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">remainder</span> <span class="op">=</span> <span class="number">0</span>;
 
-    <span class="kw">let</span> <span class="ident">l</span>: <span class="ident">usize</span>;
     <span class="comment">// run down the digits in x, dividing each by n, while carrying along the remainder</span>
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;ct-maybe&quot;</span>))]</span> {
-        <span class="ident">l</span> <span class="op">=</span> <span class="ident">number</span>.<span class="ident">significant_digits</span>().<span class="ident">len</span>();
-    }
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;ct-maybe&quot;</span>)]</span> {
-        <span class="ident">l</span> <span class="op">=</span> <span class="op">&lt;</span><span class="ident">number</span> <span class="kw">as</span> <span class="ident">NumberMut</span><span class="op">&gt;</span>::<span class="ident">CAPACITY</span>;
-    }
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;ct-maybe&quot;</span>))]</span>
+    <span class="kw">let</span> <span class="ident">l</span> <span class="op">=</span> <span class="ident">number</span>.<span class="ident">significant_digits</span>().<span class="ident">len</span>();
+
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;ct-maybe&quot;</span>)]</span>
+    <span class="kw">let</span> <span class="ident">l</span> <span class="op">=</span> <span class="ident">N</span>::<span class="ident">DIGITS</span>;
 
     <span class="kw">for</span> <span class="ident">digit</span> <span class="kw">in</span> <span class="ident">number</span>[..<span class="ident">l</span>].<span class="ident">iter_mut</span>().<span class="ident">rev</span>() {
         <span class="kw">let</span> (<span class="ident">quotient</span>, <span class="ident">r</span>) <span class="op">=</span> <span class="ident">div_digits</span>(<span class="ident">remainder</span>, <span class="kw-2">*</span><span class="ident">digit</span>, <span class="ident">modulus</span>);
