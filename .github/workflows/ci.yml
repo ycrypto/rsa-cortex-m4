@@ -7,6 +7,10 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        feature-combination: ["u32", "u64", "u32,ct-maybe", "u64,ct-maybe"]
+        release: ["", "--release"]
 
     steps:
     - name: Checkout repository
@@ -20,15 +24,9 @@ jobs:
 
     - name: Check
       run: |
-        cargo check
-        cargo check --features always-u32-digits
-        cargo check --release
-        cargo check --features always-u32-digits --release
+        cargo check ${{ matrix.release }} --features ${{ matrix.feature-combination }}
 
     - name: Test
       run: |
-        cargo test
-        cargo test --features always-u32-digits
-        cargo test --release
-        cargo test --features always-u32-digits --release
+        cargo test ${{ matrix.release }} --features ${{ matrix.feature-combination }}
 

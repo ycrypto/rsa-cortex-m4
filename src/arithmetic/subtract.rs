@@ -256,10 +256,9 @@ impl<'a, 'n, const D: usize, const E: usize> SubAssign<&'a Self> for Modular<'n,
         // step 3
         let borrow = sub_assign_borrow(&mut self.x, &subtrahend.x) as u8;
 
-        #[cfg(not(feature = "ct-maybe"))] {
-            if borrow != 0 {
-                self.x.wrapping_add(&G);
-            }
+        #[cfg(not(feature = "ct-maybe"))]
+        if borrow != 0 {
+            self.x.wrapping_add(&G);
         }
         #[cfg(feature = "ct-maybe")] {
             self.x = Unsigned::conditional_select(
@@ -329,10 +328,9 @@ impl<'a, 'n, const D: usize, const E: usize> SubAssign<&'a Self> for Montgomery<
         // step 3
         let borrow = sub_assign_borrow(&mut self.y, &subtrahend.y) as u8;
 
-        #[cfg(not(feature = "ct-maybe"))] {
-            if borrow != 0 {
-                self.y.wrapping_add(&G);
-            }
+        #[cfg(not(feature = "ct-maybe"))]
+        if borrow != 0 {
+            self.y.wrapping_add(&G);
         }
         #[cfg(feature = "ct-maybe")] {
             self.y = Unsigned::conditional_select(

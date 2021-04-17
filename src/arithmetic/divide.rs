@@ -63,17 +63,15 @@ pub fn div_digits(hi: Digit, lo: Digit, divisor: Digit) -> (Digit, Digit) {
 }
 
 /// Divides x in-place by digit n, returning the multiple of n and the remaining digit.
-pub fn div_rem_assign_digit(number: &mut impl NumberMut, modulus: Digit) -> Digit {
+pub fn div_rem_assign_digit<N: NumberMut>(number: &mut N, modulus: Digit) -> Digit {
     let mut remainder = 0;
 
-    let l: usize;
     // run down the digits in x, dividing each by n, while carrying along the remainder
-    #[cfg(not(feature = "ct-maybe"))] {
-        l = number.significant_digits().len();
-    }
-    #[cfg(feature = "ct-maybe")] {
-        l = <number as NumberMut>::CAPACITY;
-    }
+    #[cfg(not(feature = "ct-maybe"))]
+    let l = number.significant_digits().len();
+
+    #[cfg(feature = "ct-maybe")]
+    let l = N::DIGITS;
 
     for digit in number[..l].iter_mut().rev() {
         let (quotient, r) = div_digits(remainder, *digit, modulus);

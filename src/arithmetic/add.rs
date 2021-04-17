@@ -161,10 +161,9 @@ impl<'a, 'n, const D: usize, const E: usize> AddAssign<&'a Self> for Modular<'n,
         // step 3
         let carry = add_assign_carry(&mut self.x, &summand.x) as u8;
 
-        #[cfg(not(feature = "ct-maybe"))] {
-            if carry != 0 {
-                add_assign_carry(&mut self.x, &F);
-            }
+        #[cfg(not(feature = "ct-maybe"))]
+        if carry != 0 {
+            add_assign_carry(&mut self.x, &F);
         }
         #[cfg(feature = "ct-maybe")] {
             self.x = Unsigned::conditional_select(
@@ -225,10 +224,9 @@ impl<'a, 'n, const D: usize, const E: usize> AddAssign<&'a Self> for Montgomery<
         // step 3
         let carry = add_assign_carry(&mut self.y, &summand.y) as u8;
 
-        #[cfg(not(feature = "ct-maybe"))] {
-            if carry != 0 {
-                add_assign_carry(&mut self.y, &F);
-            }
+        #[cfg(not(feature = "ct-maybe"))]
+        if carry != 0 {
+            add_assign_carry(&mut self.y, &F);
         }
         #[cfg(feature = "ct-maybe")] {
             self.y = Unsigned::conditional_select(
