@@ -1,6 +1,8 @@
 use core::ops::{Neg, Sub, SubAssign};
 
 use ref_cast::RefCast;
+#[cfg(feature = "ct-maybe")]
+use subtle::{Choice, ConditionallySelectable};
 
 use crate::{Digit, Modular, Montgomery, SignedDoubleDigit, Unsigned, Wrapping};
 use crate::numbers::{Array, Bits, Number};
@@ -81,8 +83,10 @@ pub fn sub_assign_borrow(a: &mut [Digit], b: &[Digit]) -> Digit {
     if borrow != 0 {
         for a in a_hi {
             *a = sbb(*a, 0, &mut borrow);
-            if borrow == 0 {
-                break;
+            #[cfg(not(feature = "ct-maybe"))] {
+                if borrow == 0 {
+                    break;
+                }
             }
         }
     }
@@ -250,11 +254,19 @@ impl<'a, 'n, const D: usize, const E: usize> SubAssign<&'a Self> for Modular<'n,
         let G = self.n.wrapping_add(&self.n);
 
         // step 3
-        let borrow = sub_assign_borrow(&mut self.x, &subtrahend.x);
+        let borrow = sub_assign_borrow(&mut self.x, &subtrahend.x) as u8;
 
-        // TODO: consider making this constant time.
-        if borrow != 0 {
-            self.x.wrapping_add(&G);
+        #[cfg(not(feature = "ct-maybe"))] {
+            if borrow != 0 {
+                self.x.wrapping_add(&G);
+            }
+        }
+        #[cfg(feature = "ct-maybe")] {
+            self.x = Unsigned::conditional_select(
+                &self.x,
+                &self.x.wrapping_add(&G),
+                Choice::from(borrow)
+            )
         }
     }
 }
@@ -315,11 +327,19 @@ impl<'a, 'n, const D: usize, const E: usize> SubAssign<&'a Self> for Montgomery<
         let G = self.n.wrapping_add(&self.n);
 
         // step 3
-        let borrow = sub_assign_borrow(&mut self.y, &subtrahend.y);
+        let borrow = sub_assign_borrow(&mut self.y, &subtrahend.y) as u8;
 
-        // TODO: consider making this constant time.
-        if borrow != 0 {
-            self.y.wrapping_add(&G);
+        #[cfg(not(feature = "ct-maybe"))] {
+            if borrow != 0 {
+                self.y.wrapping_add(&G);
+            }
+        }
+        #[cfg(feature = "ct-maybe")] {
+            self.y = Unsigned::conditional_select(
+                &self.y,
+                &self.y.wrapping_add(&G),
+                Choice::from(borrow)
+            )
         }
     }
 }

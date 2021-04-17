@@ -53,6 +53,19 @@ pub struct Modular<'n, const D: usize, const E: usize> {
     n: &'n Convenient<D, E>,
 }
 
+#[cfg(feature = "ct-maybe")]
+impl<const D: usize, const E: usize> subtle::ConditionallySelectable for Modular<'_, D, E> {
+    fn conditional_select(a: &Self, b: &Self, c: subtle::Choice) -> Self {
+        debug_assert_eq!(a.n.as_unsigned(), b.n.as_unsigned());
+
+        Self {
+            x: Unsigned::conditional_select(&a.x, &b.x, c),
+            n: a.n
+        }
+
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 pub struct ModularRing<'n, const D: usize, const E: usize>(&'n Convenient<D, E>);
 

@@ -1,6 +1,8 @@
 use core::ops::{Add, AddAssign};
 
 use ref_cast::RefCast;
+#[cfg(feature = "ct-maybe")]
+use subtle::{Choice, ConditionallySelectable};
 
 use crate::{Digit, DoubleDigit, Modular, Montgomery, Unsigned, Wrapping};
 use crate::numbers::Bits;
@@ -77,8 +79,10 @@ pub(crate) fn add_assign_carry(a: &mut [Digit], b: &[Digit]) -> Digit {
     if carry != 0 {
         for a in a_hi {
             *a = adc(*a, 0, &mut carry);
-            if carry == 0 {
-                break;
+            #[cfg(not(feature = "ct-maybe"))] {
+                if carry == 0 {
+                    break;
+                }
             }
         }
     }
@@ -155,11 +159,19 @@ impl<'a, 'n, const D: usize, const E: usize> AddAssign<&'a Self> for Modular<'n,
         // F = 2^m - p, i.e., -n
 
         // step 3
-        let carry = add_assign_carry(&mut self.x, &summand.x);
+        let carry = add_assign_carry(&mut self.x, &summand.x) as u8;
 
-        // TODO: consider making this constant time.
-        if carry != 0 {
-            add_assign_carry(&mut self.x, &F);
+        #[cfg(not(feature = "ct-maybe"))] {
+            if carry != 0 {
+                add_assign_carry(&mut self.x, &F);
+            }
+        }
+        #[cfg(feature = "ct-maybe")] {
+            self.x = Unsigned::conditional_select(
+                &self.x,
+                &self.x.wrapping_add(&F),
+                Choice::from(carry)
+            )
         }
     }
 }
@@ -211,11 +223,19 @@ impl<'a, 'n, const D: usize, const E: usize> AddAssign<&'a Self> for Montgomery<
         let F = self.n.wrapping_neg();
 
         // step 3
-        let carry = add_assign_carry(&mut self.y, &summand.y);
+        let carry = add_assign_carry(&mut self.y, &summand.y) as u8;
 
-        if carry != 0 {
-            add_assign_carry(&mut self.y, &F);
-            // self.y += &F;
+        #[cfg(not(feature = "ct-maybe"))] {
+            if carry != 0 {
+                add_assign_carry(&mut self.y, &F);
+            }
+        }
+        #[cfg(feature = "ct-maybe")] {
+            self.y = Unsigned::conditional_select(
+                &self.y,
+                &self.y.wrapping_add(&F),
+                Choice::from(carry)
+            )
         }
     }
 }

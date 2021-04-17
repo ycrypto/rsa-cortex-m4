@@ -16,7 +16,6 @@ pub fn wrapping_invert_odd<const D: usize, const E: usize>(x: &Odd<D, E>) -> Odd
 
     for _ in 1..=T {
         // y = &y * &(&two - &(x * &y));
-        // y = wrapping_mul(&y, &(two - &wrapping_mul(x, &y)));
         y = y.wrapping_mul(&(two.wrapping_sub(&x.wrapping_mul(&y))));
     }
     Odd(y)
@@ -67,8 +66,15 @@ pub fn div_digits(hi: Digit, lo: Digit, divisor: Digit) -> (Digit, Digit) {
 pub fn div_rem_assign_digit(number: &mut impl NumberMut, modulus: Digit) -> Digit {
     let mut remainder = 0;
 
+    let l: usize;
     // run down the digits in x, dividing each by n, while carrying along the remainder
-    let l = number.significant_digits().len();
+    #[cfg(not(feature = "ct-maybe"))] {
+        l = number.significant_digits().len();
+    }
+    #[cfg(feature = "ct-maybe")] {
+        l = <number as NumberMut>::CAPACITY;
+    }
+
     for digit in number[..l].iter_mut().rev() {
         let (quotient, r) = div_digits(remainder, *digit, modulus);
         *digit = quotient;
@@ -187,8 +193,6 @@ where
     (q, r.to_unsigned().unwrap())
 }
 
-
-
 // Inversion
 
 impl<const D: usize, const E: usize> Wrapping<Unsigned<D, E>> {
@@ -229,8 +233,7 @@ impl<const D: usize, const E: usize> Unsigned<D, E> {
 impl<'a, const D: usize, const E: usize, const F: usize, const G: usize> Div<&'a Unsigned<F, G>> for &'a Unsigned<D, E> {
     type Output = Unsigned<D, E>;
     fn div(self, modulus: &'a Unsigned<F, G>) -> Self::Output {
-        let (quotient, _remainder) = generic_div_rem(self, modulus);
-        quotient
+        generic_div_rem(self, modulus).0
     }
 }
 
@@ -239,24 +242,21 @@ impl<'a, const D: usize, const E: usize, const F: usize, const G: usize> Div<&'a
 impl<'a, const D: usize, const E: usize, const F: usize, const G: usize> Div<&'a Unsigned<F, G>> for Unsigned<D, E> {
     type Output = Unsigned<D, E>;
     fn div(self, modulus: &'a Unsigned<F, G>) -> Self::Output {
-        let (quotient, _remainder) = generic_div_rem(&self, modulus);
-        quotient
+        generic_div_rem(&self, modulus).0
     }
 }
 
 impl<'a, const D: usize, const E: usize, const F: usize, const G: usize> Div<Unsigned<F, G>> for &'a Unsigned<D, E> {
     type Output = Unsigned<D, E>;
     fn div(self, modulus: Unsigned<F, G>) -> Self::Output {
-        let (quotient, _remainder) = generic_div_rem(self, &modulus);
-        quotient
+        generic_div_rem(self, &modulus).0
     }
 }
 
 impl<const D: usize, const E: usize, const F: usize, const G: usize> Div<Unsigned<F, G>> for Unsigned<D, E> {
     type Output = Unsigned<D, E>;
     fn div(self, modulus: Unsigned<F, G>) -> Self::Output {
-        let (quotient, _remainder) = generic_div_rem(&self, &modulus);
-        quotient
+        generic_div_rem(&self, &modulus).0
     }
 }
 
@@ -279,24 +279,21 @@ impl<'a, const D: usize, const E: usize, const F: usize, const G: usize> Rem<&'a
 impl<'a, const D: usize, const E: usize, const F: usize, const G: usize> Rem<&'a Unsigned<F, G>> for Unsigned<D, E> {
     type Output = Unsigned<F, G>;
     fn rem(self, modulus: &'a Unsigned<F, G>) -> Self::Output {
-        let (_quotient, remainder) = generic_div_rem(&self, modulus);
-        remainder
+        generic_div_rem(&self, modulus).1
     }
 }
 
 impl<'a, const D: usize, const E: usize, const F: usize, const G: usize> Rem<Unsigned<F, G>> for &'a Unsigned<D, E> {
     type Output = Unsigned<F, G>;
     fn rem(self, modulus: Unsigned<F, G>) -> Self::Output {
-        let (_quotient, remainder) = generic_div_rem(self, &modulus);
-        remainder
+        generic_div_rem(self, &modulus).1
     }
 }
 
 impl<'a, const D: usize, const E: usize, const F: usize, const G: usize> Rem<Unsigned<F, G>> for Unsigned<D, E> {
     type Output = Unsigned<F, G>;
     fn rem(self, modulus: Unsigned<F, G>) -> Self::Output {
-        let (_quotient, remainder) = generic_div_rem(&self, &modulus);
-        remainder
+        generic_div_rem(&self, &modulus).1
     }
 }
 
@@ -305,42 +302,9 @@ impl<'a, const D: usize, const E: usize, const F: usize, const G: usize> Rem<Uns
 impl<'a, const D: usize, const E: usize, const F: usize, const G: usize, const L: usize> Rem<&'a Unsigned<F, G>> for &'a Array<D, E, L> {
     type Output = Unsigned<F, G>;
     fn rem(self, modulus: &'a Unsigned<F, G>) -> Self::Output {
-        let (_quotient, remainder) = generic_div_rem(self, modulus);
-        remainder
+        generic_div_rem(self, modulus).1
     }
 }
-
-// impl<'a, const X: usize, const N: usize> Rem<Unsigned<N>> for &'a Unsigned<X> {
-//     type Output = Unsigned<N>;
-//     fn rem(self, modulus: Unsigned<N>) -> Self::Output {
-//         let (_quotient, remainder) = generic_div_rem(self, &modulus);
-//         remainder
-//     }
-// }
-
-// impl<'a, const X: usize, const N: usize> Rem<&'a Unsigned<N>> for Unsigned<X> {
-//     type Output = Unsigned<N>;
-//     fn rem(self, modulus: &'a Unsigned<N>) -> Self::Output {
-//         let (_quotient, remainder) = generic_div_rem(&self, modulus);
-//         remainder
-//     }
-// }
-
-// impl<'a, const X: usize, const N: usize> Rem<Unsigned<N>> for Unsigned<X> {
-//     type Output = Unsigned<N>;
-//     fn rem(self, modulus: Unsigned<N>) -> Self::Output {
-//         let (_quotient, remainder) = generic_div_rem(&self, &modulus);
-//         remainder
-//     }
-// }
-
-// impl<const L: usize, const M: usize, const N: usize> Rem<&Unsigned<L>> for Product<M, N> {
-//     type Output = Unsigned<L>;
-//     fn rem(self, modulus: &Self::Output) -> Self::Output {
-//         let (_quotient, remainder) = generic_div_rem(&self, &modulus);
-//         remainder
-//     }
-// }
 
 #[cfg(test)]
 mod test {

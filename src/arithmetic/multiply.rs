@@ -69,8 +69,10 @@ pub(crate) fn add_product_by_digit_into(a: &mut [Digit], b: &[Digit], c: Digit) 
     if acc != 0 {
         for a in a_hi {
             add_product_into_digit(a, 0, c, &mut acc);
-            if acc == 0 {
-                break;
+            #[cfg(not(feature = "ct-maybe"))] {
+                if acc == 0 {
+                    break;
+                }
             }
         }
     }
