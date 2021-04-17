@@ -356,10 +356,32 @@
 <span id="337">337</span>
 <span id="338">338</span>
 <span id="339">339</span>
+<span id="340">340</span>
+<span id="341">341</span>
+<span id="342">342</span>
+<span id="343">343</span>
+<span id="344">344</span>
+<span id="345">345</span>
+<span id="346">346</span>
+<span id="347">347</span>
+<span id="348">348</span>
+<span id="349">349</span>
+<span id="350">350</span>
+<span id="351">351</span>
+<span id="352">352</span>
+<span id="353">353</span>
+<span id="354">354</span>
+<span id="355">355</span>
+<span id="356">356</span>
+<span id="357">357</span>
+<span id="358">358</span>
+<span id="359">359</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="ident">core</span>::<span class="ident">ops</span>::{<span class="ident">Neg</span>, <span class="ident">Sub</span>, <span class="ident">SubAssign</span>};
 
 <span class="kw">use</span> <span class="ident">ref_cast</span>::<span class="ident">RefCast</span>;
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;ct-maybe&quot;</span>)]</span>
+<span class="kw">use</span> <span class="ident">subtle</span>::{<span class="ident">Choice</span>, <span class="ident">ConditionallySelectable</span>};
 
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">Digit</span>, <span class="ident">Modular</span>, <span class="ident">Montgomery</span>, <span class="ident">SignedDoubleDigit</span>, <span class="ident">Unsigned</span>, <span class="ident">Wrapping</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">numbers</span>::{<span class="ident">Array</span>, <span class="ident">Bits</span>, <span class="ident">Number</span>};
@@ -440,8 +462,10 @@
     <span class="kw">if</span> <span class="ident">borrow</span> <span class="op">!</span><span class="op">=</span> <span class="number">0</span> {
         <span class="kw">for</span> <span class="ident">a</span> <span class="kw">in</span> <span class="ident">a_hi</span> {
             <span class="kw-2">*</span><span class="ident">a</span> <span class="op">=</span> <span class="ident">sbb</span>(<span class="kw-2">*</span><span class="ident">a</span>, <span class="number">0</span>, <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">borrow</span>);
-            <span class="kw">if</span> <span class="ident">borrow</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span> {
-                <span class="kw">break</span>;
+            <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;ct-maybe&quot;</span>))]</span> {
+                <span class="kw">if</span> <span class="ident">borrow</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span> {
+                    <span class="kw">break</span>;
+                }
             }
         }
     }
@@ -609,11 +633,19 @@
         <span class="kw">let</span> <span class="ident">G</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">n</span>.<span class="ident">wrapping_add</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">n</span>);
 
         <span class="comment">// step 3</span>
-        <span class="kw">let</span> <span class="ident">borrow</span> <span class="op">=</span> <span class="ident">sub_assign_borrow</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">x</span>, <span class="kw-2">&amp;</span><span class="ident">subtrahend</span>.<span class="ident">x</span>);
+        <span class="kw">let</span> <span class="ident">borrow</span> <span class="op">=</span> <span class="ident">sub_assign_borrow</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">x</span>, <span class="kw-2">&amp;</span><span class="ident">subtrahend</span>.<span class="ident">x</span>) <span class="kw">as</span> <span class="ident">u8</span>;
 
-        <span class="comment">// TODO: consider making this constant time.</span>
-        <span class="kw">if</span> <span class="ident">borrow</span> <span class="op">!</span><span class="op">=</span> <span class="number">0</span> {
-            <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">wrapping_add</span>(<span class="kw-2">&amp;</span><span class="ident">G</span>);
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;ct-maybe&quot;</span>))]</span> {
+            <span class="kw">if</span> <span class="ident">borrow</span> <span class="op">!</span><span class="op">=</span> <span class="number">0</span> {
+                <span class="self">self</span>.<span class="ident">x</span>.<span class="ident">wrapping_add</span>(<span class="kw-2">&amp;</span><span class="ident">G</span>);
+            }
+        }
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;ct-maybe&quot;</span>)]</span> {
+            <span class="self">self</span>.<span class="ident">x</span> <span class="op">=</span> <span class="ident">Unsigned</span>::<span class="ident">conditional_select</span>(
+                <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">x</span>,
+                <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">x</span>.<span class="ident">wrapping_add</span>(<span class="kw-2">&amp;</span><span class="ident">G</span>),
+                <span class="ident">Choice</span>::<span class="ident">from</span>(<span class="ident">borrow</span>)
+            )
         }
     }
 }
@@ -674,11 +706,19 @@
         <span class="kw">let</span> <span class="ident">G</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">n</span>.<span class="ident">wrapping_add</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">n</span>);
 
         <span class="comment">// step 3</span>
-        <span class="kw">let</span> <span class="ident">borrow</span> <span class="op">=</span> <span class="ident">sub_assign_borrow</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">y</span>, <span class="kw-2">&amp;</span><span class="ident">subtrahend</span>.<span class="ident">y</span>);
+        <span class="kw">let</span> <span class="ident">borrow</span> <span class="op">=</span> <span class="ident">sub_assign_borrow</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">y</span>, <span class="kw-2">&amp;</span><span class="ident">subtrahend</span>.<span class="ident">y</span>) <span class="kw">as</span> <span class="ident">u8</span>;
 
-        <span class="comment">// TODO: consider making this constant time.</span>
-        <span class="kw">if</span> <span class="ident">borrow</span> <span class="op">!</span><span class="op">=</span> <span class="number">0</span> {
-            <span class="self">self</span>.<span class="ident">y</span>.<span class="ident">wrapping_add</span>(<span class="kw-2">&amp;</span><span class="ident">G</span>);
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;ct-maybe&quot;</span>))]</span> {
+            <span class="kw">if</span> <span class="ident">borrow</span> <span class="op">!</span><span class="op">=</span> <span class="number">0</span> {
+                <span class="self">self</span>.<span class="ident">y</span>.<span class="ident">wrapping_add</span>(<span class="kw-2">&amp;</span><span class="ident">G</span>);
+            }
+        }
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;ct-maybe&quot;</span>)]</span> {
+            <span class="self">self</span>.<span class="ident">y</span> <span class="op">=</span> <span class="ident">Unsigned</span>::<span class="ident">conditional_select</span>(
+                <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">y</span>,
+                <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">y</span>.<span class="ident">wrapping_add</span>(<span class="kw-2">&amp;</span><span class="ident">G</span>),
+                <span class="ident">Choice</span>::<span class="ident">from</span>(<span class="ident">borrow</span>)
+            )
         }
     }
 }
