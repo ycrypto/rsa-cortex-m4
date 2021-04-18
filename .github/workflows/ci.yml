@@ -30,3 +30,26 @@ jobs:
       run: |
         cargo test ${{ matrix.release }} --features ${{ matrix.feature-combination }}
 
+  # currently just a sanity check that we don't pull in any std-activating features
+  embedded:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        feature-combination: ["u32", "u64"]
+        target: ["thumbv7em-none-eabi"]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        target: ${{ matrix.target }}
+        default: true
+        toolchain: stable
+        profile: minimal
+
+    - name: Check
+      run: |
+        cargo check --target ${{ matrix.target }} --features ${{ matrix.feature-combination }} --verbose

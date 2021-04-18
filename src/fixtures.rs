@@ -1,5 +1,6 @@
 use crate::{Convenient, Odd, Prime, Short};
 pub use crate::aliases::*;
+pub use crate::key::{PrivateKey, Rsa, Rsa5c};
 pub use crate::numbers::NumberMut;
 
 pub use hex_literal::hex;
@@ -19,12 +20,34 @@ pub fn q256() -> Prime256 {
     Prime(Convenient(Odd(Short::from_bytes(&hex!("cd58cd8accf2db4c839d2553116bef81f0292b4e2d2b3f7df0e5dc8a0721398f")))))
 }
 
+// rsa5k-example.pem
+// >>> from cryptography.hazmat.primitives import serialization
+// >>> privkey = serialization.load_pem_private_key(open("rsa5k-example.pem", "rb").read(), password=None)
+
+// pp = 0xf48922fe8e8cf7e238c32399aacd26d2467ec5510efb5113ad2bcc37e6fe2bed
+pub fn pp256() -> Prime256 {
+    Prime(Convenient(Odd(Short::from_bytes(&hex!("f48922fe8e8cf7e238c32399aacd26d2467ec5510efb5113ad2bcc37e6fe2bed")))))
+}
+// qq = 0xf146b14fe50dad906063caba3606e1157dee090be85c7cdb06022ea6dd306c63
+pub fn qq256() -> Prime256 {
+    Prime(Convenient(Odd(Short::from_bytes(&hex!("f146b14fe50dad906063caba3606e1157dee090be85c7cdb06022ea6dd306c63")))))
+}
+
 /// n512 = p256*q256
 /// = 9315277519212142779151476376293622563023107584513130937761509198001155297478923849044657378490092399125800365538632936331104530278427184580913858523560471
 /// = 0xb1dc20c7b4613d3ba806189f4755ee81b25c8a466af66649a901c23efda054d4bac18a9d6827494b657e9a1b791123bc5c5d5c9a4447330598cfc7fb6125fa17
 pub fn n512() -> Short512 {
     Short512::from_bytes(&hex!(
         "b1dc20c7b4613d3ba806189f4755ee81b25c8a466af66649a901c23efda054d4bac18a9d6827494b657e9a1b791123bc5c5d5c9a4447330598cfc7fb6125fa17"))
+}
+
+pub fn rsa512() -> <Rsa5c as Rsa>::PrivateKey {
+    let p = p256();
+    let q = q256();
+    let precomputed = (&p, &q).into();
+    let public_key = (&p, &q).into();
+
+    PrivateKey { p, q, precomputed, public_key }
 }
 
 /// Just another (convenient, prime) number

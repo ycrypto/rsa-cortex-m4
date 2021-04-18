@@ -1,8 +1,51 @@
 //! The RSA primitive.
 
-use crate::{Modular, Result, Unsigned};
+use crate::{Long, PrivateKey, Result};
+use crate::arithmetic::LongModular;
 use rand_core::{CryptoRng, RngCore};
 
+fn _inefficient_private_primitive<const D: usize>(
+    // rng: impl CryptoRng + RngCore,
+    // key: PrivateKey<D>,
+    // ciphertext: LongModular<'_, D>,
+) -> Result<Long<D>>
+{
+    todo!();
+}
+
+/// Since all operations are hopelessly non-constant time, everything
+/// sensitive is "blinded" using the RNG.
+fn _private_primitive<const D: usize>(
+    // rng: impl CryptoRng + RngCore,
+    key: PrivateKey<D>,
+    ciphertext: LongModular<'_, D>,
+) -> Result<Long<D>>
+{
+    // let output = ciphertext.power(key.d).lift();
+
+    let p = &key.p;
+    let q = &key.q;
+
+    let dp = &key.precomputed.dp;
+    let dq = &key.precomputed.dq;
+
+    let _n = &key.public_key.N;
+
+    // let e: Unsigned<L> = crate::E.into();
+
+    // // while `e` stands for the "encryption exponent",
+    // // the various `d`'s are the "decryption exponents."
+    // let dp = e.modulo(p).inverse();
+    // let dq = e.modulo(q).inverse();
+
+    let _mp = ciphertext.canonical_lift().modulo(p).power(&dp);
+    let _mq = ciphertext.canonical_lift().modulo(q).power(&dq);
+
+    todo!();
+    // let result = ((&mp.to_unsigned() - &mq.canonical_lift().modulo(p).to_unsigned()) * (&q.modulo(n).inverse()) + mq).lift();
+    // result
+
+}
 pub(crate) trait PublicRsaPrimitive<const L: usize> {
     // or "public operation"
     // or "public permutation"

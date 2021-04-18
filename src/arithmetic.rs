@@ -101,6 +101,7 @@ impl<'n, const D: usize> ModularField<'n, D> {
 }
 
 pub type ShortModular<'n, const D: usize> = Modular<'n, D, 0>;
+pub type LongModular<'n, const D: usize> = Modular<'n, D, D>;
 
 impl<const D: usize, const E: usize> Zeroize for Modular<'_, D, E> {
     fn zeroize(&mut self) {

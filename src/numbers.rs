@@ -26,6 +26,7 @@ mod trait_implementations;
 /// Cf. <https://github.com/rust-lang/rust/pull/76492>.
 pub trait Bits {
     const BITS: usize;
+    // const BYTES: usize;
 }
 
 /// Several [`Digit`]s attach to a limb.
@@ -425,6 +426,20 @@ pub trait NumberMut: Number + DerefMut {
         one
     }
 
+    /// Swap endianness of digits in Self and, if the platform is little-endian,
+    /// endianness of bytes within digits.
+    fn swap_order(self) -> Self {
+        let mut swapped = Self::zero();
+
+        let l = self.len();
+        for i in 0..l {
+            // "On big endian this is a no-op. On little endian the bytes are swapped."
+            swapped[l - i - 1] = Digit::from_be(swapped[i]);
+        }
+
+        swapped
+    }
+
 }
 
 // /// This datum has multiple limbs, and they're all differently sized ;)
@@ -517,6 +532,7 @@ impl<const D: usize, const E: usize> From<[Digit; D]> for Unsigned<D, E> {
 ///
 /// Maybe rename to `BigEndianBytes`
 #[repr(transparent)]
+#[derive(Default)]
 // #[derive(RefCast)]
 pub struct BigEndian<const D: usize, const E: usize, const L: usize>(Array<D, E, L>);
 
@@ -527,10 +543,26 @@ pub struct BigEndian<const D: usize, const E: usize, const L: usize>(Array<D, E,
 impl<const D: usize, const E: usize, const L: usize> Deref for BigEndian<D, E, L> {
     type Target = [u8];
     fn deref(&self) -> &Self::Target {
-        unsafe { core::slice::from_raw_parts(&self.0[0] as *const _ as _, core::mem::size_of::<Self>()) }
+        unsafe { core::slice::from_raw_parts(self.0.as_ptr() as _, core::mem::size_of::<Self>()) }
     }
-
 }
+
+impl<const D: usize, const E: usize, const L: usize> DerefMut for BigEndian<D, E, L> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { core::slice::from_raw_parts_mut(self.0.as_mut_ptr() as _, core::mem::size_of::<Self>()) }
+    }
+}
+
+impl<const D: usize, const E: usize, const L: usize> BigEndian<D, E, L> {
+    fn _from_slice(slice: &[u8]) -> Self {
+        // repeat implementation, so errors show the incompatible slice lengths.
+        let mut owned = Self::default();
+        owned[..slice.len()].copy_from_slice(slice);
+        owned
+    }
+}
+
+
 // impl<const D: usize, const E: usize> BigEndian<D, E> {
 //     /// TODO: consider truncating leading zero bytes (needs some pointer arithmetique)
 //     pub fn as_be_bytes(&self) -> &[u8] {
@@ -549,6 +581,8 @@ impl<const D: usize, const E: usize, const L: usize> Deref for BigEndian<D, E, L
 impl<const D: usize, const E: usize> Unsigned<D, E> {
     /// Return buffer that dereferences as big-endian bytes.
     pub fn to_bytes(&self) -> BigEndian<D, E, 1> {
+        // BigEndian::from_slice(&self.clone().swap_order())
+
         let mut big_endian = BigEndian(Array::zero());
         // we need to store word such that it bytes are big-endian, whatever
         // the native architecture (although PC/Cortex are both little-endian).

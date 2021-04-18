@@ -11,7 +11,8 @@
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
-use crate::{Long, Odd, ShortPrime, Result};
+use crate::{Convenient, Digit, Long, Odd, ShortPrime, Result};
+use crate::numbers::Bits;
 
 /// RSA public key.
 ///
@@ -20,13 +21,23 @@ use crate::{Long, Odd, ShortPrime, Result};
 #[allow(non_snake_case)]
 #[derive(Zeroize)]
 pub struct PublicKey<const D: usize> {
-    pub N: Long<D>,
+    pub N: Convenient<D, D>,
+}
+
+impl<const D: usize> From<(&ShortPrime<D>, &ShortPrime<D>)> for PublicKey<D> {
+    fn from(prime_pair: (&ShortPrime<D>, &ShortPrime<D>)) -> Self {
+        let (p, q) = prime_pair;
+        PublicKey {
+            N: Convenient(Odd((p.as_unsigned() * q.as_unsigned()).to_unsigned().unwrap()))
+        }
+
+    }
 }
 
 #[derive(Zeroize)]
 pub struct Precomputed<const L: usize> {
-    dp: Odd<L, 0>,
-    dq: Odd<L, 0>,
+    pub(crate) dp: Odd<L, 0>,
+    pub(crate) dq: Odd<L, 0>,
 }
 
 impl<const D: usize> From<(&ShortPrime<D>, &ShortPrime<D>)> for Precomputed<D> {
@@ -52,12 +63,12 @@ impl<const D: usize> From<(&ShortPrime<D>, &ShortPrime<D>)> for Precomputed<D> {
 /// It's quite sad, but we can't enforce the bound `L2 = 2*L`.
 #[derive(Zeroize)]
 pub struct PrivateKey<const D: usize> {
-    p: ShortPrime<D>,
+    pub(crate) p: ShortPrime<D>,
     // dp: ModInt<L>,
-    q: ShortPrime<D>,
+    pub(crate) q: ShortPrime<D>,
     // dq: ModInt<L>,
-    precomputed: Precomputed<D>,
-    public_key: PublicKey<D>,
+    pub(crate) precomputed: Precomputed<D>,
+    pub(crate) public_key: PublicKey<D>,
 }
 
 impl<const D: usize> From<(ShortPrime<D>, ShortPrime<D>)> for PrivateKey<D> {
@@ -65,7 +76,7 @@ impl<const D: usize> From<(ShortPrime<D>, ShortPrime<D>)> for PrivateKey<D> {
         let (p, q) = prime_pair;
         #[allow(non_snake_case)]
         let N: Long<D> = (p.as_ref().as_ref() * q.as_ref().as_ref()).into_long();
-        let public_key = PublicKey { N };
+        let public_key = PublicKey { N: Convenient(Odd(N)) };
         let precomputed: Precomputed<D> = (&p, &q).into();
 
         let private_key = PrivateKey { p, q, precomputed, public_key };
@@ -152,27 +163,37 @@ impl<const L: usize> PrivateKey<L> {
      }
 }
 
-// 32 digits for the primes of a private key
-const RSA_2K_DIGITS: usize = 2048 / 32 / 2;
+// 256 bits, in digits, for the primes of a private key
+const RSA_5C_DIGITS: usize = 512 / <Digit as Bits>::BITS / 2;
 
-// 48 digits for the primes of a private key
-const RSA_3K_DIGITS: usize = 3072 / 32 / 2;
+// // 512 bits, in digits, for the primes of a private key
+// const RSA_1K_DIGITS: usize = 1024 / <Digit as Bits>::BITS / 2;
 
-// 64 digits for the primes of a private key
-const RSA_4K_DIGITS: usize = 4096 / 32 / 2;
+// // 1024 bits, in digits, for the primes of a private key
+// const RSA_2K_DIGITS: usize = 2048 / <Digit as Bits>::BITS / 2;
+
+// // 1536 bits, in digits, for the primes of a private key
+// const RSA_3K_DIGITS: usize = 3072 / <Digit as Bits>::BITS / 2;
+
+// // 2048 bits, in digits, for the primes of a private key
+// const RSA_4K_DIGITS: usize = 4096 / <Digit as Bits>::BITS / 2;
 
 /// The RSA cryptosystem. Sealed trait to avoid experiments.
-pub trait Rsa<const L: usize>: sealed::Rsa {
-    type PrivateKey;//: crate::primitive::DecryptionPrimitive<L>;
+pub trait Rsa: sealed::Rsa {
+    const DIGITS: usize;
+
+    type PrivateKey;
     type PublicKey;
 }
 
 /// cf. https://rust-lang.github.io/api-guidelines/future-proofing.html#sealed-traits-protect-against-downstream-implementations-c-sealed
 mod sealed {
     pub trait Rsa {}
-    impl Rsa for super::Rsa2k {}
-    impl Rsa for super::Rsa3k {}
-    impl Rsa for super::Rsa4k {}
+    impl Rsa for super::Rsa5c {}
+    // impl Rsa for super::Rsa1k {}
+    // impl Rsa for super::Rsa2k {}
+    // impl Rsa for super::Rsa3k {}
+    // impl Rsa for super::Rsa4k {}
 }
 
 // struct RsaType<const L: usize>;
@@ -182,29 +203,32 @@ mod sealed {
 //     type PublicKey = PrivateKey<L>;
 // }
 
-/// The RSA cryptosystem with 2048 bit size keys.
-pub struct Rsa2k;
-impl Rsa<RSA_2K_DIGITS> for Rsa2k {
-    type PrivateKey = PrivateKey<RSA_2K_DIGITS>;
-    type PublicKey = PublicKey<RSA_2K_DIGITS>;
+/// The RSA cryptosystem with 512 bit size keys.
+pub struct Rsa5c;
+impl Rsa for Rsa5c {
+    const DIGITS: usize = RSA_5C_DIGITS;
+    type PrivateKey = PrivateKey<RSA_5C_DIGITS>;
+    type PublicKey = PublicKey<RSA_5C_DIGITS>;
 }
 
-/// The RSA cryptosystem with 3072 bit size keys.
-///
-/// Corresponds roughly to 128-bit security.
-pub struct Rsa3k;
-impl Rsa<RSA_3K_DIGITS> for Rsa3k {
-    type PrivateKey = PrivateKey<RSA_3K_DIGITS>;
-    type PublicKey = PublicKey<RSA_3K_DIGITS>;
-}
 
-/// The RSA cryptosystem with 4096 bit size keys.
-pub struct Rsa4k;
-impl Rsa<RSA_4K_DIGITS> for Rsa4k {
-    type PrivateKey = PrivateKey<RSA_4K_DIGITS>;
-    type PublicKey = PublicKey<RSA_4K_DIGITS>;
-}
+///// The RSA cryptosystem with 1024 bit size keys.
+//pub struct Rsa1k;
+//impl Rsa<RSA_1K_DIGITS> for Rsa1k {}
 
+///// The RSA cryptosystem with 2048 bit size keys.
+//pub struct Rsa2k;
+//impl Rsa<RSA_2K_DIGITS> for Rsa2k {}
+
+///// The RSA cryptosystem with 3072 bit size keys.
+/////
+///// Corresponds roughly to 128-bit security.
+//pub struct Rsa3k;
+//impl Rsa<RSA_3K_DIGITS> for Rsa3k {}
+
+///// The RSA cryptosystem with 4096 bit size keys.
+//pub struct Rsa4k;
+//impl Rsa<RSA_4K_DIGITS> for Rsa4k {}
 
 // pub trait RSA {
 //     const L: usize;
