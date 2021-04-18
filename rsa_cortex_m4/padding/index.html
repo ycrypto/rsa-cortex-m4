@@ -1,0 +1,63 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `padding` mod in crate `rsa_cortex_m4`."><meta name="keywords" content="rust, rustlang, rust-lang, padding"><title>rsa_cortex_m4::padding - Rust</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script id="default-settings"></script><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="alternate icon" type="image/png" href="../../favicon-16x16.png">
+<link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.0/dist/katex.min.css" integrity="sha384-t5CR+zwDAROtph0PXGte6ia8heboACF9R5l/DiY+WZ3P2lxNgvJkQk5n7GPvLMYw" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.13.0/dist/katex.min.js"                  integrity="sha384-FaFLTlohFghEIZkw6VGwmf9ISTubWAVYW8tG8+w2LAIftJEULZABrF9PPFv+tVkH" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.13.0/dist/contrib/auto-render.min.js"    integrity="sha384-bHBqxz8fokvgoJ/sc17HODNxa42TlaEhB+w8ZJXTc2nZf1VgEaFZeZvT4Mznfz0v" crossorigin="anonymous"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        renderMathInElement(document.body, {
+            delimiters: [
+                {left: "$$", right: "$$", display: true},
+                {left: "\\(", right: "\\)", display: false},
+                {left: "$", right: "$", display: false},
+                {left: "\\[", right: "\\]", display: true}
+            ]
+        });
+    });
+</script>
+
+<style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../rsa_cortex_m4/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a><p class="location">Module padding</p><div class="sidebar-elems"><div class="block items"><ul><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li><li><a href="#constants">Constants</a></li><li><a href="#traits">Traits</a></li><li><a href="#functions">Functions</a></li><li><a href="#types">Type Definitions</a></li></ul></div><p class="location"><a href="../index.html">rsa_cortex_m4</a></p><div id="sidebar-vars" data-name="padding" data-ty="mod" data-relpath="../"></div><script defer src="../sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" class="help-button">?</button>
+                <a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class="fqn"><span class="in-band">Module <a href="../index.html">rsa_cortex_m4</a>::<wbr><a class="mod" href="">padding</a></span><span class="out-of-band"><span id="render-detail"><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span><a class="srclink" href="../../src/rsa_cortex_m4/padding.rs.html#1-557" title="goto source code">[src]</a></span></h1><div class="docblock"><p>Padding for RSA.</p>
+<p>Main reference is RFC 3447 (PKCS #1 v2.1), there is also RFC 8017 (v2.2).</p>
+<p>PKCS #1 v1.5 padding is of historical (and practical...) interest.
+It is used both for encipherment + signatures.</p>
+<p>For encipherment, RSAES-OAEP is recommended.
+This acronym means: RSA Encryption Scheme, with Optimal Asymmetric Encryption Padding.
+The RFC defines a &quot;label&quot;, which we restrict to empty in this implementation.</p>
+<p>For signatures, RSASSA-PSS is recommended.
+This acronym means: RSA Signature Scheme with Appendix, with Probabilistc Signature Scheme
+The RFC allows flexibility in a salt length, which we restrict to be the size of
+the digest function's output in this implementation.</p>
+<p>The RFC allows a choice of &quot;mask generating function&quot; for both PSS + OAEP,
+which we restrict to MGF1 in this implementation.</p>
+<p>TODO:</p>
+<ul>
+<li>PKCS1-v1_5 for signatures does not use entropy; it sets PS = 0xFF bytes.</li>
+<li>generally, signature scheme paddings don't have to decode, just allow reconstructing
+the padded message to verify the right integer was signed.</li>
+<li>in the case of PSS, this means reconstructing the seed.</li>
+</ul>
+<p>Maybe rename to <code>armor.rs</code>?
+https://news.ycombinator.com/item?id=3715393</p>
+<p>&quot;RSA padding&quot; is one of the worst names in cryptography, because it isn't so much &quot;padding&quot; as it is &quot;armor&quot;.
+If you don't pad in a very particular way, and check the padding scrupulously,
+you end up with multiple different vulnerabilities.</p>
+<p>TODO TODO TODO: For RSASSA PKCS1-v1_5, need to ASN.1-encode the hash :/</p>
+</div><h2 id="structs" class="section-header"><a href="#structs">Structs</a></h2>
+<table><tr class="module-item"><td><a class="struct" href="struct.Oaep.html" title="rsa_cortex_m4::padding::Oaep struct">Oaep</a></td><td class="docblock-short"><p>Optimal Asymmetric Encryption Padding.</p>
+</td></tr><tr class="module-item"><td><a class="struct" href="struct.Pkcs1V1_5.html" title="rsa_cortex_m4::padding::Pkcs1V1_5 struct">Pkcs1V1_5</a></td><td class="docblock-short"><p>PKCS #1 v1.5 padding.</p>
+</td></tr><tr class="module-item"><td><a class="struct" href="struct.Pss.html" title="rsa_cortex_m4::padding::Pss struct">Pss</a></td><td class="docblock-short"><p>Probabilistic Signature Scheme.</p>
+</td></tr><tr class="module-item"><td><a class="struct" href="struct.Unpadded.html" title="rsa_cortex_m4::padding::Unpadded struct">Unpadded</a></td><td class="docblock-short"><p>Helper type to convert between the big-endian bytes representation
+in the spec and our internal little-endian digits representation.</p>
+</td></tr></table><h2 id="enums" class="section-header"><a href="#enums">Enums</a></h2>
+<table><tr class="module-item"><td><a class="enum" href="enum.Error.html" title="rsa_cortex_m4::padding::Error enum">Error</a></td><td class="docblock-short"><p>The spec has a few error cases.</p>
+</td></tr></table><h2 id="constants" class="section-header"><a href="#constants">Constants</a></h2>
+<table><tr class="module-item"><td><a class="constant" href="constant.SHA256_PREFIX.html" title="rsa_cortex_m4::padding::SHA256_PREFIX constant">SHA256_PREFIX</a></td><td class="docblock-short"></td></tr><tr class="module-item"><td><a class="constant" href="constant.SHA384_PREFIX.html" title="rsa_cortex_m4::padding::SHA384_PREFIX constant">SHA384_PREFIX</a></td><td class="docblock-short"></td></tr><tr class="module-item"><td><a class="constant" href="constant.SHA512_PREFIX.html" title="rsa_cortex_m4::padding::SHA512_PREFIX constant">SHA512_PREFIX</a></td><td class="docblock-short"></td></tr></table><h2 id="traits" class="section-header"><a href="#traits">Traits</a></h2>
+<table><tr class="module-item"><td><a class="trait" href="trait.Asn1Digest.html" title="rsa_cortex_m4::padding::Asn1Digest trait">Asn1Digest</a></td><td class="docblock-short"><p>ASN.1 prefixes for RSASSA-PKCS1-v1_5.</p>
+</td></tr><tr class="module-item"><td><a class="trait" href="trait.EncryptionPadding.html" title="rsa_cortex_m4::padding::EncryptionPadding trait">EncryptionPadding</a></td><td class="docblock-short"><p>Padding usable for encryption and decryption.</p>
+</td></tr><tr class="module-item"><td><a class="trait" href="trait.SignaturePadding.html" title="rsa_cortex_m4::padding::SignaturePadding trait">SignaturePadding</a></td><td class="docblock-short"><p>Padding usable for signatures and their verification.</p>
+</td></tr></table><h2 id="functions" class="section-header"><a href="#functions">Functions</a></h2>
+<table><tr class="module-item"><td><a class="fn" href="fn.xor_mgf1.html" title="rsa_cortex_m4::padding::xor_mgf1 fn">xor_mgf1</a></td><td class="docblock-short"><p>Mask Generating Function 1</p>
+</td></tr></table><h2 id="types" class="section-header"><a href="#types">Type Definitions</a></h2>
+<table><tr class="module-item"><td><a class="type" href="type.Result.html" title="rsa_cortex_m4::padding::Result type">Result</a></td><td class="docblock-short"></td></tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="rsa_cortex_m4"></div>
+    <script src="../../main.js"></script><script defer src="../../search-index.js"></script></body></html>

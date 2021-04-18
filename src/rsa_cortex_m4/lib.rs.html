@@ -81,6 +81,25 @@
 <span id="62">62</span>
 <span id="63">63</span>
 <span id="64">64</span>
+<span id="65">65</span>
+<span id="66">66</span>
+<span id="67">67</span>
+<span id="68">68</span>
+<span id="69">69</span>
+<span id="70">70</span>
+<span id="71">71</span>
+<span id="72">72</span>
+<span id="73">73</span>
+<span id="74">74</span>
+<span id="75">75</span>
+<span id="76">76</span>
+<span id="77">77</span>
+<span id="78">78</span>
+<span id="79">79</span>
+<span id="80">80</span>
+<span id="81">81</span>
+<span id="82">82</span>
+<span id="83">83</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="attribute">#![<span class="ident">cfg_attr</span>(<span class="ident">not</span>(<span class="ident">test</span>), <span class="ident">no_std</span>)]</span>
 <span class="doccomment">//! Allocation-free implementation of [R][rsa-patent][SA][rsa-rfc] for the standard cases.</span>
@@ -89,8 +108,27 @@
 <span class="doccomment">//! - we avoid GCD algorithms following [GCD-Free Algorithms for Computing Modular Inverses (Joye/Paillier, 2003)][jp03]</span>
 <span class="doccomment">//! - our prime generation is fast following [Improvements to RSA key generation and CRT on embedded devices (Hamburg/Tunstall/Xiao, 2020)][htx20]</span>
 <span class="doccomment">//!</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//!## PKCS #1 (RSA) revision history</span>
+<span class="doccomment">//! - v1.1-1.3, February-March 1991</span>
+<span class="doccomment">//! - v1.4, June 1991</span>
+<span class="doccomment">//! - [RFC 2313, March 1998][rfc-2313] (v1.5, November 1993): the origin (+adds MD4)</span>
+<span class="doccomment">//! - [RFC 2437, October 1998][rfc-2437] (v2.0, September 1998): introduces OAEP (+removes MD4)</span>
+<span class="doccomment">//! - [RFC 3447, February 2003][rfc-3447] (v2.1, June 2002): introduces PSS (+multi-prime RSA)</span>
+<span class="doccomment">//! - [RFC 8017, November 2016][rsa-rfc] (v2.2, October 2012): adds SHA2: 224, 512/224, 512/256 (&quot;for FIPS 180-4 alignment&quot;)</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! Bleichenbacher&#39;s attack (chosen ciphertexts) on RSAES in 1998 caused v2.0,</span>
+<span class="doccomment">//! updated in [2006 with forgery attacks against RSASSA][bleichenbacher06].</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! [Actual RSA v2.2 (2012)][rsa-v2_2]</span>
+<span class="doccomment">//!</span>
 <span class="doccomment">//! [rsa-patent]: http://patft.uspto.gov/netacgi/nph-Parser?Sect1=PTO1&amp;Sect2=HITOFF&amp;p=1&amp;u=/netahtml/PTO/srchnum.html&amp;r=1&amp;f=G&amp;l=50&amp;d=PALL&amp;s1=4405829.PN.</span>
+<span class="doccomment">//! [rfc-2313]: https://tools.ietf.org/html/rfc2313</span>
+<span class="doccomment">//! [rfc-2437]: https://tools.ietf.org/html/rfc2437</span>
+<span class="doccomment">//! [rfc-3447]: https://tools.ietf.org/html/rfc3447</span>
 <span class="doccomment">//! [rsa-rfc]: https://tools.ietf.org/html/rfc8017</span>
+<span class="doccomment">//! [rsa-v2_2]: http://mpqs.free.fr/h11300-pkcs-1v2-2-rsa-cryptography-standard-wp_EMC_Corporation_Public-Key_Cryptography_Standards_(PKCS).pdf</span>
+<span class="doccomment">//! [bleichenbacher06]: https://mailarchive.ietf.org/arch/msg/openpgp/5rnE9ZRN1AokBVj3VqblGlP63QE/</span>
 <span class="doccomment">//! [jp03]: https://api.semanticscholar.org/CorpusID:17736455</span>
 <span class="doccomment">//! [htx20]: https://api.semanticscholar.org/CorpusID:230108960</span>
 
@@ -127,7 +165,7 @@
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">numbers</span>::{<span class="ident">Convenient</span>, <span class="ident">Long</span>, <span class="ident">Odd</span>, <span class="ident">Prime</span>, <span class="ident">Short</span>, <span class="ident">ShortPrime</span>, <span class="ident">Unsigned</span>};
 <span class="comment">// pub(crate) use numbers::{Array, Number ,NumberMut};</span>
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod</span> <span class="ident">padding</span>;
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">padding</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">padding</span>::{<span class="ident">Oaep</span>, <span class="ident">Pss</span>, <span class="ident">Pkcs1V1_5</span>};
 <span class="kw">mod</span> <span class="ident">primitive</span>;
 
