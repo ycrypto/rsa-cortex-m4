@@ -26,15 +26,30 @@
 //! - generally, signature scheme paddings don't have to decode, just allow reconstructing
 //!   the padded message to verify the right integer was signed.
 //! - in the case of PSS, this means reconstructing the seed.
+//!
+//! Maybe rename to `armor.rs`?
+//! https://news.ycombinator.com/item?id=3715393
+//!
+//!  "RSA padding" is one of the worst names in cryptography, because it isn't so much "padding" as it is "armor".
+//!  If you don't pad in a very particular way, and check the padding scrupulously,
+//!  you end up with multiple different vulnerabilities.
+//!
+//!
+//!  TODO TODO TODO: For RSASSA PKCS1-v1_5, need to ASN.1-encode the hash :/
 
 use core::{marker::PhantomData, ops::Deref};
 
 use digest::{Digest, generic_array::typenum::Unsigned};
+#[cfg(any(feature = "sha1", feature = "sha2"))]
+use hex_literal::hex;
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{Digit, Long};
 use crate::numbers::{Bits, Number, NumberMut};
 
+/// The spec has a few error cases.
+///
+/// Undecided whether to expose these at all.
 pub enum Error {
     /// message too long to fit in number with required padding (encipherment case)
     MessageTooLong,
@@ -65,6 +80,8 @@ pub fn xor_mgf1<H: Digest>(hasher: &mut H, seed: &[u8], data: &mut [u8]) {
     }
 }
 
+/// Helper type to convert between the big-endian bytes representation
+/// in the spec and our internal little-endian digits representation.
 pub struct Unpadded<const D: usize> {
     data: Long<D>,
     offset: usize,
@@ -97,20 +114,33 @@ pub(crate) fn mut_digit_slice_as_mut_byte_slice(digits: &mut [Digit]) -> &mut [u
     ) }
 }
 
+/// Padding usable for encryption and decryption.
 pub trait EncryptionPadding<const D: usize> {
     fn pad(msg: &[u8], rng: impl CryptoRng + RngCore)
         -> Result<Long<D>>;
     fn unpad(padded: &Long<D>) -> Result<Unpadded<D>>;
 }
 
+/// Padding usable for signatures and their verification.
+///
+/// PKCS1-v1_5 padding (for signatures) is deterministic, so ideally
+/// we would have two of these types, one that requires and RNG in `pad`
+/// and one that doesn't.
 pub trait SignaturePadding<const D: usize> {
     fn pad(msg: &[u8], rng: impl CryptoRng + RngCore)
         -> Result<Long<D>>;
+    /// Implementation note: Try to just regenerate the signature
+    /// and compare, instead of parsing it.
     fn verify(msg: &[u8], padded: &Long<D>) -> Result<()>;
 }
 
-/// ## Probabilistic Signature Scheme
-/// ```ignore
+/// ## Probabilistic Signature Scheme.
+///
+/// TODO: This also want some ASN.1...
+///
+/// cf. https://github.com/google/wycheproof/blob/master/doc/rsa.md#rsa-pss
+///
+/// ```text
 /// __________________________________________________________________
 ///
 ///                              +-----------+
@@ -263,7 +293,7 @@ impl<H: Digest, const D: usize> SignaturePadding<D> for Pss<H> {
     }
 }
 
-/// ## Optimal Asymmetric Encryption Padding
+/// ## Optimal Asymmetric Encryption Padding.
 ///
 /// data block DB = pHash || PS || 01 || M,
 /// where padding string PS is em_len - msg.len() - 2*h_len - 1 zeros
@@ -357,54 +387,59 @@ impl<H: Digest, const D: usize> EncryptionPadding<D> for Oaep<H> {
     }
 }
 
-///  ## PKCS #1 v1.5 padding
+///  ## PKCS #1 v1.5 padding.
 ///
 ///  Defined in RFC 2313 (= PKCS #1 v1.5), see also
 ///  RFC 2437 (v2.0) and RFC 3447 (v2.1)
 ///
-///  EM = 02 || PS || 00 || M
+///  EM = 02 || PS || 00 || M, for encryption
+///  EM = 00 || 01 || PS || 00 || M, for signatures
 ///
 ///  "encoded message", where the padding string PS is at least 8 bytes,
 ///  all non-zeros, and fills out the block.
-pub enum Pkcs1V1_5 {}
+pub struct Pkcs1V1_5<H: Digest> { __: PhantomData<H> }
 
 // Called by encryption with a non-zero random filler,
 // by signing with a constant 0xFF filler.
 fn pkcs1_v1_5_pad<const D: usize>(
+    msg_prefix: &[u8],
     msg: &[u8],
+    em_prefix: &[u8],
     filler: impl FnMut(&mut u8),
 ) -> Result<Long<D>> {
     // debug_assert!(D > 8);
 
     // let k = Long::<D>::BITS / 8;
-    let k = <Long<D> as Bits>::BITS / 8;
-    if msg.len() + 10 > k {
+    let em_len = <Long<D> as Bits>::BITS / 8;
+    let msg_len = msg_prefix.len() + msg.len();
+    if msg_len + 9 + em_prefix.len() > em_len {
         return Err(Error::MessageTooLong);
     }
 
     let mut encoded = Long::<D>::zero();
     let as_bytes: &mut [u8] = unsafe { core::slice::from_raw_parts_mut(
         &mut encoded.as_mut_ptr() as *mut _ as *mut _,
-        k,
+        em_len,
     ) };
 
     // https://tools.ietf.org/html/rfc2313#section-8.1
-    as_bytes[1] = 0x02;
-    let padding_string_len = k - msg.len() - 3;
-    as_bytes[2..][..padding_string_len].iter_mut().for_each(filler);
+    as_bytes[1..][..em_prefix.len()].copy_from_slice(em_prefix);
+    let padding_string_len = em_len - msg_len - 2 - em_prefix.len();
+    as_bytes[1 + em_prefix.len()..][..padding_string_len].iter_mut().for_each(filler);
 
-    as_bytes[k - msg.len()..].copy_from_slice(msg);
+    as_bytes[em_len - msg_len..][..msg_prefix.len()].copy_from_slice(msg_prefix);
+    as_bytes[em_len - msg_len + msg_prefix.len()..].copy_from_slice(msg);
 
     Ok(encoded.swap_order())
 }
 
-impl<const D: usize> EncryptionPadding<D> for Pkcs1V1_5 {
+impl<H: Digest, const D: usize> EncryptionPadding<D> for Pkcs1V1_5<H> {
     fn pad(
         msg: &[u8],
         rng: impl CryptoRng + RngCore,
     ) -> Result<Long<D>> {
         let mut rng = rng;
-        pkcs1_v1_5_pad(msg, |byte: &mut u8| {
+        pkcs1_v1_5_pad(&[], msg, &[2u8], |byte: &mut u8| {
             let mut trial = [0u8; 1];
             loop {
                 rng.fill_bytes(&mut trial);
@@ -438,15 +473,59 @@ impl<const D: usize> EncryptionPadding<D> for Pkcs1V1_5 {
 
 }
 
-impl<const D: usize> SignaturePadding<D> for Pkcs1V1_5 {
+#[cfg(feature = "sha1")]
+pub const SHA1_PREFIX: &[u8] = &hex!("30 21 30 09 06 05 2b 0e 03 02 1a 05 00 04 14");
+
+#[cfg(feature = "sha2")]
+pub const SHA256_PREFIX: &[u8] = &hex!("30 31 30 0d 06 09 60 86 48 01 65 03 04 02 01 05 00 04 20");
+#[cfg(feature = "sha2")]
+pub const SHA384_PREFIX: &[u8] = &hex!("30 41 30 0d 06 09 60 86 48 01 65 03 04 02 02 05 00 04 30");
+#[cfg(feature = "sha2")]
+pub const SHA512_PREFIX: &[u8] = &hex!("30 51 30 0d 06 09 60 86 48 01 65 03 04 02 03 05 00 04 40");
+
+/// ASN.1 prefixes for RSASSA-PKCS1-v1_5.
+///
+/// RSASSA-PKCS1-v1_5 likes to wrap its hashed message in
+/// an ASN.1 `DigestInfo` structure. This could have been done
+/// with just a byte but... Instead of including a DER-writer or
+/// even parser, we hardcode the requisite prefixes, and implement
+/// this trait for RustCrypto digest implementations. To use a
+/// different digest implementation, implement this trait for that
+/// implementation, using the public constants.
+pub trait Asn1Digest: Digest {
+    const ASN1_PREFIX: &'static [u8];
+}
+
+#[cfg(feature = "sha1")]
+impl Asn1Digest for sha1::Sha1 {
+    const ASN1_PREFIX: &'static [u8] = SHA1_PREFIX;
+}
+
+#[cfg(feature = "sha2")]
+impl Asn1Digest for sha2::Sha256 {
+    const ASN1_PREFIX: &'static [u8] = SHA256_PREFIX;
+}
+
+#[cfg(feature = "sha2")]
+impl Asn1Digest for sha2::Sha384 {
+    const ASN1_PREFIX: &'static [u8] = SHA384_PREFIX;
+}
+
+#[cfg(feature = "sha2")]
+impl Asn1Digest for sha2::Sha512 {
+    const ASN1_PREFIX: &'static [u8] = SHA512_PREFIX;
+}
+
+impl<H: Asn1Digest, const D: usize> SignaturePadding<D> for Pkcs1V1_5<H> {
     fn pad(
         msg: &[u8],
         _rng: impl CryptoRng + RngCore,
     ) -> Result<Long<D>> {
-        pkcs1_v1_5_pad(msg, |byte: &mut u8| *byte = 0xFF)
+        pkcs1_v1_5_pad(H::ASN1_PREFIX, msg, &[0u8, 1u8], |byte: &mut u8| *byte = 0xFF)
     }
 
     fn verify(msg: &[u8], padded: &Long<D>) -> Result<()> {
+        // No Bleichenbacher06 for us!
         (<Self as EncryptionPadding<D>>::unpad(padded)?.deref() == msg)
             .then(|| ())
             .ok_or(Error::Inconsistent)
@@ -457,6 +536,11 @@ impl<const D: usize> SignaturePadding<D> for Pkcs1V1_5 {
 #[cfg(test)]
 mod test {
     // use super::*;
+
+    // TODO: obviously!
+    //
+    // Test vectors from NIST: https://csrc.nist.gov/projects/cryptographic-algorithm-validation-program/digital-signatures#rsavs
+    // Test vectors from Google: https://github.com/google/wycheproof/tree/master/testvectors
 
     #[test]
     fn short_pkcs1_v1_5() {

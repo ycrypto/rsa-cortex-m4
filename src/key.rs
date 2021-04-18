@@ -217,6 +217,8 @@ impl Rsa for Rsa5c {
 //impl Rsa<RSA_1K_DIGITS> for Rsa1k {}
 
 ///// The RSA cryptosystem with 2048 bit size keys.
+/////
+///// Corresponds roughly to 112-bit security.
 //pub struct Rsa2k;
 //impl Rsa<RSA_2K_DIGITS> for Rsa2k {}
 

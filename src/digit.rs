@@ -1,3 +1,7 @@
+// used just to enable the intra-doc links
+#[allow(unused_imports)]
+use crate::{Unsigned, numbers::Number};
+
 /// A word on the machine. [`Unsigned`] is composed of many digits.
 ///
 /// Feature `u32` forces the digit to be 32-bit even on 64-bit architectures,
