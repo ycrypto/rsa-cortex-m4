@@ -265,6 +265,106 @@
 <span id="246">246</span>
 <span id="247">247</span>
 <span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
+<span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+<span id="322">322</span>
+<span id="323">323</span>
+<span id="324">324</span>
+<span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
+<span id="331">331</span>
+<span id="332">332</span>
+<span id="333">333</span>
+<span id="334">334</span>
+<span id="335">335</span>
+<span id="336">336</span>
+<span id="337">337</span>
+<span id="338">338</span>
+<span id="339">339</span>
+<span id="340">340</span>
+<span id="341">341</span>
+<span id="342">342</span>
+<span id="343">343</span>
+<span id="344">344</span>
+<span id="345">345</span>
+<span id="346">346</span>
+<span id="347">347</span>
+<span id="348">348</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! RSA keys.</span>
 <span class="doccomment">//!</span>
@@ -279,8 +379,8 @@
 <span class="kw">use</span> <span class="ident">rand_core</span>::{<span class="ident">CryptoRng</span>, <span class="ident">RngCore</span>};
 <span class="kw">use</span> <span class="ident">zeroize</span>::<span class="ident">Zeroize</span>;
 
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">Convenient</span>, <span class="ident">Digit</span>, <span class="ident">Long</span>, <span class="ident">Odd</span>, <span class="ident">ShortPrime</span>, <span class="prelude-ty">Result</span>};
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">numbers</span>::<span class="ident">Bits</span>;
+<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">Convenient</span>, <span class="ident">Digit</span>, <span class="ident">Error</span>, <span class="ident">F4</span>, <span class="ident">Long</span>, <span class="ident">Odd</span>, <span class="ident">PrimeModular</span>, <span class="ident">Short</span>, <span class="ident">ShortPrime</span>, <span class="prelude-ty">Result</span>};
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">numbers</span>::{<span class="ident">Bits</span>, <span class="ident">NumberMut</span>};
 
 <span class="doccomment">/// RSA public key.</span>
 <span class="doccomment">///</span>
@@ -290,6 +390,82 @@
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Zeroize</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">PublicKey</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> {
     <span class="kw">pub</span> <span class="ident">N</span>: <span class="ident">Convenient</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">D</span><span class="op">&gt;</span>,
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">Bits</span> <span class="kw">for</span> <span class="ident">PublicKey</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> {
+    <span class="kw">const</span> <span class="ident">BITS</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="op">&lt;</span><span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> <span class="kw">as</span> <span class="ident">Bits</span><span class="op">&gt;</span>::<span class="ident">BITS</span>;
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">PublicKey</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// [RSAEP][rsaep]</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// [rsaep]: https://tools.ietf.org/html/rfc8017#section-5.1.1</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">encryption_primitive</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">msg</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span><span class="op">&gt;</span> {
+
+        <span class="comment">// 1.</span>
+        <span class="kw">if</span> <span class="ident">msg</span>.<span class="ident">len</span>()<span class="kw-2">*</span><span class="number">8</span> <span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">BITS</span> {
+            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>);
+        }
+        <span class="kw">let</span> <span class="ident">m</span> <span class="op">=</span> <span class="ident">Long</span>::<span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>::<span class="ident">from_bytes</span>(<span class="ident">msg</span>);
+
+        <span class="kw">if</span> <span class="ident">m</span>  <span class="op">&gt;</span><span class="op">=</span> <span class="kw-2">*</span><span class="self">self</span>.<span class="ident">N</span>.<span class="ident">as_unsigned</span>() {
+            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>);
+        }
+
+        <span class="kw">let</span> <span class="ident">c</span> <span class="op">=</span> <span class="ident">m</span>.<span class="ident">modulo</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">N</span>).<span class="ident">power</span>(<span class="kw-2">&amp;</span><span class="ident">F4</span>::<span class="ident">SHORT</span>).<span class="ident">canonical_lift</span>();
+        <span class="prelude-val">Ok</span>(<span class="ident">c</span>)
+    }
+
+    <span class="doccomment">/// [RSAVP1][rsavp]</span>
+    <span class="doccomment">/// [rsavp]: https://tools.ietf.org/html/rfc8017#section-5.2.2</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">verification_primitive</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">signature</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">encryption_primitive</span>(<span class="ident">signature</span>)
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">PrivateKey</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">q_inv_mod_p</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">PrimeModular</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">D</span>, <span class="number">0</span><span class="op">&gt;</span> {
+        <span class="ident">PrimeModular</span> { <span class="ident">x</span>: <span class="self">self</span>.<span class="ident">precomputed</span>.<span class="ident">q_inv</span>.<span class="ident">clone</span>(), <span class="ident">p</span>: <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">p</span> }
+    }
+
+    <span class="doccomment">/// [RSADP][rsadp]</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// [rsadp]: https://tools.ietf.org/html/rfc8017#section-5.1.2</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">decryption_primitive</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">ciphertext</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span><span class="op">&gt;</span> {
+
+        <span class="comment">// 1.</span>
+        <span class="kw">if</span> <span class="ident">ciphertext</span>.<span class="ident">len</span>()<span class="kw-2">*</span><span class="number">8</span> <span class="op">&gt;</span> <span class="self">Self</span>::<span class="ident">BITS</span> {
+            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>);
+        }
+        <span class="kw">let</span> <span class="ident">c</span> <span class="op">=</span> <span class="ident">Long</span>::<span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>::<span class="ident">from_bytes</span>(<span class="ident">ciphertext</span>);
+
+        <span class="kw">if</span> <span class="ident">c</span>  <span class="op">&gt;</span><span class="op">=</span> <span class="kw-2">*</span><span class="self">self</span>.<span class="ident">public_key</span>.<span class="ident">N</span>.<span class="ident">as_unsigned</span>() {
+            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>);
+        }
+
+        <span class="comment">// 2.a.i.</span>
+        <span class="kw">let</span> <span class="ident">mp</span> <span class="op">=</span> <span class="ident">c</span>.<span class="ident">modulo_prime</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">p</span>).<span class="ident">power</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">precomputed</span>.<span class="ident">dp</span>);<span class="comment">//.canonical_lift();</span>
+        <span class="kw">let</span> <span class="ident">long_mq</span>: <span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">c</span>.<span class="ident">modulo_prime</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">q</span>).<span class="ident">power</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">precomputed</span>.<span class="ident">dq</span>).<span class="ident">canonical_lift</span>().<span class="ident">to_unsigned</span>().<span class="ident">unwrap</span>();
+
+        <span class="comment">// 2.a.iii.</span>
+        <span class="kw">let</span> <span class="ident">h</span>: <span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> <span class="op">=</span> (<span class="kw-2">&amp;</span>(<span class="kw-2">&amp;</span><span class="ident">mp</span> <span class="op">-</span> <span class="kw-2">&amp;</span><span class="ident">long_mq</span>.<span class="ident">modulo_prime</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">p</span>)) <span class="op">*</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">q_inv_mod_p</span>()).<span class="ident">canonical_lift</span>().<span class="ident">to_unsigned</span>().<span class="ident">unwrap</span>();
+
+
+        <span class="comment">// 2.a.iv.</span>
+        <span class="kw">let</span> <span class="ident">long_q</span>: <span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">q</span>.<span class="ident">as_unsigned</span>().<span class="ident">to_unsigned</span>().<span class="ident">unwrap</span>();
+        <span class="comment">// these wrapping adds and products are all actually not wrapping, as m is &quot;big enough&quot;</span>
+        <span class="comment">// TODO: orly? otherwise reduce modulo n</span>
+        <span class="kw">let</span> <span class="ident">m</span>: <span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">long_mq</span>.<span class="ident">wrapping_add</span>(<span class="kw-2">&amp;</span><span class="ident">long_q</span>.<span class="ident">wrapping_mul</span>(<span class="kw-2">&amp;</span><span class="ident">h</span>));
+
+        <span class="prelude-val">Ok</span>(<span class="ident">m</span>)
+    }
+
+    <span class="doccomment">/// [RSASP1][rsasp]</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// [rsasp]: https://tools.ietf.org/html/rfc8017#section-5.2.1</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">signature_primitive</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">msg</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">decryption_primitive</span>(<span class="ident">msg</span>)
+    }
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">From</span><span class="op">&lt;</span>(<span class="kw-2">&amp;</span><span class="ident">ShortPrime</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>, <span class="kw-2">&amp;</span><span class="ident">ShortPrime</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>)<span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">PublicKey</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> {
@@ -306,6 +482,8 @@
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Precomputed</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">L</span>: <span class="ident">usize</span><span class="op">&gt;</span> {
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">dp</span>: <span class="ident">Odd</span><span class="op">&lt;</span><span class="ident">L</span>, <span class="number">0</span><span class="op">&gt;</span>,
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">dq</span>: <span class="ident">Odd</span><span class="op">&lt;</span><span class="ident">L</span>, <span class="number">0</span><span class="op">&gt;</span>,
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;q-inverse&quot;</span>)]</span>
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">q_inv</span>: <span class="ident">Short</span><span class="op">&lt;</span><span class="ident">L</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">From</span><span class="op">&lt;</span>(<span class="kw-2">&amp;</span><span class="ident">ShortPrime</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>, <span class="kw-2">&amp;</span><span class="ident">ShortPrime</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>)<span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Precomputed</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> {
@@ -315,10 +493,17 @@
         <span class="comment">// We have $e = F4 = 65537$, and want</span>
         <span class="comment">// $d_p = e^{-1} mod p$ and $d_q$, the private exponents.</span>
         <span class="kw">let</span> (<span class="ident">p</span>, <span class="ident">q</span>) <span class="op">=</span> <span class="ident">prime_pair</span>;
-        <span class="kw">let</span> <span class="ident">dp</span> <span class="op">=</span> <span class="kw">crate</span>::<span class="ident">F4</span>::<span class="ident">inv_mod</span>(<span class="ident">p</span>);
-        <span class="kw">let</span> <span class="ident">dq</span> <span class="op">=</span> <span class="kw">crate</span>::<span class="ident">F4</span>::<span class="ident">inv_mod</span>(<span class="ident">q</span>);
+        <span class="kw">let</span> <span class="ident">dp</span> <span class="op">=</span> <span class="kw">crate</span>::<span class="ident">F4</span>::<span class="ident">inv_mod</span>(<span class="kw-2">&amp;</span><span class="ident">p</span>.<span class="ident">wrapping_sub</span>(<span class="kw-2">&amp;</span><span class="ident">Short</span>::<span class="ident">from</span>(<span class="number">1</span>)));
+        <span class="kw">let</span> <span class="ident">dq</span> <span class="op">=</span> <span class="kw">crate</span>::<span class="ident">F4</span>::<span class="ident">inv_mod</span>(<span class="kw-2">&amp;</span><span class="ident">q</span>.<span class="ident">wrapping_sub</span>(<span class="kw-2">&amp;</span><span class="ident">Short</span>::<span class="ident">from</span>(<span class="number">1</span>)));
 
-        <span class="self">Self</span> { <span class="ident">dp</span>, <span class="ident">dq</span> }
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;q-inverse&quot;</span>)]</span>
+        <span class="kw">let</span> <span class="ident">q_inv</span> <span class="op">=</span> <span class="ident">q</span>.<span class="ident">modulo_prime</span>(<span class="ident">p</span>).<span class="ident">inverse</span>().<span class="ident">canonical_lift</span>();
+
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;q-inverse&quot;</span>))]</span>
+        <span class="kw">return</span> <span class="self">Self</span> { <span class="ident">dp</span>, <span class="ident">dq</span> };
+
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;q-inverse&quot;</span>)]</span>
+        <span class="self">Self</span> { <span class="ident">dp</span>, <span class="ident">dq</span>, <span class="ident">q_inv</span> }
     }
 }
 
@@ -337,6 +522,11 @@
     <span class="comment">// dq: ModInt&lt;L&gt;,</span>
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">precomputed</span>: <span class="ident">Precomputed</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>,
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">public_key</span>: <span class="ident">PublicKey</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>,
+
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">Bits</span> <span class="kw">for</span> <span class="ident">PrivateKey</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> {
+    <span class="kw">const</span> <span class="ident">BITS</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="op">&lt;</span><span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> <span class="kw">as</span> <span class="ident">Bits</span><span class="op">&gt;</span>::<span class="ident">BITS</span>;
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">From</span><span class="op">&lt;</span>(<span class="ident">ShortPrime</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>, <span class="ident">ShortPrime</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>)<span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">PrivateKey</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> {
@@ -356,26 +546,6 @@
 <span class="kw">fn</span> <span class="ident">generate_prime_pair</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span>() <span class="op">-</span><span class="op">&gt;</span> (<span class="ident">ShortPrime</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>, <span class="ident">ShortPrime</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>) {
     <span class="macro">todo</span><span class="macro">!</span>();
 }
-
-<span class="comment">// fn generate_rsa2k_prime_pair() -&gt; (ShortPrime&lt;4&gt;, ShortPrime&lt;4&gt;) {</span>
-<span class="comment">//     use crate::Short;</span>
-<span class="comment">//     use crate::numbers::{Convenient, NumberMut};</span>
-
-<span class="comment">//     #[cfg(any(target_pointer_width = &quot;32&quot;, feature = &quot;u32&quot;))]</span>
-<span class="comment">//     let p = Short::&lt;4&gt;::from_slice(</span>
-<span class="comment">//         &amp;[0x7cd022f9, 0xab998f98, 0x7ee8dd0c, 0xca27a8bd, 0xbd5ad74a, 0xdf02e961, 0x1af83b2a, 0xddbb94f1]);</span>
-<span class="comment">//     #[cfg(all(target_pointer_width = &quot;64&quot;, not(feature = &quot;u32&quot;)))]</span>
-<span class="comment">//     let p = Short::&lt;2&gt;::from_slice(</span>
-<span class="comment">//         &amp;[0xab998f987cd022f9, 0xca27a8bd7ee8dd0c, 0xdf02e961bd5ad74a, 0xddbb94f11af83b2a]);</span>
-<span class="comment">//     #[cfg(any(target_pointer_width = &quot;32&quot;, feature = &quot;u32&quot;))]</span>
-<span class="comment">//     let q = Short::&lt;4&gt;::from_slice(</span>
-<span class="comment">//         &amp;[0x0721398f, 0xf0e5dc8a, 0x2d2b3f7d, 0xf0292b4e, 0x116bef81, 0x839d2553, 0xccf2db4c, 0xcd58cd8a]);</span>
-<span class="comment">//     #[cfg(all(target_pointer_width = &quot;64&quot;, not(feature = &quot;u32&quot;)))]</span>
-<span class="comment">//     let q = Short::&lt;2&gt;::from_slice(</span>
-<span class="comment">//         &amp;[0xf0e5dc8a0721398f, 0xf0292b4e2d2b3f7d, 0x839d2553116bef81, 0xcd58cd8accf2db4c]);</span>
-
-<span class="comment">//     (ShortPrime(Convenient(Odd(p))), ShortPrime(Convenient(Odd(q))))</span>
-<span class="comment">// }</span>
 
 <span class="comment">// Since e = 65537 is prime, can use Arazi&#39;s inversion formula</span>
 <span class="comment">// to calculate `e^{-1} (mod p - 1)`:</span>
@@ -510,10 +680,40 @@
 <span class="comment">//     pub N: crate::Unsigned&lt;{R::L}&gt;,</span>
 <span class="comment">// }</span>
 
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
+<span class="kw">mod</span> <span class="ident">test</span> {
+    <span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">fixtures</span>::<span class="kw-2">*</span>;
 
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">primitives</span>() {
+        <span class="kw">let</span> <span class="ident">msg_</span> <span class="op">=</span> <span class="ident">msg480</span>().<span class="ident">to_bytes</span>();
+        <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span> <span class="ident">msg_</span>.<span class="ident">as_bytes</span>();
+        <span class="kw">let</span> <span class="ident">private</span>: <span class="op">&lt;</span><span class="ident">Rsa5c</span> <span class="kw">as</span> <span class="ident">Rsa</span><span class="op">&gt;</span>::<span class="ident">PrivateKey</span> <span class="op">=</span> (<span class="ident">pp256</span>(), <span class="ident">qq256</span>()).<span class="ident">into</span>();
+        <span class="kw">let</span> <span class="ident">public</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">private</span>.<span class="ident">public_key</span>;
 
+        <span class="comment">// encrypt then decrypt</span>
+        <span class="kw">let</span> <span class="ident">ciphertext</span> <span class="op">=</span> <span class="ident">public</span>.<span class="ident">encryption_primitive</span>(<span class="ident">msg</span>).<span class="ident">unwrap</span>().<span class="ident">to_bytes</span>();
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="ident">ciphertext</span>,
+            <span class="kw-2">&amp;</span><span class="macro">hex</span><span class="macro">!</span>(<span class="string">&quot;0a5cd90c81e1626b19fa9ccd34d3dcdef1481c72189cbc3c6bced3e426ef8352db3d65691125080a4eb8491804a74789434e3b6292f6d17aa892e229bea4d7e5&quot;</span>),
+        );
 
+        <span class="kw">let</span> <span class="ident">decrypted</span> <span class="op">=</span> <span class="ident">private</span>.<span class="ident">decryption_primitive</span>(<span class="kw-2">&amp;</span><span class="ident">ciphertext</span>).<span class="ident">unwrap</span>().<span class="ident">to_bytes</span>();
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">msg</span>, <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="ident">decrypted</span>);
 
+        <span class="comment">// decrypt then encrypt</span>
+        <span class="kw">let</span> <span class="ident">signature</span> <span class="op">=</span> <span class="ident">private</span>.<span class="ident">signature_primitive</span>(<span class="ident">msg</span>).<span class="ident">unwrap</span>().<span class="ident">to_bytes</span>();
+        <span class="macro">assert_eq</span><span class="macro">!</span>(
+            <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="ident">signature</span>,
+            <span class="kw-2">&amp;</span><span class="macro">hex</span><span class="macro">!</span>(<span class="string">&quot;af735869c96b330835198115a60598f7b9ce6e9354eda7e20746645ec8c5783b8c4f03c3dd1a538600c8d56f0a7a561137337646cc1183471b5090c39623ec92&quot;</span>),
+        );
+
+        <span class="kw">let</span> <span class="ident">encrypted</span> <span class="op">=</span> <span class="ident">public</span>.<span class="ident">encryption_primitive</span>(<span class="kw-2">&amp;</span><span class="ident">signature</span>).<span class="ident">unwrap</span>().<span class="ident">to_bytes</span>();
+
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="ident">msg</span>, <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="ident">encrypted</span>);
+
+    }
+}
 </pre></div>
 </section><section id="search" class="content hidden"></section><section class="footer"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="rsa_cortex_m4"></div>
     <script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script><script defer src="../../search-index.js"></script></body></html>
