@@ -130,7 +130,7 @@ where
     // Required or the q_len calculation below can underflow:
     // match x.as_le_words().cmp(&n.as_le_words()) {
     match n.partial_cmp(x).unwrap() {
-        Ordering::Greater => return (T::zero(), Unsigned::from_slice(&x)),
+        Ordering::Greater => return (T::zero(), Unsigned::from_slice(x.significant_digits())),
         Ordering::Equal => return (T::one(), Unsigned::zero()),
         Ordering::Less => {} // Do nothing
     }

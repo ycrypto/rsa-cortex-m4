@@ -4,13 +4,22 @@ use crate::{Long, PrivateKey, Result};
 use crate::arithmetic::LongModular;
 use rand_core::{CryptoRng, RngCore};
 
+#[allow(dead_code)]
+fn public_primitive<const D: usize>(
+    // rng: impl CryptoRng + RngCore,
+    // key: PublicKey<D>,
+    plaintext: LongModular<'_, D>,
+) -> Result<Long<D>> {
+    Ok(plaintext.power(&crate::F4::SHORT).canonical_lift())
+}
+
 fn _inefficient_private_primitive<const D: usize>(
     // rng: impl CryptoRng + RngCore,
     // key: PrivateKey<D>,
     // ciphertext: LongModular<'_, D>,
 ) -> Result<Long<D>>
 {
-    todo!();
+        todo!();
 }
 
 /// Since all operations are hopelessly non-constant time, everything

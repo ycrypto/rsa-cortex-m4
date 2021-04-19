@@ -29,13 +29,15 @@ hex-literal = "0.3"
 [features]
 # default = []
 # default = ["ct-maybe", "hex-debug"]
-default = ["hex-debug", "sha1-sig", "sha2-sig"]
+default = ["hex-debug", "sha1-sig", "sha2-sig", "q-inverse"]
 u32 = []
 u64 = []
 hex-debug = ["delog"]
 ct-maybe = ["subtle"]
 sha1-sig = ["hex-literal", "sha-1"]
 sha2-sig = ["hex-literal", "sha2"]
+q-inverse = []
+extended-testing = []
 
 [patch.crates-io]
 # subtle = { git = "https://github.com/nickray/subtle", branch = "conditionally-select-usize" }

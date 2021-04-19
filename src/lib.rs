@@ -35,7 +35,7 @@
 pub mod aliases;
 
 pub mod arithmetic;
-pub use arithmetic::Modular;
+pub use arithmetic::{Modular, PrimeModular};
 pub(crate) use arithmetic::{Montgomery, Wrapping};
 
 mod digit;

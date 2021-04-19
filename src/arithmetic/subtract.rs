@@ -4,7 +4,7 @@ use ref_cast::RefCast;
 #[cfg(feature = "ct-maybe")]
 use subtle::{Choice, ConditionallySelectable};
 
-use crate::{Digit, Modular, Montgomery, SignedDoubleDigit, Unsigned, Wrapping};
+use crate::{Digit, Modular, Montgomery, PrimeModular, SignedDoubleDigit, Unsigned, Wrapping};
 use crate::numbers::{Array, Bits, Number};
 
 
@@ -283,11 +283,32 @@ impl<'a, 'n, const D: usize, const E: usize> Sub for &'a Modular<'n, D, E> {
     }
 }
 
+impl<'a, 'p, const D: usize, const E: usize> Sub for &'a PrimeModular<'p, D, E> {
+    type Output = PrimeModular<'p, D, E>;
+
+    fn sub(self, subtrahend: Self) -> Self::Output {
+        // debug_assert_eq!(**self.n, **summand.n);
+
+        let mut difference = self.clone();
+        *difference.as_modular_mut() -= subtrahend.as_modular();
+
+        difference
+    }
+}
+
 impl<'n, const D: usize, const E: usize> Neg for &Modular<'n, D, E> {
     type Output = Modular<'n, D, E>;
 
     fn neg(self) -> Self::Output {
         &Self::Output::zero(&self.n) - self
+    }
+}
+
+impl<'p, const D: usize, const E: usize> Neg for &PrimeModular<'p, D, E> {
+    type Output = PrimeModular<'p, D, E>;
+
+    fn neg(self) -> Self::Output {
+        &Self::Output::zero(&self.p) - self
     }
 }
 
@@ -355,3 +376,20 @@ impl<'a, 'n, const D: usize, const E: usize> Sub for &'a Montgomery<'n, D, E> {
     }
 }
 
+
+#[cfg(test)]
+mod test {
+    use crate::fixtures::*;
+
+    #[test]
+    fn sub_assign() {
+        let f4 = crate::F4::PRIME.into_convenient();
+
+        let one = Short64::one().modulo(&f4);
+        assert_eq!(crate::F4::DIGIT - one.residue().digit(), 65536);
+
+        let x = Short64::from(19900).modulo(&f4);
+        let minus_x = crate::F4::DIGIT - x.residue().digit();
+        assert_eq!(minus_x, 45637);
+    }
+}

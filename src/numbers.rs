@@ -143,12 +143,14 @@ impl<const D: usize, const E: usize> Prime<D, E> {
     }
 }
 
-pub type ShortPrime<const D: usize> = Prime<D, 0>;
-
 /// [`Unsigned`] with equal limbs (e.g., public key). If only we had `[T; 2*D]`...
 pub type Long<const D: usize> = Unsigned<D, D>;  // duplex with equal limb size
 /// [`Unsigned`] with only one limb (e.g., private prime). Short only in comparison to [`Long`].
 pub type Short<const D: usize> = Unsigned<D, 0>;  // duplex with empty hi limb
+
+pub type ShortOdd<const D: usize> = Odd<D, 0>;
+pub type ShortConvenient<const D: usize> = Convenient<D, 0>;
+pub type ShortPrime<const D: usize> = Prime<D, 0>;
 
 // DO NOT DO THIS
 //
@@ -559,6 +561,10 @@ impl<const D: usize, const E: usize, const L: usize> BigEndian<D, E, L> {
         let mut owned = Self::default();
         owned[..slice.len()].copy_from_slice(slice);
         owned
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        self.deref()
     }
 }
 

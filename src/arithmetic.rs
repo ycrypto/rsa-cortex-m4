@@ -18,8 +18,8 @@ use ref_cast::RefCast;
 use subtle::{Choice, ConditionallySelectable};
 use zeroize::Zeroize;
 
-use crate::{Convenient, Digit, ShortPrime, Unsigned};
-use crate::numbers::Number;
+use crate::{Convenient, Digit, Prime, ShortPrime, Unsigned};
+use crate::numbers::{Bits, Number};
 
 mod shift;
 mod add;
@@ -46,11 +46,59 @@ mod divide;
 ///
 /// On the other hand, if `n` is substantially smaller (e.g., `e`, which has L = 1),
 /// then it would be nice to project `x` down to that size.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Modular<'n, const D: usize, const E: usize> {
     x: Unsigned<D, E>,
     // ring: ModularRing<'n, D, E>,
     n: &'n Convenient<D, E>,
+}
+
+impl<const D: usize, const E: usize> Bits for Modular<'_, D, E> {
+    const BITS: usize = <Unsigned::<D, E> as Bits>::BITS;
+}
+
+#[derive(Clone, Debug)]
+pub struct PrimeModular<'p, const D: usize, const E: usize> {
+    pub(crate) x: Unsigned<D, E>,
+    pub(crate) p: &'p Prime<D, E>,
+}
+
+impl<'p, const D: usize, const E: usize> core::ops::Deref for PrimeModular<'p, D, E> {
+    type Target = Modular<'p, D, E>;
+    fn deref(&self) -> &Self::Target {
+        // &Modular { x: self.x, n: self.p.as_convenient() }
+        unsafe {
+            &*(self as *const Self as *const Self::Target)
+        }
+    }
+}
+
+impl<'p, const D: usize, const E: usize> core::ops::DerefMut for PrimeModular<'p, D, E> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe {
+            &mut *(self as *mut Self as *mut Self::Target)
+        }
+    }
+}
+
+impl<'p, const D: usize, const E: usize> PrimeModular<'p, D, E> {
+    pub fn as_modular(&self) -> &Modular<'p, D, E> {
+        &*self
+    }
+
+    pub fn as_modular_mut(&mut self) -> &mut Modular<'p, D, E> {
+        &mut *self
+    }
+
+    pub fn zero(p: &'p Prime<D, E>) -> Self {
+        Self { x: crate::numbers::Number::zero(), p }
+    }
+
+    /// via Fermat's little theorem
+    pub fn inverse(&self) -> Self {
+        let inv = self.as_modular().power(&self.p.wrapping_sub(&Unsigned::from(2)));
+        Self { x: inv.x, p: Prime::ref_cast(inv.n) }
+    }
 }
 
 #[cfg(feature = "ct-maybe")]
@@ -165,6 +213,10 @@ impl<const D: usize, const E: usize> Unsigned<D, E> {
         Modular { x: self.reduce(n), n }
     }
 
+    pub fn modulo_prime<'p, const F: usize, const G: usize>(&self, p: &'p Prime<F, G>) -> PrimeModular<'p, F, G> {
+        PrimeModular { x: self.reduce(p), p }
+    }
+
     ///// A noncanonical representative of the associated residue class modulo n.
     /////
     ///// The "incomplete reduction" modulo $w^{D + E}$, where $w$ is the digit size
@@ -199,10 +251,6 @@ impl<'n, const D: usize, const E: usize> Modular<'n, D, E> {
     }
 
     pub fn digit_pow(&self, _exponent: crate::Digit) -> Self {
-        todo!();
-    }
-
-    pub fn inverse(&self) -> Self {
         todo!();
     }
 
@@ -241,6 +289,11 @@ impl<'n, const D: usize, const E: usize> Modular<'n, D, E> {
 
     }
 
+    /// Or non-canonical lift
+    pub fn residue(&self) -> &Unsigned<D, E> {
+        &self.x
+    }
+
     pub fn to_montgomery(&self) -> Montgomery<'n, D, E> {
         montgomery::to_montgomery(self)
     }
@@ -263,7 +316,6 @@ impl<'n, const D: usize, const E: usize> Montgomery<'n, D, E> {
     }
 
     pub fn power<const F: usize, const G: usize>(&self, exponent: &Unsigned<F, G>) -> Self {
-        use crate::numbers::Bits;
         let mut x = self.one();
 
         for i in (0..(F + G)).rev() {

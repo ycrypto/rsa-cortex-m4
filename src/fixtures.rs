@@ -42,8 +42,8 @@ pub fn n512() -> Short512 {
 }
 
 pub fn rsa512() -> <Rsa5c as Rsa>::PrivateKey {
-    let p = p256();
-    let q = q256();
+    let p = pp256();
+    let q = qq256();
     let precomputed = (&p, &q).into();
     let public_key = (&p, &q).into();
 
@@ -54,6 +54,11 @@ pub fn rsa512() -> <Rsa5c as Rsa>::PrivateKey {
 /// c = 0xc6629218173d87d4ce2b0c0338b699dec701c1bcff0be39f80bb02fe0a458147
 pub fn c256() -> Short256 {
     Short::from_bytes(&hex!("c6629218173d87d4ce2b0c0338b699dec701c1bcff0be39f80bb02fe0a458147"))
+}
+
+/// Randomly generated 480-bit "message"
+pub fn msg480() -> Short512 {
+    Short::from_bytes(&hex!("6a7f5d4a4ddff708442d837f7dc6ddb098bd44fd68854b691677e7665f81c4e4492f4e4200abf1a7b889006f30bc2fdc3743c94a647f78fe15293367"))
 }
 
 /// A 1024-bit convenient prime.
@@ -75,4 +80,25 @@ pub fn n2048() -> Short2048 {
     Short::from_bytes(&hex!(
         "e3cbc8ff39a3b2e9c5a83ebd25bfc064ddf9ea686ff0f617e3f4108726085162e719d2c8f2058d1edef62edc9233ce281f501b480c462cec9d55c05396c0a8c7b1eced045a62737043effeeed08946296dbbe22d1142a533c7adc9a8e5e68fb74e9c33b5fbe0b71275e8d0a36e53419fa6e143872a64fcbd598d8a68ca3040a3a13bf502e17c6ec8241a5d2a60daf658ada18496111fcd5fa894650435efd153ec3be4d3f0f51511839226550089598efc8186d6b08d9b9b9855dd157cdf038ed1ee3c76f007e94fa70308b5e1c0c53a63b4b40712064891c1af1e05cd6e84354e4f6b5bfdf7a107b3bb87ba2d08781cab7bf0d7de75455cbdb615a2bb41700d"
     ))
+}
+
+#[cfg(test)]
+mod test {
+    use crate::numbers::NumberMut;
+    use super::*;
+
+    #[cfg(feature = "q-inverse")]
+    #[test]
+    fn q_inverse() {
+        let key = rsa512();
+
+        let p = &key.p;
+        let q = &key.q;
+        let q_inv = &key.precomputed.q_inv;
+
+        assert_eq!(
+            (&q.as_odd().modulo(p) * &q_inv.modulo(p)).canonical_lift(),
+            Short256::one(),
+        );
+    }
 }

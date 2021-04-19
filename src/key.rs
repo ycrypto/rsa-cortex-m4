@@ -11,8 +11,8 @@
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
-use crate::{Convenient, Digit, Long, Odd, ShortPrime, Result};
-use crate::numbers::Bits;
+use crate::{Convenient, Digit, Error, F4, Long, Odd, PrimeModular, Short, ShortPrime, Result};
+use crate::numbers::{Bits, NumberMut};
 
 /// RSA public key.
 ///
@@ -22,6 +22,82 @@ use crate::numbers::Bits;
 #[derive(Zeroize)]
 pub struct PublicKey<const D: usize> {
     pub N: Convenient<D, D>,
+}
+
+impl<const D: usize> Bits for PublicKey<D> {
+    const BITS: usize = <Long<D> as Bits>::BITS;
+}
+
+impl<const D: usize> PublicKey<D> {
+    /// [RSAEP][rsaep]
+    ///
+    /// [rsaep]: https://tools.ietf.org/html/rfc8017#section-5.1.1
+    pub fn encryption_primitive(&self, msg: &[u8]) -> Result<Long<D>> {
+
+        // 1.
+        if msg.len()*8 > Self::BITS {
+            return Err(Error);
+        }
+        let m = Long::<D>::from_bytes(msg);
+
+        if m  >= *self.N.as_unsigned() {
+            return Err(Error);
+        }
+
+        let c = m.modulo(&self.N).power(&F4::SHORT).canonical_lift();
+        Ok(c)
+    }
+
+    /// [RSAVP1][rsavp]
+    /// [rsavp]: https://tools.ietf.org/html/rfc8017#section-5.2.2
+    pub fn verification_primitive(&self, signature: &[u8]) -> Result<Long<D>> {
+        self.encryption_primitive(signature)
+    }
+}
+
+impl<const D: usize> PrivateKey<D> {
+    fn q_inv_mod_p(&self) -> PrimeModular<'_, D, 0> {
+        PrimeModular { x: self.precomputed.q_inv.clone(), p: &self.p }
+    }
+
+    /// [RSADP][rsadp]
+    ///
+    /// [rsadp]: https://tools.ietf.org/html/rfc8017#section-5.1.2
+    pub fn decryption_primitive(&self, ciphertext: &[u8]) -> Result<Long<D>> {
+
+        // 1.
+        if ciphertext.len()*8 > Self::BITS {
+            return Err(Error);
+        }
+        let c = Long::<D>::from_bytes(ciphertext);
+
+        if c  >= *self.public_key.N.as_unsigned() {
+            return Err(Error);
+        }
+
+        // 2.a.i.
+        let mp = c.modulo_prime(&self.p).power(&self.precomputed.dp);//.canonical_lift();
+        let long_mq: Long<D> = c.modulo_prime(&self.q).power(&self.precomputed.dq).canonical_lift().to_unsigned().unwrap();
+
+        // 2.a.iii.
+        let h: Long<D> = (&(&mp - &long_mq.modulo_prime(&self.p)) * &self.q_inv_mod_p()).canonical_lift().to_unsigned().unwrap();
+
+
+        // 2.a.iv.
+        let long_q: Long<D> = self.q.as_unsigned().to_unsigned().unwrap();
+        // these wrapping adds and products are all actually not wrapping, as m is "big enough"
+        // TODO: orly? otherwise reduce modulo n
+        let m: Long<D> = long_mq.wrapping_add(&long_q.wrapping_mul(&h));
+
+        Ok(m)
+    }
+
+    /// [RSASP1][rsasp]
+    ///
+    /// [rsasp]: https://tools.ietf.org/html/rfc8017#section-5.2.1
+    pub fn signature_primitive(&self, msg: &[u8]) -> Result<Long<D>> {
+        self.decryption_primitive(msg)
+    }
 }
 
 impl<const D: usize> From<(&ShortPrime<D>, &ShortPrime<D>)> for PublicKey<D> {
@@ -38,6 +114,8 @@ impl<const D: usize> From<(&ShortPrime<D>, &ShortPrime<D>)> for PublicKey<D> {
 pub struct Precomputed<const L: usize> {
     pub(crate) dp: Odd<L, 0>,
     pub(crate) dq: Odd<L, 0>,
+    #[cfg(feature = "q-inverse")]
+    pub(crate) q_inv: Short<L>,
 }
 
 impl<const D: usize> From<(&ShortPrime<D>, &ShortPrime<D>)> for Precomputed<D> {
@@ -47,10 +125,17 @@ impl<const D: usize> From<(&ShortPrime<D>, &ShortPrime<D>)> for Precomputed<D> {
         // We have $e = F4 = 65537$, and want
         // $d_p = e^{-1} mod p$ and $d_q$, the private exponents.
         let (p, q) = prime_pair;
-        let dp = crate::F4::inv_mod(p);
-        let dq = crate::F4::inv_mod(q);
+        let dp = crate::F4::inv_mod(&p.wrapping_sub(&Short::from(1)));
+        let dq = crate::F4::inv_mod(&q.wrapping_sub(&Short::from(1)));
 
-        Self { dp, dq }
+        #[cfg(feature = "q-inverse")]
+        let q_inv = q.modulo_prime(p).inverse().canonical_lift();
+
+        #[cfg(not(feature = "q-inverse"))]
+        return Self { dp, dq };
+
+        #[cfg(feature = "q-inverse")]
+        Self { dp, dq, q_inv }
     }
 }
 
@@ -69,6 +154,11 @@ pub struct PrivateKey<const D: usize> {
     // dq: ModInt<L>,
     pub(crate) precomputed: Precomputed<D>,
     pub(crate) public_key: PublicKey<D>,
+
+}
+
+impl<const D: usize> Bits for PrivateKey<D> {
+    const BITS: usize = <Long<D> as Bits>::BITS;
 }
 
 impl<const D: usize> From<(ShortPrime<D>, ShortPrime<D>)> for PrivateKey<D> {
@@ -88,26 +178,6 @@ impl<const D: usize> From<(ShortPrime<D>, ShortPrime<D>)> for PrivateKey<D> {
 fn generate_prime_pair<const D: usize>() -> (ShortPrime<D>, ShortPrime<D>) {
     todo!();
 }
-
-// fn generate_rsa2k_prime_pair() -> (ShortPrime<4>, ShortPrime<4>) {
-//     use crate::Short;
-//     use crate::numbers::{Convenient, NumberMut};
-
-//     #[cfg(any(target_pointer_width = "32", feature = "u32"))]
-//     let p = Short::<4>::from_slice(
-//         &[0x7cd022f9, 0xab998f98, 0x7ee8dd0c, 0xca27a8bd, 0xbd5ad74a, 0xdf02e961, 0x1af83b2a, 0xddbb94f1]);
-//     #[cfg(all(target_pointer_width = "64", not(feature = "u32")))]
-//     let p = Short::<2>::from_slice(
-//         &[0xab998f987cd022f9, 0xca27a8bd7ee8dd0c, 0xdf02e961bd5ad74a, 0xddbb94f11af83b2a]);
-//     #[cfg(any(target_pointer_width = "32", feature = "u32"))]
-//     let q = Short::<4>::from_slice(
-//         &[0x0721398f, 0xf0e5dc8a, 0x2d2b3f7d, 0xf0292b4e, 0x116bef81, 0x839d2553, 0xccf2db4c, 0xcd58cd8a]);
-//     #[cfg(all(target_pointer_width = "64", not(feature = "u32")))]
-//     let q = Short::<2>::from_slice(
-//         &[0xf0e5dc8a0721398f, 0xf0292b4e2d2b3f7d, 0x839d2553116bef81, 0xcd58cd8accf2db4c]);
-
-//     (ShortPrime(Convenient(Odd(p))), ShortPrime(Convenient(Odd(q))))
-// }
 
 // Since e = 65537 is prime, can use Arazi's inversion formula
 // to calculate `e^{-1} (mod p - 1)`:
@@ -242,7 +312,37 @@ impl Rsa for Rsa5c {
 //     pub N: crate::Unsigned<{R::L}>,
 // }
 
+#[cfg(test)]
+mod test {
+    use crate::fixtures::*;
 
+    #[test]
+    fn primitives() {
+        let msg_ = msg480().to_bytes();
+        let msg = msg_.as_bytes();
+        let private: <Rsa5c as Rsa>::PrivateKey = (pp256(), qq256()).into();
+        let public = &private.public_key;
 
+        // encrypt then decrypt
+        let ciphertext = public.encryption_primitive(msg).unwrap().to_bytes();
+        assert_eq!(
+            &*ciphertext,
+            &hex!("0a5cd90c81e1626b19fa9ccd34d3dcdef1481c72189cbc3c6bced3e426ef8352db3d65691125080a4eb8491804a74789434e3b6292f6d17aa892e229bea4d7e5"),
+        );
 
+        let decrypted = private.decryption_primitive(&ciphertext).unwrap().to_bytes();
+        assert_eq!(msg, &*decrypted);
 
+        // decrypt then encrypt
+        let signature = private.signature_primitive(msg).unwrap().to_bytes();
+        assert_eq!(
+            &*signature,
+            &hex!("af735869c96b330835198115a60598f7b9ce6e9354eda7e20746645ec8c5783b8c4f03c3dd1a538600c8d56f0a7a561137337646cc1183471b5090c39623ec92"),
+        );
+
+        let encrypted = public.encryption_primitive(&signature).unwrap().to_bytes();
+
+        assert_eq!(msg, &*encrypted);
+
+    }
+}
