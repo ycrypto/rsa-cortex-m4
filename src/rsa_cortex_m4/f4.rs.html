@@ -135,6 +135,11 @@
 <span id="116">116</span>
 <span id="117">117</span>
 <span id="118">118</span>
+<span id="119">119</span>
+<span id="120">120</span>
+<span id="121">121</span>
+<span id="122">122</span>
+<span id="123">123</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! All things $F4$</span>
 
@@ -154,6 +159,11 @@
     <span class="doccomment">/// Convenient&lt;1, 0&gt; would mean either 31-bit or 63-bit.</span>
     <span class="kw">pub</span> <span class="kw">const</span> <span class="ident">SHORT</span>: <span class="ident">Short</span><span class="op">&lt;</span><span class="number">1</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">Short</span>::<span class="ident">from_digit</span>(<span class="self">Self</span>::<span class="ident">DIGIT</span>);
     <span class="kw">pub</span> <span class="kw">const</span> <span class="ident">PRIME</span>: <span class="ident">Prime</span><span class="op">&lt;</span><span class="number">1</span>, <span class="number">0</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">Prime</span>(<span class="ident">Convenient</span>(<span class="ident">Odd</span>(<span class="ident">Short</span>::<span class="ident">from_digit</span>(<span class="self">Self</span>::<span class="ident">DIGIT</span>))));
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">minus_one</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Short</span><span class="op">&lt;</span><span class="number">1</span><span class="op">&gt;</span> {
+        <span class="ident">Short</span>::<span class="ident">from</span>(<span class="self">Self</span>::<span class="ident">DIGIT</span> <span class="op">-</span> <span class="number">1</span>)
+
+    }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">prime</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Prime</span><span class="op">&lt;</span><span class="number">1</span>, <span class="number">0</span><span class="op">&gt;</span> {
         <span class="ident">Prime</span>(<span class="ident">Convenient</span>(<span class="ident">Odd</span>(<span class="ident">Short</span>::<span class="ident">from</span>(<span class="self">Self</span>::<span class="ident">DIGIT</span>))))
