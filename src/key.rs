@@ -92,13 +92,59 @@ impl<const D: usize> PrivateKey<D> {
         Ok(m)
     }
 
+    /// This saves calculating and storing the inverse $q^{-1}\text{ mod }p$.
+    ///
+    /// [Source][rsa-improvements]
+    ///
+    /// [rsa-improvements]: https://eprint.iacr.org/2020/1507.pdf#page=13
+    pub fn inversion_free_decryption(&self, ciphertext: &[u8]) -> Result<Long<D>> {
+        // 1.
+        if ciphertext.len()*8 > Self::BITS {
+            return Err(Error);
+        }
+        let c = Long::<D>::from_bytes(ciphertext);
+
+        if c  >= *self.public_key.N.as_unsigned() {
+            return Err(Error);
+        }
+
+        let mp = c.modulo_prime(&self.p).to_montgomery().power(&self.precomputed.dp);
+        let xp = mp.power(&F4::SHORT);
+        let yp = self.q.modulo_prime(&self.p).to_montgomery();
+        let alphap = (&xp * &yp).power(&F4::minus_one());
+        let betap = (&alphap * &yp).power(&self.p.wrapping_sub(&Short::<D>::from(1)).wrapping_sub(&self.precomputed.dp));
+        let mpq_ = (&betap * &xp).to_modular();
+        let mpq = mpq_.residue();
+
+
+        let mq = c.modulo_prime(&self.q).to_montgomery().power(&self.precomputed.dq);
+        let xq = mq.power(&F4::SHORT);
+        let yq = self.p.modulo_prime(&self.q).to_montgomery();
+        let alphaq = (&xq * &yq).power(&F4::minus_one());
+        let betaq = (&alphaq * &yq).power(&self.q.wrapping_sub(&Short::<D>::from(1)).wrapping_sub(&self.precomputed.dq));
+        let mqp_ = (&betaq * &xq).to_modular();
+        let mqp = mqp_.residue();
+
+        let plaintext = (
+            &(mpq * self.q.as_unsigned()).to_unsigned::<D, D>().unwrap().modulo(&self.public_key.N)
+            +
+            &(mqp * self.p.as_unsigned()).to_unsigned::<D, D>().unwrap().modulo(&self.public_key.N)
+        ).canonical_lift();
+
+        Ok(plaintext)
+
+
+    }
     /// [RSASP1][rsasp]
     ///
     /// [rsasp]: https://tools.ietf.org/html/rfc8017#section-5.2.1
     pub fn signature_primitive(&self, msg: &[u8]) -> Result<Long<D>> {
         self.decryption_primitive(msg)
     }
+
 }
+
+
 
 impl<const D: usize> From<(&ShortPrime<D>, &ShortPrime<D>)> for PublicKey<D> {
     fn from(prime_pair: (&ShortPrime<D>, &ShortPrime<D>)) -> Self {
@@ -344,5 +390,18 @@ mod test {
 
         assert_eq!(msg, &*encrypted);
 
+    }
+
+    #[test]
+    fn inversion_free() {
+        let msg = msg480().to_bytes();
+        let ciphertext = msg.as_bytes();
+        let private: <Rsa5c as Rsa>::PrivateKey = (pp256(), qq256()).into();
+
+        let plaintext = private.inversion_free_decryption(&ciphertext).unwrap().to_bytes();
+        assert_eq!(
+            &*plaintext,
+            &hex!("af735869c96b330835198115a60598f7b9ce6e9354eda7e20746645ec8c5783b8c4f03c3dd1a538600c8d56f0a7a561137337646cc1183471b5090c39623ec92"),
+        );
     }
 }

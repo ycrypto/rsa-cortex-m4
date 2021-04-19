@@ -17,6 +17,11 @@ impl F4 {
     pub const SHORT: Short<1> = Short::from_digit(Self::DIGIT);
     pub const PRIME: Prime<1, 0> = Prime(Convenient(Odd(Short::from_digit(Self::DIGIT))));
 
+    pub fn minus_one() -> Short<1> {
+        Short::from(Self::DIGIT - 1)
+
+    }
+
     pub fn prime() -> Prime<1, 0> {
         Prime(Convenient(Odd(Short::from(Self::DIGIT))))
     }
