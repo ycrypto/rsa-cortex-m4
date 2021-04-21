@@ -23,7 +23,7 @@ functions.</p>
 mid-level traits which expose more fine-grained functionality, and
 low-level traits intended to only be used by algorithm implementations:</p>
 <ul>
-<li><strong>High-level convenience traits</strong>: <a href="../digest/trait.Digest.html" title="Digest"><code>Digest</code></a>, <a href="../digest/trait.DynDigest.html" title="DynDigest"><code>DynDigest</code></a>. They are wrappers
+<li><strong>High-level convenience traits</strong>: <a href="../digest/trait.Digest.html" title="Digest"><code>Digest</code></a>, [<code>DynDigest</code>]. They are wrappers
 around lower-level traits for most common hash-function use-cases.</li>
 <li><strong>Mid-level traits</strong>: <a href="../digest/trait.Update.html" title="Update"><code>Update</code></a>, <a href="../digest/trait.BlockInput.html" title="BlockInput"><code>BlockInput</code></a>, <a href="../digest/trait.Reset.html" title="Reset"><code>Reset</code></a>, <a href="../digest/trait.FixedOutput.html" title="FixedOutput"><code>FixedOutput</code></a>,
 <a href="../digest/trait.VariableOutput.html" title="VariableOutput"><code>VariableOutput</code></a>, <a href="../digest/trait.ExtendableOutput.html" title="ExtendableOutput"><code>ExtendableOutput</code></a>. These traits atomically describe
@@ -49,8 +49,6 @@ which is usually enabled by default by hash implementation crates.</p>
 <table><tr class="module-item"><td><a class="trait" href="trait.BlockInput.html" title="digest::BlockInput trait">BlockInput</a></td><td class="docblock-short"><p>Trait to indicate that digest function processes data in blocks of size
 <code>BlockSize</code>.</p>
 </td></tr><tr class="module-item"><td><a class="trait" href="trait.Digest.html" title="digest::Digest trait">Digest</a></td><td class="docblock-short"><p>The <code>Digest</code> trait specifies an interface common for digest functions.</p>
-</td></tr><tr class="module-item"><td><a class="trait" href="trait.DynDigest.html" title="digest::DynDigest trait">DynDigest</a></td><td class="docblock-short"><p>The <code>DynDigest</code> trait is a modification of <code>Digest</code> trait suitable
-for trait objects.</p>
 </td></tr><tr class="module-item"><td><a class="trait" href="trait.ExtendableOutput.html" title="digest::ExtendableOutput trait">ExtendableOutput</a></td><td class="docblock-short"><p>Trait which describes extendable-output functions (XOF).</p>
 </td></tr><tr class="module-item"><td><a class="trait" href="trait.ExtendableOutputDirty.html" title="digest::ExtendableOutputDirty trait">ExtendableOutputDirty</a></td><td class="docblock-short"><p>Trait for extendable-output function (XOF) implementations to use to
 retrieve the hash output.</p>
