@@ -486,11 +486,14 @@ mod test {
         let private_key: <Rsa5c as Rsa>::PrivateKey = (pp256(), qq256()).into();
         let public_key = private_key.public_key;
         let padding = Pkcs1::<sha2::Sha256>::default();
-
         let signature = &hex!(
             "106799571a87cdb31386fbd2d0ea7642bb196eba7979e64197fe51e1f4b1c32547988d33647144f518bb6c6ae986589f30102e5c6c9e720d0ccb376e2374fc14");
-
         assert!(public_key.verify(msg, signature, padding).is_ok());
+
+        let padding = Pkcs1::<sha2::Sha256>::default();
+        let fake_signature = &hex!(
+            "206799571a87cdb31386fbd2d0ea7642bb196eba7979e64197fe51e1f4b1c32547988d33647144f518bb6c6ae986589f30102e5c6c9e720d0ccb376e2374fc14");
+        assert!(public_key.verify(msg, fake_signature, padding).is_err());
     }
 
     #[test]
@@ -525,6 +528,45 @@ mod test {
         let decrypted = private_key.decrypt(ciphertext, padding).unwrap();
 
         assert_eq!(decrypted.as_bytes(), b"yamnord");
+    }
+
+    #[test]
+    #[cfg(feature = "sha2-sig")]
+    fn sign_pss_sha256() {
+        use crate::padding::*;
+
+        let msg = b"yamnord";
+        let private_key: <Rsa1k as Rsa>::PrivateKey = (p512(), q512()).into();
+        let padding = Pss::<sha2::Sha256>::default();
+        let rng = crate::fixtures::CountingRng(0);
+
+        let signature = private_key.sign(msg, padding, rng).unwrap().to_bytes();
+
+        // verified verifies with pypa/cryptography
+        // panic!("{}", delog::hex_str!(signature.as_bytes(), 64, sep: "\n"));
+        assert_eq!(signature.as_bytes(), &hex!(
+            "1175F263795CBA7C1435D75FFF806D225C465DB55B483074BEDD43544847C33C8151043DBE0F852C7A6AAF0ACB822F9385C1EB590FC5575B254DB63719D2296BDD59C54798EBD849375084ED56BCC210620F750BB71782FA1FAE2D51EB6CFA6B59F65AC49D2F6F817EDA904CBA408CC3B18B485925BA4957DFA598BB9393CE68"
+        ));
+    }
+
+    #[test]
+    #[cfg(feature = "sha2-sig")]
+    fn verify_pss_sha256() {
+        use crate::padding::*;
+
+        let msg = b"yamnord";
+        let private_key: <Rsa1k as Rsa>::PrivateKey = (p512(), q512()).into();
+        let public_key = private_key.public_key;
+
+        let padding = Pss::<sha2::Sha256>::default();
+        let signature = &hex!(
+            "70d29c8318a6498fa87e663c435a89112c628c54972563397f5ba1cf01f1c13d708bf7564e99d710c2e20fdf002a0132c003c43097366eef74e4df0bac5631b2bd2d8a1d921d0ee2049e3a4e000d1872c275859bfd8dccac0f60e2db739762dc26b9436d9684226accda54a7268e3aa460082085241632e0d54dedc475cf744d");
+        assert!(public_key.verify(msg, signature, padding).is_ok());
+
+        let padding = Pss::<sha2::Sha256>::default();
+        let fake_signature = &hex!(
+            "80d29c8318a6498fa87e663c435a89112c628c54972563397f5ba1cf01f1c13d708bf7564e99d710c2e20fdf002a0132c003c43097366eef74e4df0bac5631b2bd2d8a1d921d0ee2049e3a4e000d1872c275859bfd8dccac0f60e2db739762dc26b9436d9684226accda54a7268e3aa460082085241632e0d54dedc475cf744d");
+        assert!(public_key.verify(msg, fake_signature, padding).is_err());
     }
 
     #[test]

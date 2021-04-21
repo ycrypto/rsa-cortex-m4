@@ -170,6 +170,7 @@ pub trait SignaturePadding<const D: usize> {
 ///           +-------------------+----------+--+
 /// __________________________________________________________________
 /// ```
+#[derive(Clone, Default)]
 pub struct Pss<H: Digest> { __: PhantomData<H> }
 
 impl<H: Digest, const D: usize> SignaturePadding<D> for Pss<H> {
@@ -194,6 +195,7 @@ impl<H: Digest, const D: usize> SignaturePadding<D> for Pss<H> {
         padded[8..][..h_len].copy_from_slice(&msg_hash);
 
         let mut rng = rng;
+        // need salt a second time later
         let mut salt = digest::generic_array::GenericArray::<u8, H::OutputSize>::default();
         rng.fill_bytes(&mut salt);
         padded[(8 + h_len)..][..h_len].copy_from_slice(&salt);
@@ -205,12 +207,13 @@ impl<H: Digest, const D: usize> SignaturePadding<D> for Pss<H> {
 
         // 7.
         let db_len = em_len - h_len - 1;
+        let ps_len = em_len - 2*h_len - 2;
         let (data_block, _hash_and_bc) = padded.split_at_mut(db_len);
-        data_block[..(db_len - h_len - 1)].fill(0);
 
         // 8.
-        data_block[db_len - h_len - 1] = 1;
-        data_block[(db_len - h_len)..].copy_from_slice(&salt);
+        data_block[..ps_len].fill(0);
+        data_block[ps_len] = 1;
+        data_block[ps_len + 1..].copy_from_slice(&salt);
 
         // 9. + 10.
         xor_mgf1(&mut hasher, &hash, data_block);
@@ -219,6 +222,7 @@ impl<H: Digest, const D: usize> SignaturePadding<D> for Pss<H> {
         // skip?!
 
         // 12.
+        padded[db_len..][..h_len].copy_from_slice(&hash);
         padded[em_len - 1] = 0xbc;
 
         // 13.
