@@ -326,8 +326,8 @@ impl<const L: usize> PrivateKey<L> {
 // 256 bits, in digits, for the primes of a private key
 const RSA_5C_DIGITS: usize = 512 / <Digit as Bits>::BITS / 2;
 
-// // 512 bits, in digits, for the primes of a private key
-// const RSA_1K_DIGITS: usize = 1024 / <Digit as Bits>::BITS / 2;
+// 512 bits, in digits, for the primes of a private key
+const RSA_1K_DIGITS: usize = 1024 / <Digit as Bits>::BITS / 2;
 
 // // 1024 bits, in digits, for the primes of a private key
 // const RSA_2K_DIGITS: usize = 2048 / <Digit as Bits>::BITS / 2;
@@ -350,7 +350,7 @@ pub trait Rsa: sealed::Rsa {
 mod sealed {
     pub trait Rsa {}
     impl Rsa for super::Rsa5c {}
-    // impl Rsa for super::Rsa1k {}
+    impl Rsa for super::Rsa1k {}
     // impl Rsa for super::Rsa2k {}
     // impl Rsa for super::Rsa3k {}
     // impl Rsa for super::Rsa4k {}
@@ -372,9 +372,13 @@ impl Rsa for Rsa5c {
 }
 
 
-///// The RSA cryptosystem with 1024 bit size keys.
-//pub struct Rsa1k;
-//impl Rsa<RSA_1K_DIGITS> for Rsa1k {}
+/// The RSA cryptosystem with 1024 bit size keys.
+pub struct Rsa1k;
+impl Rsa for Rsa1k {
+    const DIGITS: usize = RSA_1K_DIGITS;
+    type PrivateKey = PrivateKey<RSA_1K_DIGITS>;
+    type PublicKey = PublicKey<RSA_1K_DIGITS>;
+}
 
 ///// The RSA cryptosystem with 2048 bit size keys.
 /////
@@ -482,7 +486,6 @@ mod test {
         let private_key: <Rsa5c as Rsa>::PrivateKey = (pp256(), qq256()).into();
         let public_key = private_key.public_key;
         let padding = Pkcs1::<sha2::Sha256>::default();
-        // let rng = crate::fixtures::CountingRng(0);
 
         let signature = &hex!(
             "106799571a87cdb31386fbd2d0ea7642bb196eba7979e64197fe51e1f4b1c32547988d33647144f518bb6c6ae986589f30102e5c6c9e720d0ccb376e2374fc14");
@@ -518,6 +521,39 @@ mod test {
         let ciphertext = &hex!("aacdd6f270b8e1135e57813986ba5524bcc1a5a628b8fc34784977605956b5f328ae4df33cc005c5e9523dd41cafcdfc8ab6fc2106f63809de589fae2d382b52");
         let private_key: <Rsa5c as Rsa>::PrivateKey = (pp256(), qq256()).into();
         let padding = Pkcs1::<sha2::Sha256>::default();
+
+        let decrypted = private_key.decrypt(ciphertext, padding).unwrap();
+
+        assert_eq!(decrypted.as_bytes(), b"yamnord");
+    }
+
+    #[test]
+    #[cfg(feature = "sha2-sig")]
+    fn encrypt_oaep_sha256() {
+        use crate::padding::*;
+
+        let plaintext = b"yamnord";
+        let private_key: <Rsa1k as Rsa>::PrivateKey = (p512(), q512()).into();
+        let public_key = private_key.public_key;
+        let padding = Oaep::<sha2::Sha256>::default();
+        let rng = crate::fixtures::CountingRng(0);
+
+        let encrypted = public_key.encrypt(plaintext, padding, rng).unwrap().to_bytes();
+
+        // verified decryptable with pypa/cryptography
+        // panic!("{}", delog::hex_str!(encrypted.as_bytes(), 64, sep: "\n"));
+        assert_eq!(encrypted.as_bytes(), &hex!(
+            "09875B38DF82E6DB9FB7503C4DF5D1CA59D980E2B22AA29E4E4BE9E34C8266A72844F57BE1B9EF141A5199ED34A60B1B8868C368F6AFDE65C8F33761043C084524BBB8187D93114CAD1297F9DE72B1299894B73EF0F1CD2E84E9C49AA12616BD2E881DA218FBF75539665A51C3524A20F155D16094B0584BAAE8D4B363739DCA"));
+    }
+
+    #[test]
+    #[cfg(feature = "sha2-sig")]
+    fn decrypt_oaep_sha256() {
+        use crate::padding::*;
+
+        let ciphertext = &hex!("94821467f7b7fd569379bdf682582a3c6ab8a3b47e12d026af3edfccbf7983a5327b82f7ae3fb9ba750b0e71e0108f4ad91d5ace86502d68737fe3da297a8ef96d8735a261afe61844d8668410ea917284065073dbf4542318f8becfbe5b44dafb6592176049323f4a3d3f9267855d3e5729fd8adf7ef41594fb9e2af7db2254");
+        let private_key: <Rsa1k as Rsa>::PrivateKey = (p512(), q512()).into();
+        let padding = Oaep::<sha2::Sha256>::default();
 
         let decrypted = private_key.decrypt(ciphertext, padding).unwrap();
 

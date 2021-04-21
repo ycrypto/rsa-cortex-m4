@@ -302,6 +302,7 @@ impl<H: Digest, const D: usize> SignaturePadding<D> for Pss<H> {
 /// then encoded message EM = masked seed || masked DB,
 /// where first the random seed (of length hash::output) masks the DB,
 /// and then the DB masks the seed
+#[derive(Default)]
 pub struct Oaep<H: Digest> { __: PhantomData<H> }
 
 impl<H: Digest, const D: usize> EncryptionPadding<D> for Oaep<H> {
@@ -311,33 +312,34 @@ impl<H: Digest, const D: usize> EncryptionPadding<D> for Oaep<H> {
         // 2. check message not too long
         let em_len = <Long<D> as Bits>::BITS / 8;
         let h_len = H::OutputSize::to_usize();
-        if msg.len() + 2*h_len + 1 > em_len {
+        if msg.len() + 2*h_len + 2 > em_len {
             return Err(Error::MessageTooLong);
         }
 
         // 3. construct datablock
         let mut padded_buffer = BigEndianLong::<D>::default();
-        let padded = &mut padded_buffer;
+        let padded = &mut padded_buffer[1..];
 
         let (seed, data_block) = padded.split_at_mut(h_len);
 
         let mut hasher = H::new();
         data_block[..h_len].copy_from_slice(&hasher.finalize_reset());
-        let ps_len = em_len - msg.len() - 2*h_len - 1;
-        data_block[h_len + ps_len] = 0x1;
-        // data_block[h_len + ps_len + 1..].copy_from_slice(msg);
-        data_block[em_len - msg.len()..].copy_from_slice(msg);
+
+        let back_msg_and_one = data_block.len() - msg.len() - 1;
+        let after_padding = &mut data_block[back_msg_and_one..];
+        after_padding[0] = 0x1;
+        after_padding[1..].copy_from_slice(msg);
 
         // 6.
         let mut rng = rng;
         rng.fill_bytes(seed);
 
         // 7. + 8. calculate maskedDB
-        hasher.reset();
+        // hasher.reset();
         xor_mgf1(&mut hasher, seed, data_block);
 
         // 9. + 10. calculate maskedSeed
-        hasher.reset();
+        // hasher.reset();
         xor_mgf1(&mut hasher, data_block, seed);
 
         Ok(Long::from_bytes(padded))
@@ -350,12 +352,18 @@ impl<H: Digest, const D: usize> EncryptionPadding<D> for Oaep<H> {
         let h_len = H::OutputSize::to_usize();
 
         // 2.
-        if em_len < 2 * h_len {
+        if em_len < 2 * h_len + 2 {
             return Err(Error::DecodingError);
         }
 
         // 3.
         let data_as_bytes: &mut [u8] = &mut unpadded.data;
+
+        if data_as_bytes[0] != 0 {
+            return Err(Error::DecodingError);
+        }
+        let data_as_bytes = &mut data_as_bytes[1..];
+
         // still masked at this point
         let (seed, data_block) = data_as_bytes.split_at_mut(h_len);
 
@@ -367,6 +375,7 @@ impl<H: Digest, const D: usize> EncryptionPadding<D> for Oaep<H> {
         xor_mgf1(&mut hasher, seed, data_block);
 
         // 8. + 10.
+        // assert_eq!(&data_block[..h_len], hasher.finalize().as_ref());
         if &data_block[..h_len] != hasher.finalize().as_ref() {
             return Err(Error::DecodingError);
         }
@@ -382,7 +391,7 @@ impl<H: Digest, const D: usize> EncryptionPadding<D> for Oaep<H> {
             return Err(Error::DecodingError);
         }
 
-        unpadded.offset = 2*h_len + ps_len + 1;
+        unpadded.offset = 2*h_len + ps_len + 2;
 
         Ok(unpadded)
     }
