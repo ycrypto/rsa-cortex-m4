@@ -619,6 +619,10 @@
 <span id="600">600</span>
 <span id="601">601</span>
 <span id="602">602</span>
+<span id="603">603</span>
+<span id="604">604</span>
+<span id="605">605</span>
+<span id="606">606</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="attribute">#![<span class="ident">allow</span>(<span class="ident">unstable_name_collisions</span>)]</span>  <span class="comment">// for Bits::BITS</span>
 <span class="doccomment">//! Padding for RSA.</span>
@@ -792,6 +796,7 @@
 <span class="doccomment">///           +-------------------+----------+--+</span>
 <span class="doccomment">/// __________________________________________________________________</span>
 <span class="doccomment">/// ```</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Default</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Pss</span><span class="op">&lt;</span><span class="ident">H</span>: <span class="ident">Digest</span><span class="op">&gt;</span> { <span class="ident">__</span>: <span class="ident">PhantomData</span><span class="op">&lt;</span><span class="ident">H</span><span class="op">&gt;</span> }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">H</span>: <span class="ident">Digest</span>, <span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">SignaturePadding</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Pss</span><span class="op">&lt;</span><span class="ident">H</span><span class="op">&gt;</span> {
@@ -816,6 +821,7 @@
         <span class="ident">padded</span>[<span class="number">8</span>..][..<span class="ident">h_len</span>].<span class="ident">copy_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">msg_hash</span>);
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">rng</span> <span class="op">=</span> <span class="ident">rng</span>;
+        <span class="comment">// need salt a second time later</span>
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">salt</span> <span class="op">=</span> <span class="ident">digest</span>::<span class="ident">generic_array</span>::<span class="ident">GenericArray</span>::<span class="op">&lt;</span><span class="ident">u8</span>, <span class="ident">H</span>::<span class="ident">OutputSize</span><span class="op">&gt;</span>::<span class="ident">default</span>();
         <span class="ident">rng</span>.<span class="ident">fill_bytes</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">salt</span>);
         <span class="ident">padded</span>[(<span class="number">8</span> <span class="op">+</span> <span class="ident">h_len</span>)..][..<span class="ident">h_len</span>].<span class="ident">copy_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">salt</span>);
@@ -827,12 +833,13 @@
 
         <span class="comment">// 7.</span>
         <span class="kw">let</span> <span class="ident">db_len</span> <span class="op">=</span> <span class="ident">em_len</span> <span class="op">-</span> <span class="ident">h_len</span> <span class="op">-</span> <span class="number">1</span>;
+        <span class="kw">let</span> <span class="ident">ps_len</span> <span class="op">=</span> <span class="ident">em_len</span> <span class="op">-</span> <span class="number">2</span><span class="kw-2">*</span><span class="ident">h_len</span> <span class="op">-</span> <span class="number">2</span>;
         <span class="kw">let</span> (<span class="ident">data_block</span>, <span class="ident">_hash_and_bc</span>) <span class="op">=</span> <span class="ident">padded</span>.<span class="ident">split_at_mut</span>(<span class="ident">db_len</span>);
-        <span class="ident">data_block</span>[..(<span class="ident">db_len</span> <span class="op">-</span> <span class="ident">h_len</span> <span class="op">-</span> <span class="number">1</span>)].<span class="ident">fill</span>(<span class="number">0</span>);
 
         <span class="comment">// 8.</span>
-        <span class="ident">data_block</span>[<span class="ident">db_len</span> <span class="op">-</span> <span class="ident">h_len</span> <span class="op">-</span> <span class="number">1</span>] <span class="op">=</span> <span class="number">1</span>;
-        <span class="ident">data_block</span>[(<span class="ident">db_len</span> <span class="op">-</span> <span class="ident">h_len</span>)..].<span class="ident">copy_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">salt</span>);
+        <span class="ident">data_block</span>[..<span class="ident">ps_len</span>].<span class="ident">fill</span>(<span class="number">0</span>);
+        <span class="ident">data_block</span>[<span class="ident">ps_len</span>] <span class="op">=</span> <span class="number">1</span>;
+        <span class="ident">data_block</span>[<span class="ident">ps_len</span> <span class="op">+</span> <span class="number">1</span>..].<span class="ident">copy_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">salt</span>);
 
         <span class="comment">// 9. + 10.</span>
         <span class="ident">xor_mgf1</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">hasher</span>, <span class="kw-2">&amp;</span><span class="ident">hash</span>, <span class="ident">data_block</span>);
@@ -841,6 +848,7 @@
         <span class="comment">// skip?!</span>
 
         <span class="comment">// 12.</span>
+        <span class="ident">padded</span>[<span class="ident">db_len</span>..][..<span class="ident">h_len</span>].<span class="ident">copy_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">hash</span>);
         <span class="ident">padded</span>[<span class="ident">em_len</span> <span class="op">-</span> <span class="number">1</span>] <span class="op">=</span> <span class="number">0xbc</span>;
 
         <span class="comment">// 13.</span>
