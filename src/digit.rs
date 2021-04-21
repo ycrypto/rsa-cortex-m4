@@ -1,3 +1,5 @@
+#![allow(unstable_name_collisions)]  // for Bits::BITS
+
 // used just to enable the intra-doc links
 #[allow(unused_imports)]
 use crate::{Unsigned, numbers::Number};
@@ -28,6 +30,7 @@ compile_error!("Either feature u32 or feature u64, not both!");
 #[cfg(feature = "u32")]
 mod digit {
     pub type Digit = u32;
+    // pub type DigitBytes = [u8; 4];
     pub type DoubleDigit = u64;
     pub type SignedDoubleDigit = i64;
 }
@@ -35,6 +38,7 @@ mod digit {
 #[cfg(feature = "u64")]
 mod digit {
     pub type Digit = u64;
+    // pub type DigitBytes = [u8; 8];
     pub type DoubleDigit = u128;
     pub type SignedDoubleDigit = i128;
 }

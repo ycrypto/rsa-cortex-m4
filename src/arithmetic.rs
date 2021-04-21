@@ -19,7 +19,7 @@ use subtle::{Choice, ConditionallySelectable};
 use zeroize::Zeroize;
 
 use crate::{Convenient, Digit, Prime, ShortPrime, Unsigned};
-use crate::numbers::{Bits, Number};
+use crate::numbers::Bits;
 
 mod shift;
 mod add;
@@ -233,7 +233,7 @@ impl<const D: usize, const E: usize> Unsigned<D, E> {
     /// Cf. [`Modular`].
     pub fn reduce<const F: usize, const G: usize>(&self, n: &Unsigned<F, G>) -> Unsigned<F, G> {
         let remainder = self % n;
-        assert!(!remainder.is_zero());
+        // assert!(!remainder.is_zero());
         remainder
     }
 

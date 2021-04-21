@@ -442,6 +442,13 @@ pub trait NumberMut: Number + DerefMut {
         swapped
     }
 
+    fn random(rng: impl rand_core::CryptoRng + rand_core::RngCore) -> Self {
+        let mut random = Self::default();
+        let mut rng = rng;
+        rng.fill_bytes(unsafe { core::slice::from_raw_parts_mut(&mut random[0] as *mut _ as _, Self::BITS / 8) });
+        random
+    }
+
 }
 
 // /// This datum has multiple limbs, and they're all differently sized ;)
@@ -537,6 +544,8 @@ impl<const D: usize, const E: usize> From<[Digit; D]> for Unsigned<D, E> {
 #[derive(Default)]
 // #[derive(RefCast)]
 pub struct BigEndian<const D: usize, const E: usize, const L: usize>(Array<D, E, L>);
+pub type BigEndianLong<const D: usize> = BigEndian<D, D, 1>;
+pub type BigEndianShort<const D: usize> = BigEndian<D, D, 1>;
 
 // #[repr(transparent)]
 // // #[derive(RefCast)]

@@ -37,15 +37,15 @@
 //!
 //!  TODO TODO TODO: For RSASSA PKCS1-v1_5, need to ASN.1-encode the hash :/
 
-use core::{marker::PhantomData, ops::Deref};
+use core::marker::PhantomData;
 
 use digest::{Digest, generic_array::typenum::Unsigned};
 #[cfg(any(feature = "sha1", feature = "sha2"))]
 use hex_literal::hex;
 use rand_core::{CryptoRng, RngCore};
 
-use crate::{Digit, Long};
-use crate::numbers::{Bits, Number, NumberMut};
+use crate::Long;
+use crate::numbers::{BigEndianLong, Bits, NumberMut};
 
 /// The spec has a few error cases.
 ///
@@ -83,36 +83,37 @@ pub fn xor_mgf1<H: Digest>(hasher: &mut H, seed: &[u8], data: &mut [u8]) {
 /// Helper type to convert between the big-endian bytes representation
 /// in the spec and our internal little-endian digits representation.
 pub struct Unpadded<const D: usize> {
-    data: Long<D>,
+    data: BigEndianLong<D>,
     offset: usize,
 }
 
 impl<const D: usize> Unpadded<D> {
     pub fn as_bytes(&self) -> &[u8] {
-        &digit_slice_as_byte_slice(&self.data)[self.offset..]
+        &self.data[self.offset..]
+        // &digit_slice_as_byte_slice(&self.data)[self.offset..]
     }
 }
 
-impl<const D: usize> Deref for Unpadded<D> {
-    type Target = [u8];
-    fn deref(&self) -> &Self::Target {
-        self.as_bytes()
-    }
-}
+// impl<const D: usize> Deref for Unpadded<D> {
+//     type Target = [u8];
+//     fn deref(&self) -> &Self::Target {
+//         self.as_bytes()
+//     }
+// }
 
-pub(crate) fn digit_slice_as_byte_slice(digits: &[Digit]) -> &[u8] {
-    unsafe { core::slice::from_raw_parts(
-        digits.as_ptr() as *const _ as *const _,
-        digits.len() * (Digit::BITS as usize / 8),
-    ) }
-}
+// pub(crate) fn digit_slice_as_byte_slice(digits: &[Digit]) -> &[u8] {
+//     unsafe { core::slice::from_raw_parts(
+//         digits.as_ptr() as *const _ as *const _,
+//         digits.len() * (Digit::BITS as usize / 8),
+//     ) }
+// }
 
-pub(crate) fn mut_digit_slice_as_mut_byte_slice(digits: &mut [Digit]) -> &mut [u8] {
-    unsafe { core::slice::from_raw_parts_mut(
-        digits.as_mut_ptr() as *mut _ as *mut _,
-        digits.len() * (Digit::BITS as usize / 8),
-    ) }
-}
+// pub(crate) fn mut_digit_slice_as_mut_byte_slice(digits: &mut [Digit]) -> &mut [u8] {
+//     unsafe { core::slice::from_raw_parts_mut(
+//         digits.as_mut_ptr() as *mut _ as *mut _,
+//         digits.len() * (Digit::BITS as usize / 8),
+//     ) }
+// }
 
 /// Padding usable for encryption and decryption.
 pub trait EncryptionPadding<const D: usize> {
@@ -186,8 +187,8 @@ impl<H: Digest, const D: usize> SignaturePadding<D> for Pss<H> {
         }
 
         // 4. + 5.
-        let mut padded_buffer = Long::<D>::zero();
-        let padded = mut_digit_slice_as_mut_byte_slice(&mut padded_buffer);
+        let mut padded_buffer = BigEndianLong::<D>::default();
+        let padded = &mut padded_buffer;
         debug_assert!(8 + 2*h_len <= em_len);
 
         padded[8..][..h_len].copy_from_slice(&msg_hash);
@@ -221,14 +222,14 @@ impl<H: Digest, const D: usize> SignaturePadding<D> for Pss<H> {
         padded[em_len - 1] = 0xbc;
 
         // 13.
-        Ok(padded_buffer.swap_order())
+        Ok(Long::from_bytes(padded))
     }
 
     fn verify(msg: &[u8], padded: &Long<D>) -> Result<()> {
         // The main purpose of this exercise is to extract the salt
         // that was used during signing.
 
-        let mut unpadded = Unpadded { data: padded.clone().swap_order(), offset: 0 };
+        let mut unpadded = Unpadded { data: padded.to_bytes(), offset: 0 };
 
         // 2.
         let mut hasher = H::new();
@@ -243,7 +244,7 @@ impl<H: Digest, const D: usize> SignaturePadding<D> for Pss<H> {
         }
 
         // 4.
-        let data_as_bytes = mut_digit_slice_as_mut_byte_slice(&mut unpadded.data);
+        let data_as_bytes: &mut [u8] = &mut unpadded.data;
         if data_as_bytes[em_len - 1] != 0xbc {
             return Err(Error::Inconsistent);
         }
@@ -315,8 +316,8 @@ impl<H: Digest, const D: usize> EncryptionPadding<D> for Oaep<H> {
         }
 
         // 3. construct datablock
-        let mut padded_buffer = Long::<D>::zero();
-        let padded = mut_digit_slice_as_mut_byte_slice(&mut padded_buffer);
+        let mut padded_buffer = BigEndianLong::<D>::default();
+        let padded = &mut padded_buffer;
 
         let (seed, data_block) = padded.split_at_mut(h_len);
 
@@ -339,11 +340,11 @@ impl<H: Digest, const D: usize> EncryptionPadding<D> for Oaep<H> {
         hasher.reset();
         xor_mgf1(&mut hasher, data_block, seed);
 
-        Ok(padded_buffer.swap_order())
+        Ok(Long::from_bytes(padded))
     }
 
     fn unpad(padded: &Long<D>) -> Result<Unpadded<D>> {
-        let mut unpadded = Unpadded { data: padded.clone().swap_order(), offset: 0 };
+        let mut unpadded = Unpadded { data: padded.to_bytes(), offset: 0 };
 
         let em_len = <Long<D> as Bits>::BITS / 8;
         let h_len = H::OutputSize::to_usize();
@@ -354,7 +355,7 @@ impl<H: Digest, const D: usize> EncryptionPadding<D> for Oaep<H> {
         }
 
         // 3.
-        let data_as_bytes = mut_digit_slice_as_mut_byte_slice(&mut unpadded.data);
+        let data_as_bytes: &mut [u8] = &mut unpadded.data;
         // still masked at this point
         let (seed, data_block) = data_as_bytes.split_at_mut(h_len);
 
@@ -397,49 +398,63 @@ impl<H: Digest, const D: usize> EncryptionPadding<D> for Oaep<H> {
 ///
 ///  "encoded message", where the padding string PS is at least 8 bytes,
 ///  all non-zeros, and fills out the block.
-pub struct Pkcs1V1_5<H: Digest> { __: PhantomData<H> }
+#[derive(Default)]
+pub struct Pkcs1<H: Digest> { __: PhantomData<H> }
+
+#[repr(u8)]
+enum Pkcs1Mode {
+    Signing = 0x1,
+    Encryption = 0x2,
+}
 
 // Called by encryption with a non-zero random filler,
 // by signing with a constant 0xFF filler.
 fn pkcs1_v1_5_pad<const D: usize>(
-    msg_prefix: &[u8],
+    der_prefix: &[u8],
     msg: &[u8],
-    em_prefix: &[u8],
+    mode: Pkcs1Mode,
     filler: impl FnMut(&mut u8),
 ) -> Result<Long<D>> {
     // debug_assert!(D > 8);
 
-    // let k = Long::<D>::BITS / 8;
-    let em_len = <Long<D> as Bits>::BITS / 8;
-    let msg_len = msg_prefix.len() + msg.len();
-    if msg_len + 9 + em_prefix.len() > em_len {
+    let em_len = Long::<D>::BITS / 8;
+
+    let msg_len = der_prefix.len() + msg.len();
+    if msg_len + 11 > em_len {
         return Err(Error::MessageTooLong);
     }
 
-    let mut encoded = Long::<D>::zero();
-    let as_bytes: &mut [u8] = unsafe { core::slice::from_raw_parts_mut(
-        &mut encoded.as_mut_ptr() as *mut _ as *mut _,
-        em_len,
-    ) };
+    let mut buffer = BigEndianLong::<D>::default();
+    let all_bytes: &mut [u8] = &mut buffer;
+    all_bytes[1] = mode as u8;
 
-    // https://tools.ietf.org/html/rfc2313#section-8.1
-    as_bytes[1..][..em_prefix.len()].copy_from_slice(em_prefix);
-    let padding_string_len = em_len - msg_len - 2 - em_prefix.len();
-    as_bytes[1 + em_prefix.len()..][..padding_string_len].iter_mut().for_each(filler);
+    let (padding_string, payload) = all_bytes.split_at_mut(em_len - msg_len - 1);
+    let padding_string = &mut padding_string[2..];
+    let payload = &mut payload[1..];
 
-    as_bytes[em_len - msg_len..][..msg_prefix.len()].copy_from_slice(msg_prefix);
-    as_bytes[em_len - msg_len + msg_prefix.len()..].copy_from_slice(msg);
+    padding_string.iter_mut().for_each(filler);
+    payload[..der_prefix.len()].copy_from_slice(der_prefix);
+    payload[der_prefix.len()..].copy_from_slice(msg);
 
-    Ok(encoded.swap_order())
+
+    // // https://tools.ietf.org/html/rfc2313#section-8.1
+    // as_bytes[..em_prefix.len()].copy_from_slice(em_prefix);
+    // let padding_string_len = em_len - msg_len - 2 - em_prefix.len();
+    // as_bytes[em_prefix.len()..][..padding_string_len].iter_mut().for_each(filler);
+
+    // as_bytes[em_len - msg_len..][..msg_prefix.len()].copy_from_slice(msg_prefix);
+    // as_bytes[em_len - msg_len + msg_prefix.len()..].copy_from_slice(msg);
+
+    Ok(Long::from_bytes(all_bytes))
 }
 
-impl<H: Digest, const D: usize> EncryptionPadding<D> for Pkcs1V1_5<H> {
+impl<H: Digest, const D: usize> EncryptionPadding<D> for Pkcs1<H> {
     fn pad(
         msg: &[u8],
         rng: impl CryptoRng + RngCore,
     ) -> Result<Long<D>> {
         let mut rng = rng;
-        pkcs1_v1_5_pad(&[], msg, &[2u8], |byte: &mut u8| {
+        pkcs1_v1_5_pad(&[], msg, Pkcs1Mode::Encryption, |byte: &mut u8| {
             let mut trial = [0u8; 1];
             loop {
                 rng.fill_bytes(&mut trial);
@@ -452,21 +467,31 @@ impl<H: Digest, const D: usize> EncryptionPadding<D> for Pkcs1V1_5<H> {
     }
 
     fn unpad(padded: &Long<D>) -> Result<Unpadded<D>> {
-        let mut unpadded = Unpadded { data: padded.clone().swap_order(), offset: 0 };
+        Self::unpad_mode(padded, Pkcs1Mode::Encryption)
+    }
+}
 
-        let data_as_bytes = digit_slice_as_byte_slice(&unpadded.data);
+impl<H: Digest> Pkcs1<H> {
+    fn unpad_mode<const D: usize>(padded: &Long<D>, mode: Pkcs1Mode) -> Result<Unpadded<D>> {
+        // panic!("paddy: {:?}", padded);
+        let mut unpadded = Unpadded { data: padded.to_bytes(), offset: 0 };
 
-        if data_as_bytes.len() < 10 {
+        let data: &mut [u8] = &mut unpadded.data;
+        // panic!("paddy: {:?}", data_as_bytes);
+
+        if data.len() < 10 {
             return Err(Error::DecodingError);
         }
 
-        if unpadded[0] != 2 {
+        if data[0] != 0 || data[1] != mode as u8 {
+            // panic!("voila: {:?}", data);
             return Err(Error::DecodingError);
         }
 
-        unpadded.offset = data_as_bytes.iter().enumerate()
-            .find(|(_, digit)| **digit != 0)
-            .map(|(i, _)| i + 1)
+        const PADDING_START: usize = 2;
+        unpadded.offset = data[PADDING_START..].iter().enumerate()
+            .find(|(_, byte)| **byte == 0)
+            .map(|(i, _)| i + 1 + PADDING_START)
             .ok_or(Error::DecodingError)?;
         Ok(unpadded)
     }
@@ -516,17 +541,28 @@ impl Asn1Digest for sha2::Sha512 {
     const ASN1_PREFIX: &'static [u8] = SHA512_PREFIX;
 }
 
-impl<H: Asn1Digest, const D: usize> SignaturePadding<D> for Pkcs1V1_5<H> {
+impl<H: Asn1Digest, const D: usize> SignaturePadding<D> for Pkcs1<H> {
     fn pad(
         msg: &[u8],
         _rng: impl CryptoRng + RngCore,
     ) -> Result<Long<D>> {
-        pkcs1_v1_5_pad(H::ASN1_PREFIX, msg, &[0u8, 1u8], |byte: &mut u8| *byte = 0xFF)
+        let mut hasher = H::new();
+        hasher.update(msg);
+        let hashed_msg = hasher.finalize();
+        pkcs1_v1_5_pad(H::ASN1_PREFIX, &hashed_msg, Pkcs1Mode::Signing, |byte: &mut u8| *byte = 0xFF)
     }
 
-    fn verify(msg: &[u8], padded: &Long<D>) -> Result<()> {
+    fn verify(msg: &[u8], verifier: &Long<D>) -> Result<()> {
         // No Bleichenbacher06 for us!
-        (<Self as EncryptionPadding<D>>::unpad(padded)?.deref() == msg)
+        // https://tools.ietf.org/html/rfc8017#section-8.2.2
+        let mut hasher = H::new();
+        hasher.update(msg);
+        let hashed_msg = hasher.finalize();
+
+        let padded_hashed_msg: Long<D> = pkcs1_v1_5_pad(
+            H::ASN1_PREFIX, &hashed_msg, Pkcs1Mode::Signing, |byte: &mut u8| *byte = 0xFF)?;
+
+        (*verifier == padded_hashed_msg)
             .then(|| ())
             .ok_or(Error::Inconsistent)
     }

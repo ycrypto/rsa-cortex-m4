@@ -63,7 +63,7 @@ pub use numbers::{Convenient, Long, Odd, Prime, Short, ShortPrime, Unsigned};
 // pub(crate) use numbers::{Array, Number ,NumberMut};
 
 pub mod padding;
-pub use padding::{Oaep, Pss, Pkcs1V1_5};
+pub use padding::{Oaep, Pss, Pkcs1};
 mod primitive;
 
 

@@ -13,6 +13,7 @@ use zeroize::Zeroize;
 
 use crate::{Convenient, Digit, Error, F4, Long, Odd, PrimeModular, Short, ShortPrime, Result};
 use crate::numbers::{Bits, NumberMut};
+use crate::padding::{EncryptionPadding, SignaturePadding, Unpadded};
 
 /// RSA public key.
 ///
@@ -49,10 +50,33 @@ impl<const D: usize> PublicKey<D> {
     }
 
     /// [RSAVP1][rsavp]
+    ///
     /// [rsavp]: https://tools.ietf.org/html/rfc8017#section-5.2.2
     pub fn verification_primitive(&self, signature: &[u8]) -> Result<Long<D>> {
         self.encryption_primitive(signature)
     }
+
+    /// Encrypt a plaintext with respect to a padding method.
+    pub fn encrypt<P, R>(&self, plaintext: &[u8], _: P, rng: R) -> Result<Long<D>>
+    where
+        P: EncryptionPadding<D>,
+        R: CryptoRng + RngCore,
+    {
+        let padded = P::pad(plaintext, rng).map_err(|_| Error)?;
+        self.encryption_primitive(&padded.to_bytes())
+    }
+
+    /// Verify a signature with respect to a padding method.
+    // pub fn verify<P, R>(&self, msg: &[u8], signature: &Long<D>, _: P) -> Result<()>
+    pub fn verify<P>(&self, msg: &[u8], signature: &[u8], _: P) -> Result<()>
+    where
+        P: SignaturePadding<D>,
+    {
+        // let verifier = self.verification_primitive(&signature.to_bytes())?;
+        let verifier = self.verification_primitive(signature)?;
+        P::verify(msg, &verifier).map_err(|_| Error)
+    }
+
 }
 
 impl<const D: usize> PrivateKey<D> {
@@ -60,10 +84,14 @@ impl<const D: usize> PrivateKey<D> {
         PrimeModular { x: self.precomputed.q_inv.clone(), p: &self.p }
     }
 
+    pub fn decryption_primitive(&self, ciphertext: &[u8]) -> Result<Long<D>> {
+        self.inversion_free_decryption(ciphertext)
+    }
+
     /// [RSADP][rsadp]
     ///
     /// [rsadp]: https://tools.ietf.org/html/rfc8017#section-5.1.2
-    pub fn decryption_primitive(&self, ciphertext: &[u8]) -> Result<Long<D>> {
+    pub fn classic_decryption_primitive(&self, ciphertext: &[u8]) -> Result<Long<D>> {
 
         // 1.
         if ciphertext.len()*8 > Self::BITS {
@@ -98,12 +126,12 @@ impl<const D: usize> PrivateKey<D> {
     ///
     /// [rsa-improvements]: https://eprint.iacr.org/2020/1507.pdf#page=13
     pub fn inversion_free_decryption(&self, ciphertext: &[u8]) -> Result<Long<D>> {
-        // 1.
+
         if ciphertext.len()*8 > Self::BITS {
             return Err(Error);
         }
-        let c = Long::<D>::from_bytes(ciphertext);
 
+        let c = Long::<D>::from_bytes(ciphertext);
         if c  >= *self.public_key.N.as_unsigned() {
             return Err(Error);
         }
@@ -115,7 +143,6 @@ impl<const D: usize> PrivateKey<D> {
         let betap = (&alphap * &yp).power(&self.p.wrapping_sub(&Short::<D>::from(1)).wrapping_sub(&self.precomputed.dp));
         let mpq_ = (&betap * &xp).to_modular();
         let mpq = mpq_.residue();
-
 
         let mq = c.modulo_prime(&self.q).to_montgomery().power(&self.precomputed.dq);
         let xq = mq.power(&F4::SHORT);
@@ -132,9 +159,53 @@ impl<const D: usize> PrivateKey<D> {
         ).canonical_lift();
 
         Ok(plaintext)
-
-
     }
+
+    /// As also explained in [Improvements...][rsa-improvements],
+    /// it is easy to blind the factors.
+    ///
+    /// [rsa-improvements]: https://eprint.iacr.org/2020/1507.pdf#page=14
+    pub fn blinded_inversion_free_decryption(&self, rng: impl rand_core::CryptoRng + rand_core::RngCore, ciphertext: &[u8])
+        -> Result<Long<D>> {
+
+        if ciphertext.len()*8 > Self::BITS {
+            return Err(Error);
+        }
+
+        let c = Long::<D>::from_bytes(ciphertext);
+        if c  >= *self.public_key.N.as_unsigned() {
+            return Err(Error);
+        }
+
+        let r = Short::<D>::random(rng);
+
+        let mp = c.modulo_prime(&self.p).to_montgomery().power(&self.precomputed.dp);
+        let xp = mp.power(&F4::SHORT);
+        let yp = (self.q.as_unsigned() * &r).to_unsigned::<D, D>().unwrap().modulo_prime(&self.p).to_montgomery();
+        let alphap = (&xp * &yp).power(&F4::minus_one());
+        let betap = (&alphap * &yp).power(&self.p.wrapping_sub(&Short::<D>::from(1)).wrapping_sub(&self.precomputed.dp));
+        let mpq_ = (&betap * &xp).to_modular();
+        let mpq = mpq_.residue();
+
+        let mq = c.modulo_prime(&self.q).to_montgomery().power(&self.precomputed.dq);
+        let xq = mq.power(&F4::SHORT);
+        let yq = (self.p.as_unsigned() * &r).to_unsigned::<D, D>().unwrap().modulo_prime(&self.q).to_montgomery();
+        let alphaq = (&xq * &yq).power(&F4::minus_one());
+        let betaq = (&alphaq * &yq).power(&self.q.wrapping_sub(&Short::<D>::from(1)).wrapping_sub(&self.precomputed.dq));
+        let mqp_ = (&betaq * &xq).to_modular();
+        let mqp = mqp_.residue();
+
+        let plaintext_divided_by_r =
+            &(mpq * self.q.as_unsigned()).to_unsigned::<D, D>().unwrap().modulo(&self.public_key.N)
+            +
+            &(mqp * self.p.as_unsigned()).to_unsigned::<D, D>().unwrap().modulo(&self.public_key.N)
+        ;
+
+        let plaintext = (&plaintext_divided_by_r * &r.modulo(&self.public_key.N)).canonical_lift();
+
+        Ok(plaintext)
+    }
+
     /// [RSASP1][rsasp]
     ///
     /// [rsasp]: https://tools.ietf.org/html/rfc8017#section-5.2.1
@@ -142,9 +213,26 @@ impl<const D: usize> PrivateKey<D> {
         self.decryption_primitive(msg)
     }
 
+    /// Sign a message with respect to a padding method.
+    pub fn sign<P, R>(&self, msg: &[u8], _padding: P, rng: R) -> Result<Long<D>>
+    where
+        P: SignaturePadding<D>,
+        R: CryptoRng + RngCore,
+    {
+        let padded = P::pad(msg, rng).map_err(|_| Error)?;
+        self.signature_primitive(&padded.to_bytes())
+    }
+
+    /// Decrypt a ciphertext with respect to a padding method.
+    pub fn decrypt<P>(&self, ciphertext: &[u8], _: P) -> Result<Unpadded<D>>
+    where
+        P: EncryptionPadding<D>,
+    {
+        let padded_plaintext = self.decryption_primitive(ciphertext)?;
+        P::unpad(&padded_plaintext).map_err(|_| Error)
+    }
+
 }
-
-
 
 impl<const D: usize> From<(&ShortPrime<D>, &ShortPrime<D>)> for PublicKey<D> {
     fn from(prime_pair: (&ShortPrime<D>, &ShortPrime<D>)) -> Self {
@@ -224,50 +312,6 @@ impl<const D: usize> From<(ShortPrime<D>, ShortPrime<D>)> for PrivateKey<D> {
 fn generate_prime_pair<const D: usize>() -> (ShortPrime<D>, ShortPrime<D>) {
     todo!();
 }
-
-// Since e = 65537 is prime, can use Arazi's inversion formula
-// to calculate `e^{-1} (mod p - 1)`:
-// https://link.springer.com/content/pdf/10.1007%2F978-3-540-45238-6_20.pdf
-//
-// Namely, `d = (1 + f(-f^{e -2} mod e) / e`.
-//
-// This integer division by e can further be simplified by calculating
-// `e^{-1} (mod 2^|f|)`, where |f| is the bit length, and multiplying by that.
-//
-// This can be hard-coded, or calculated with modular operations as explained in Fig. 1 (loc. cit.)
-//
-//
-//
-// Example:
-// ? e = 0x10001;
-// ? p = nextprime(random(10^25))
-// %30 = 7924439388568400274982499
-// ? f = p - 1;
-//
-// Goal is to calculate:
-// ? lift(1/Mod(e, p - 1))
-// %33 = 666365342789576177051567
-//
-// Note that lift(Mod(f, e)) is a u32
-// ? lift(-Mod(f, e)^(e - 2))
-// %37 = 5511
-//
-// ? lift((1 + f*Mod(5511, 2^fbits))*(1/Mod(e, 2^fbits)))
-// %41 = 666365342789576177051567
-
-// fn precompute_e_inverse<const L: usize>(p: &ShortPrime<L>) -> Unsigned<L> {
-//     let f = p - 1;
-//     // Since e is prime, inverses modulo e are given by x.power(e - 2), by Fermat's little theorem.
-//     // This is a small exponentiation to the 0xFFFF
-//     let f_inverse_mod_e = f.modulo(crate::E).to_the(crate::E - 2);
-
-//     let minus_f_inverse = (-(f.modulo(crate::E).pow(65536))).lift();
-//     let denominator = 1 + f * (-f_inverse_mod_e).lift();
-
-//     // This integer division
-//     let e_inverse = denominator / e;
-//     e_inverse
-// }
 
 impl<const L: usize> PrivateKey<L> {
      pub fn new(_rng: impl RngCore + CryptoRng) -> Result<Self> {
@@ -403,5 +447,81 @@ mod test {
             &*plaintext,
             &hex!("af735869c96b330835198115a60598f7b9ce6e9354eda7e20746645ec8c5783b8c4f03c3dd1a538600c8d56f0a7a561137337646cc1183471b5090c39623ec92"),
         );
+
+        let rng = crate::fixtures::CountingRng(0);
+        let plaintext_using_blinding = private.blinded_inversion_free_decryption(rng, &ciphertext).unwrap().to_bytes();
+        assert_eq!(
+            &*plaintext_using_blinding,
+            &hex!("af735869c96b330835198115a60598f7b9ce6e9354eda7e20746645ec8c5783b8c4f03c3dd1a538600c8d56f0a7a561137337646cc1183471b5090c39623ec92"),
+        );
     }
+
+    #[test]
+    #[cfg(feature = "sha2-sig")]
+    fn sign_pkcs1_sha256() {
+        use crate::padding::*;
+
+        let msg = b"yamnord";
+        let private_key: <Rsa5c as Rsa>::PrivateKey = (pp256(), qq256()).into();
+        let padding = Pkcs1::<sha2::Sha256>::default();
+        let rng = crate::fixtures::CountingRng(0);
+
+        let signature = private_key.sign(msg, padding, rng).unwrap().to_bytes();
+
+        assert_eq!(signature.as_bytes(), &hex!(
+            "106799571a87cdb31386fbd2d0ea7642bb196eba7979e64197fe51e1f4b1c32547988d33647144f518bb6c6ae986589f30102e5c6c9e720d0ccb376e2374fc14"
+        ));
+    }
+
+    #[test]
+    #[cfg(feature = "sha2-sig")]
+    fn verify_pkcs1_sha256() {
+        use crate::padding::*;
+
+        let msg = b"yamnord";
+        let private_key: <Rsa5c as Rsa>::PrivateKey = (pp256(), qq256()).into();
+        let public_key = private_key.public_key;
+        let padding = Pkcs1::<sha2::Sha256>::default();
+        // let rng = crate::fixtures::CountingRng(0);
+
+        let signature = &hex!(
+            "106799571a87cdb31386fbd2d0ea7642bb196eba7979e64197fe51e1f4b1c32547988d33647144f518bb6c6ae986589f30102e5c6c9e720d0ccb376e2374fc14");
+
+        assert!(public_key.verify(msg, signature, padding).is_ok());
+    }
+
+    #[test]
+    #[cfg(feature = "sha2-sig")]
+    fn encrypt_pkcs1_sha256() {
+        use crate::padding::*;
+
+        let plaintext = b"yamnord";
+        let private_key: <Rsa5c as Rsa>::PrivateKey = (pp256(), qq256()).into();
+        let public_key = private_key.public_key;
+        let padding = Pkcs1::<sha2::Sha256>::default();
+        let rng = crate::fixtures::CountingRng(0);
+
+        let encrypted = public_key.encrypt(plaintext, padding, rng).unwrap().to_bytes();
+
+        // verified decryptable with pypa/cryptography
+        // panic!("{}", delog::hex_str!(encrypted.as_bytes(), 64));
+        assert_eq!(encrypted.as_bytes(), &hex!(
+            "CF5A24F277F41575C22E785E669B1813B6DCD2F0BEAF87AB640A134247202D99D63EC56D6AD21864E558A0C923AFD6361297F8D18B3DB4FF8CB2CD4AE09FB755"
+        ));
+    }
+
+    #[test]
+    #[cfg(feature = "sha2-sig")]
+    fn decrypt_pkcs1_sha256() {
+        use crate::padding::*;
+
+        let ciphertext = &hex!("aacdd6f270b8e1135e57813986ba5524bcc1a5a628b8fc34784977605956b5f328ae4df33cc005c5e9523dd41cafcdfc8ab6fc2106f63809de589fae2d382b52");
+        let private_key: <Rsa5c as Rsa>::PrivateKey = (pp256(), qq256()).into();
+        let padding = Pkcs1::<sha2::Sha256>::default();
+
+        let decrypted = private_key.decrypt(ciphertext, padding).unwrap();
+
+        assert_eq!(decrypted.as_bytes(), b"yamnord");
+    }
+
 }
