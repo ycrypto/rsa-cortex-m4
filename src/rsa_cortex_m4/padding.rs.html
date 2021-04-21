@@ -574,6 +574,42 @@
 <span id="555">555</span>
 <span id="556">556</span>
 <span id="557">557</span>
+<span id="558">558</span>
+<span id="559">559</span>
+<span id="560">560</span>
+<span id="561">561</span>
+<span id="562">562</span>
+<span id="563">563</span>
+<span id="564">564</span>
+<span id="565">565</span>
+<span id="566">566</span>
+<span id="567">567</span>
+<span id="568">568</span>
+<span id="569">569</span>
+<span id="570">570</span>
+<span id="571">571</span>
+<span id="572">572</span>
+<span id="573">573</span>
+<span id="574">574</span>
+<span id="575">575</span>
+<span id="576">576</span>
+<span id="577">577</span>
+<span id="578">578</span>
+<span id="579">579</span>
+<span id="580">580</span>
+<span id="581">581</span>
+<span id="582">582</span>
+<span id="583">583</span>
+<span id="584">584</span>
+<span id="585">585</span>
+<span id="586">586</span>
+<span id="587">587</span>
+<span id="588">588</span>
+<span id="589">589</span>
+<span id="590">590</span>
+<span id="591">591</span>
+<span id="592">592</span>
+<span id="593">593</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="attribute">#![<span class="ident">allow</span>(<span class="ident">unstable_name_collisions</span>)]</span>  <span class="comment">// for Bits::BITS</span>
 <span class="doccomment">//! Padding for RSA.</span>
@@ -614,15 +650,15 @@
 <span class="doccomment">//!</span>
 <span class="doccomment">//!  TODO TODO TODO: For RSASSA PKCS1-v1_5, need to ASN.1-encode the hash :/</span>
 
-<span class="kw">use</span> <span class="ident">core</span>::{<span class="ident">marker</span>::<span class="ident">PhantomData</span>, <span class="ident">ops</span>::<span class="ident">Deref</span>};
+<span class="kw">use</span> <span class="ident">core</span>::<span class="ident">marker</span>::<span class="ident">PhantomData</span>;
 
 <span class="kw">use</span> <span class="ident">digest</span>::{<span class="ident">Digest</span>, <span class="ident">generic_array</span>::<span class="ident">typenum</span>::<span class="ident">Unsigned</span>};
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;sha1&quot;</span>, <span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;sha2&quot;</span>))]</span>
 <span class="kw">use</span> <span class="ident">hex_literal</span>::<span class="ident">hex</span>;
 <span class="kw">use</span> <span class="ident">rand_core</span>::{<span class="ident">CryptoRng</span>, <span class="ident">RngCore</span>};
 
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">Digit</span>, <span class="ident">Long</span>};
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">numbers</span>::{<span class="ident">Bits</span>, <span class="ident">Number</span>, <span class="ident">NumberMut</span>};
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">Long</span>;
+<span class="kw">use</span> <span class="kw">crate</span>::<span class="ident">numbers</span>::{<span class="ident">BigEndianLong</span>, <span class="ident">Bits</span>, <span class="ident">NumberMut</span>};
 
 <span class="doccomment">/// The spec has a few error cases.</span>
 <span class="doccomment">///</span>
@@ -660,36 +696,37 @@
 <span class="doccomment">/// Helper type to convert between the big-endian bytes representation</span>
 <span class="doccomment">/// in the spec and our internal little-endian digits representation.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Unpadded</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> {
-    <span class="ident">data</span>: <span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>,
+    <span class="ident">data</span>: <span class="ident">BigEndianLong</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>,
     <span class="ident">offset</span>: <span class="ident">usize</span>,
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">Unpadded</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> {
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">as_bytes</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span>[<span class="ident">u8</span>] {
-        <span class="kw-2">&amp;</span><span class="ident">digit_slice_as_byte_slice</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">data</span>)[<span class="self">self</span>.<span class="ident">offset</span>..]
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">data</span>[<span class="self">self</span>.<span class="ident">offset</span>..]
+        <span class="comment">// &amp;digit_slice_as_byte_slice(&amp;self.data)[self.offset..]</span>
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">Deref</span> <span class="kw">for</span> <span class="ident">Unpadded</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> {
-    <span class="kw">type</span> <span class="ident">Target</span> <span class="op">=</span> [<span class="ident">u8</span>];
-    <span class="kw">fn</span> <span class="ident">deref</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="self">Self</span>::<span class="ident">Target</span> {
-        <span class="self">self</span>.<span class="ident">as_bytes</span>()
-    }
-}
+<span class="comment">// impl&lt;const D: usize&gt; Deref for Unpadded&lt;D&gt; {</span>
+<span class="comment">//     type Target = [u8];</span>
+<span class="comment">//     fn deref(&amp;self) -&gt; &amp;Self::Target {</span>
+<span class="comment">//         self.as_bytes()</span>
+<span class="comment">//     }</span>
+<span class="comment">// }</span>
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">digit_slice_as_byte_slice</span>(<span class="ident">digits</span>: <span class="kw-2">&amp;</span>[<span class="ident">Digit</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span>[<span class="ident">u8</span>] {
-    <span class="kw">unsafe</span> { <span class="ident">core</span>::<span class="ident">slice</span>::<span class="ident">from_raw_parts</span>(
-        <span class="ident">digits</span>.<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="kw">_</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="kw">_</span>,
-        <span class="ident">digits</span>.<span class="ident">len</span>() <span class="op">*</span> (<span class="ident">Digit</span>::<span class="ident">BITS</span> <span class="kw">as</span> <span class="ident">usize</span> <span class="op">/</span> <span class="number">8</span>),
-    ) }
-}
+<span class="comment">// pub(crate) fn digit_slice_as_byte_slice(digits: &amp;[Digit]) -&gt; &amp;[u8] {</span>
+<span class="comment">//     unsafe { core::slice::from_raw_parts(</span>
+<span class="comment">//         digits.as_ptr() as *const _ as *const _,</span>
+<span class="comment">//         digits.len() * (Digit::BITS as usize / 8),</span>
+<span class="comment">//     ) }</span>
+<span class="comment">// }</span>
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">mut_digit_slice_as_mut_byte_slice</span>(<span class="ident">digits</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">Digit</span>]) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">u8</span>] {
-    <span class="kw">unsafe</span> { <span class="ident">core</span>::<span class="ident">slice</span>::<span class="ident">from_raw_parts_mut</span>(
-        <span class="ident">digits</span>.<span class="ident">as_mut_ptr</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="kw">_</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="kw">_</span>,
-        <span class="ident">digits</span>.<span class="ident">len</span>() <span class="op">*</span> (<span class="ident">Digit</span>::<span class="ident">BITS</span> <span class="kw">as</span> <span class="ident">usize</span> <span class="op">/</span> <span class="number">8</span>),
-    ) }
-}
+<span class="comment">// pub(crate) fn mut_digit_slice_as_mut_byte_slice(digits: &amp;mut [Digit]) -&gt; &amp;mut [u8] {</span>
+<span class="comment">//     unsafe { core::slice::from_raw_parts_mut(</span>
+<span class="comment">//         digits.as_mut_ptr() as *mut _ as *mut _,</span>
+<span class="comment">//         digits.len() * (Digit::BITS as usize / 8),</span>
+<span class="comment">//     ) }</span>
+<span class="comment">// }</span>
 
 <span class="doccomment">/// Padding usable for encryption and decryption.</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">EncryptionPadding</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> {
@@ -763,8 +800,8 @@
         }
 
         <span class="comment">// 4. + 5.</span>
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">padded_buffer</span> <span class="op">=</span> <span class="ident">Long</span>::<span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>::<span class="ident">zero</span>();
-        <span class="kw">let</span> <span class="ident">padded</span> <span class="op">=</span> <span class="ident">mut_digit_slice_as_mut_byte_slice</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">padded_buffer</span>);
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">padded_buffer</span> <span class="op">=</span> <span class="ident">BigEndianLong</span>::<span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>::<span class="ident">default</span>();
+        <span class="kw">let</span> <span class="ident">padded</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">padded_buffer</span>;
         <span class="macro">debug_assert</span><span class="macro">!</span>(<span class="number">8</span> <span class="op">+</span> <span class="number">2</span><span class="kw-2">*</span><span class="ident">h_len</span> <span class="op">&lt;</span><span class="op">=</span> <span class="ident">em_len</span>);
 
         <span class="ident">padded</span>[<span class="number">8</span>..][..<span class="ident">h_len</span>].<span class="ident">copy_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">msg_hash</span>);
@@ -798,14 +835,14 @@
         <span class="ident">padded</span>[<span class="ident">em_len</span> <span class="op">-</span> <span class="number">1</span>] <span class="op">=</span> <span class="number">0xbc</span>;
 
         <span class="comment">// 13.</span>
-        <span class="prelude-val">Ok</span>(<span class="ident">padded_buffer</span>.<span class="ident">swap_order</span>())
+        <span class="prelude-val">Ok</span>(<span class="ident">Long</span>::<span class="ident">from_bytes</span>(<span class="ident">padded</span>))
     }
 
     <span class="kw">fn</span> <span class="ident">verify</span>(<span class="ident">msg</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">padded</span>: <span class="kw-2">&amp;</span><span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="comment">// The main purpose of this exercise is to extract the salt</span>
         <span class="comment">// that was used during signing.</span>
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">unpadded</span> <span class="op">=</span> <span class="ident">Unpadded</span> { <span class="ident">data</span>: <span class="ident">padded</span>.<span class="ident">clone</span>().<span class="ident">swap_order</span>(), <span class="ident">offset</span>: <span class="number">0</span> };
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">unpadded</span> <span class="op">=</span> <span class="ident">Unpadded</span> { <span class="ident">data</span>: <span class="ident">padded</span>.<span class="ident">to_bytes</span>(), <span class="ident">offset</span>: <span class="number">0</span> };
 
         <span class="comment">// 2.</span>
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">hasher</span> <span class="op">=</span> <span class="ident">H</span>::<span class="ident">new</span>();
@@ -820,7 +857,7 @@
         }
 
         <span class="comment">// 4.</span>
-        <span class="kw">let</span> <span class="ident">data_as_bytes</span> <span class="op">=</span> <span class="ident">mut_digit_slice_as_mut_byte_slice</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">unpadded</span>.<span class="ident">data</span>);
+        <span class="kw">let</span> <span class="ident">data_as_bytes</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">u8</span>] <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">unpadded</span>.<span class="ident">data</span>;
         <span class="kw">if</span> <span class="ident">data_as_bytes</span>[<span class="ident">em_len</span> <span class="op">-</span> <span class="number">1</span>] <span class="op">!</span><span class="op">=</span> <span class="number">0xbc</span> {
             <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>::<span class="ident">Inconsistent</span>);
         }
@@ -892,8 +929,8 @@
         }
 
         <span class="comment">// 3. construct datablock</span>
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">padded_buffer</span> <span class="op">=</span> <span class="ident">Long</span>::<span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>::<span class="ident">zero</span>();
-        <span class="kw">let</span> <span class="ident">padded</span> <span class="op">=</span> <span class="ident">mut_digit_slice_as_mut_byte_slice</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">padded_buffer</span>);
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">padded_buffer</span> <span class="op">=</span> <span class="ident">BigEndianLong</span>::<span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>::<span class="ident">default</span>();
+        <span class="kw">let</span> <span class="ident">padded</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">padded_buffer</span>;
 
         <span class="kw">let</span> (<span class="ident">seed</span>, <span class="ident">data_block</span>) <span class="op">=</span> <span class="ident">padded</span>.<span class="ident">split_at_mut</span>(<span class="ident">h_len</span>);
 
@@ -916,11 +953,11 @@
         <span class="ident">hasher</span>.<span class="ident">reset</span>();
         <span class="ident">xor_mgf1</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">hasher</span>, <span class="ident">data_block</span>, <span class="ident">seed</span>);
 
-        <span class="prelude-val">Ok</span>(<span class="ident">padded_buffer</span>.<span class="ident">swap_order</span>())
+        <span class="prelude-val">Ok</span>(<span class="ident">Long</span>::<span class="ident">from_bytes</span>(<span class="ident">padded</span>))
     }
 
     <span class="kw">fn</span> <span class="ident">unpad</span>(<span class="ident">padded</span>: <span class="kw-2">&amp;</span><span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Unpadded</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">unpadded</span> <span class="op">=</span> <span class="ident">Unpadded</span> { <span class="ident">data</span>: <span class="ident">padded</span>.<span class="ident">clone</span>().<span class="ident">swap_order</span>(), <span class="ident">offset</span>: <span class="number">0</span> };
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">unpadded</span> <span class="op">=</span> <span class="ident">Unpadded</span> { <span class="ident">data</span>: <span class="ident">padded</span>.<span class="ident">to_bytes</span>(), <span class="ident">offset</span>: <span class="number">0</span> };
 
         <span class="kw">let</span> <span class="ident">em_len</span> <span class="op">=</span> <span class="op">&lt;</span><span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> <span class="kw">as</span> <span class="ident">Bits</span><span class="op">&gt;</span>::<span class="ident">BITS</span> <span class="op">/</span> <span class="number">8</span>;
         <span class="kw">let</span> <span class="ident">h_len</span> <span class="op">=</span> <span class="ident">H</span>::<span class="ident">OutputSize</span>::<span class="ident">to_usize</span>();
@@ -931,7 +968,7 @@
         }
 
         <span class="comment">// 3.</span>
-        <span class="kw">let</span> <span class="ident">data_as_bytes</span> <span class="op">=</span> <span class="ident">mut_digit_slice_as_mut_byte_slice</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">unpadded</span>.<span class="ident">data</span>);
+        <span class="kw">let</span> <span class="ident">data_as_bytes</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">u8</span>] <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">unpadded</span>.<span class="ident">data</span>;
         <span class="comment">// still masked at this point</span>
         <span class="kw">let</span> (<span class="ident">seed</span>, <span class="ident">data_block</span>) <span class="op">=</span> <span class="ident">data_as_bytes</span>.<span class="ident">split_at_mut</span>(<span class="ident">h_len</span>);
 
@@ -974,49 +1011,63 @@
 <span class="doccomment">///</span>
 <span class="doccomment">///  &quot;encoded message&quot;, where the padding string PS is at least 8 bytes,</span>
 <span class="doccomment">///  all non-zeros, and fills out the block.</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Pkcs1V1_5</span><span class="op">&lt;</span><span class="ident">H</span>: <span class="ident">Digest</span><span class="op">&gt;</span> { <span class="ident">__</span>: <span class="ident">PhantomData</span><span class="op">&lt;</span><span class="ident">H</span><span class="op">&gt;</span> }
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Default</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Pkcs1</span><span class="op">&lt;</span><span class="ident">H</span>: <span class="ident">Digest</span><span class="op">&gt;</span> { <span class="ident">__</span>: <span class="ident">PhantomData</span><span class="op">&lt;</span><span class="ident">H</span><span class="op">&gt;</span> }
+
+<span class="attribute">#[<span class="ident">repr</span>(<span class="ident">u8</span>)]</span>
+<span class="kw">enum</span> <span class="ident">Pkcs1Mode</span> {
+    <span class="ident">Signing</span> <span class="op">=</span> <span class="number">0x1</span>,
+    <span class="ident">Encryption</span> <span class="op">=</span> <span class="number">0x2</span>,
+}
 
 <span class="comment">// Called by encryption with a non-zero random filler,</span>
 <span class="comment">// by signing with a constant 0xFF filler.</span>
 <span class="kw">fn</span> <span class="ident">pkcs1_v1_5_pad</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span>(
-    <span class="ident">msg_prefix</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
+    <span class="ident">der_prefix</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
     <span class="ident">msg</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-    <span class="ident">em_prefix</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
+    <span class="ident">mode</span>: <span class="ident">Pkcs1Mode</span>,
     <span class="ident">filler</span>: <span class="kw">impl</span> <span class="ident">FnMut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">u8</span>),
 ) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span><span class="op">&gt;</span> {
     <span class="comment">// debug_assert!(D &gt; 8);</span>
 
-    <span class="comment">// let k = Long::&lt;D&gt;::BITS / 8;</span>
-    <span class="kw">let</span> <span class="ident">em_len</span> <span class="op">=</span> <span class="op">&lt;</span><span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> <span class="kw">as</span> <span class="ident">Bits</span><span class="op">&gt;</span>::<span class="ident">BITS</span> <span class="op">/</span> <span class="number">8</span>;
-    <span class="kw">let</span> <span class="ident">msg_len</span> <span class="op">=</span> <span class="ident">msg_prefix</span>.<span class="ident">len</span>() <span class="op">+</span> <span class="ident">msg</span>.<span class="ident">len</span>();
-    <span class="kw">if</span> <span class="ident">msg_len</span> <span class="op">+</span> <span class="number">9</span> <span class="op">+</span> <span class="ident">em_prefix</span>.<span class="ident">len</span>() <span class="op">&gt;</span> <span class="ident">em_len</span> {
+    <span class="kw">let</span> <span class="ident">em_len</span> <span class="op">=</span> <span class="ident">Long</span>::<span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>::<span class="ident">BITS</span> <span class="op">/</span> <span class="number">8</span>;
+
+    <span class="kw">let</span> <span class="ident">msg_len</span> <span class="op">=</span> <span class="ident">der_prefix</span>.<span class="ident">len</span>() <span class="op">+</span> <span class="ident">msg</span>.<span class="ident">len</span>();
+    <span class="kw">if</span> <span class="ident">msg_len</span> <span class="op">+</span> <span class="number">11</span> <span class="op">&gt;</span> <span class="ident">em_len</span> {
         <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>::<span class="ident">MessageTooLong</span>);
     }
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">encoded</span> <span class="op">=</span> <span class="ident">Long</span>::<span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>::<span class="ident">zero</span>();
-    <span class="kw">let</span> <span class="ident">as_bytes</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">u8</span>] <span class="op">=</span> <span class="kw">unsafe</span> { <span class="ident">core</span>::<span class="ident">slice</span>::<span class="ident">from_raw_parts_mut</span>(
-        <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">encoded</span>.<span class="ident">as_mut_ptr</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="kw">_</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="kw">_</span>,
-        <span class="ident">em_len</span>,
-    ) };
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buffer</span> <span class="op">=</span> <span class="ident">BigEndianLong</span>::<span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>::<span class="ident">default</span>();
+    <span class="kw">let</span> <span class="ident">all_bytes</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">u8</span>] <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">buffer</span>;
+    <span class="ident">all_bytes</span>[<span class="number">1</span>] <span class="op">=</span> <span class="ident">mode</span> <span class="kw">as</span> <span class="ident">u8</span>;
 
-    <span class="comment">// https://tools.ietf.org/html/rfc2313#section-8.1</span>
-    <span class="ident">as_bytes</span>[<span class="number">1</span>..][..<span class="ident">em_prefix</span>.<span class="ident">len</span>()].<span class="ident">copy_from_slice</span>(<span class="ident">em_prefix</span>);
-    <span class="kw">let</span> <span class="ident">padding_string_len</span> <span class="op">=</span> <span class="ident">em_len</span> <span class="op">-</span> <span class="ident">msg_len</span> <span class="op">-</span> <span class="number">2</span> <span class="op">-</span> <span class="ident">em_prefix</span>.<span class="ident">len</span>();
-    <span class="ident">as_bytes</span>[<span class="number">1</span> <span class="op">+</span> <span class="ident">em_prefix</span>.<span class="ident">len</span>()..][..<span class="ident">padding_string_len</span>].<span class="ident">iter_mut</span>().<span class="ident">for_each</span>(<span class="ident">filler</span>);
+    <span class="kw">let</span> (<span class="ident">padding_string</span>, <span class="ident">payload</span>) <span class="op">=</span> <span class="ident">all_bytes</span>.<span class="ident">split_at_mut</span>(<span class="ident">em_len</span> <span class="op">-</span> <span class="ident">msg_len</span> <span class="op">-</span> <span class="number">1</span>);
+    <span class="kw">let</span> <span class="ident">padding_string</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">padding_string</span>[<span class="number">2</span>..];
+    <span class="kw">let</span> <span class="ident">payload</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">payload</span>[<span class="number">1</span>..];
 
-    <span class="ident">as_bytes</span>[<span class="ident">em_len</span> <span class="op">-</span> <span class="ident">msg_len</span>..][..<span class="ident">msg_prefix</span>.<span class="ident">len</span>()].<span class="ident">copy_from_slice</span>(<span class="ident">msg_prefix</span>);
-    <span class="ident">as_bytes</span>[<span class="ident">em_len</span> <span class="op">-</span> <span class="ident">msg_len</span> <span class="op">+</span> <span class="ident">msg_prefix</span>.<span class="ident">len</span>()..].<span class="ident">copy_from_slice</span>(<span class="ident">msg</span>);
+    <span class="ident">padding_string</span>.<span class="ident">iter_mut</span>().<span class="ident">for_each</span>(<span class="ident">filler</span>);
+    <span class="ident">payload</span>[..<span class="ident">der_prefix</span>.<span class="ident">len</span>()].<span class="ident">copy_from_slice</span>(<span class="ident">der_prefix</span>);
+    <span class="ident">payload</span>[<span class="ident">der_prefix</span>.<span class="ident">len</span>()..].<span class="ident">copy_from_slice</span>(<span class="ident">msg</span>);
 
-    <span class="prelude-val">Ok</span>(<span class="ident">encoded</span>.<span class="ident">swap_order</span>())
+
+    <span class="comment">// // https://tools.ietf.org/html/rfc2313#section-8.1</span>
+    <span class="comment">// as_bytes[..em_prefix.len()].copy_from_slice(em_prefix);</span>
+    <span class="comment">// let padding_string_len = em_len - msg_len - 2 - em_prefix.len();</span>
+    <span class="comment">// as_bytes[em_prefix.len()..][..padding_string_len].iter_mut().for_each(filler);</span>
+
+    <span class="comment">// as_bytes[em_len - msg_len..][..msg_prefix.len()].copy_from_slice(msg_prefix);</span>
+    <span class="comment">// as_bytes[em_len - msg_len + msg_prefix.len()..].copy_from_slice(msg);</span>
+
+    <span class="prelude-val">Ok</span>(<span class="ident">Long</span>::<span class="ident">from_bytes</span>(<span class="ident">all_bytes</span>))
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">H</span>: <span class="ident">Digest</span>, <span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">EncryptionPadding</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Pkcs1V1_5</span><span class="op">&lt;</span><span class="ident">H</span><span class="op">&gt;</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">H</span>: <span class="ident">Digest</span>, <span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">EncryptionPadding</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Pkcs1</span><span class="op">&lt;</span><span class="ident">H</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">pad</span>(
         <span class="ident">msg</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
         <span class="ident">rng</span>: <span class="kw">impl</span> <span class="ident">CryptoRng</span> <span class="op">+</span> <span class="ident">RngCore</span>,
     ) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">rng</span> <span class="op">=</span> <span class="ident">rng</span>;
-        <span class="ident">pkcs1_v1_5_pad</span>(<span class="kw-2">&amp;</span>[], <span class="ident">msg</span>, <span class="kw-2">&amp;</span>[<span class="number">2u8</span>], <span class="op">|</span><span class="ident">byte</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">u8</span><span class="op">|</span> {
+        <span class="ident">pkcs1_v1_5_pad</span>(<span class="kw-2">&amp;</span>[], <span class="ident">msg</span>, <span class="ident">Pkcs1Mode</span>::<span class="ident">Encryption</span>, <span class="op">|</span><span class="ident">byte</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">u8</span><span class="op">|</span> {
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">trial</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">1</span>];
             <span class="kw">loop</span> {
                 <span class="ident">rng</span>.<span class="ident">fill_bytes</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">trial</span>);
@@ -1029,21 +1080,31 @@
     }
 
     <span class="kw">fn</span> <span class="ident">unpad</span>(<span class="ident">padded</span>: <span class="kw-2">&amp;</span><span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Unpadded</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">unpadded</span> <span class="op">=</span> <span class="ident">Unpadded</span> { <span class="ident">data</span>: <span class="ident">padded</span>.<span class="ident">clone</span>().<span class="ident">swap_order</span>(), <span class="ident">offset</span>: <span class="number">0</span> };
+        <span class="self">Self</span>::<span class="ident">unpad_mode</span>(<span class="ident">padded</span>, <span class="ident">Pkcs1Mode</span>::<span class="ident">Encryption</span>)
+    }
+}
 
-        <span class="kw">let</span> <span class="ident">data_as_bytes</span> <span class="op">=</span> <span class="ident">digit_slice_as_byte_slice</span>(<span class="kw-2">&amp;</span><span class="ident">unpadded</span>.<span class="ident">data</span>);
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">H</span>: <span class="ident">Digest</span><span class="op">&gt;</span> <span class="ident">Pkcs1</span><span class="op">&lt;</span><span class="ident">H</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">unpad_mode</span><span class="op">&lt;</span><span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span>(<span class="ident">padded</span>: <span class="kw-2">&amp;</span><span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>, <span class="ident">mode</span>: <span class="ident">Pkcs1Mode</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Unpadded</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span><span class="op">&gt;</span> {
+        <span class="comment">// panic!(&quot;paddy: {:?}&quot;, padded);</span>
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">unpadded</span> <span class="op">=</span> <span class="ident">Unpadded</span> { <span class="ident">data</span>: <span class="ident">padded</span>.<span class="ident">to_bytes</span>(), <span class="ident">offset</span>: <span class="number">0</span> };
 
-        <span class="kw">if</span> <span class="ident">data_as_bytes</span>.<span class="ident">len</span>() <span class="op">&lt;</span> <span class="number">10</span> {
+        <span class="kw">let</span> <span class="ident">data</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">u8</span>] <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">unpadded</span>.<span class="ident">data</span>;
+        <span class="comment">// panic!(&quot;paddy: {:?}&quot;, data_as_bytes);</span>
+
+        <span class="kw">if</span> <span class="ident">data</span>.<span class="ident">len</span>() <span class="op">&lt;</span> <span class="number">10</span> {
             <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>::<span class="ident">DecodingError</span>);
         }
 
-        <span class="kw">if</span> <span class="ident">unpadded</span>[<span class="number">0</span>] <span class="op">!</span><span class="op">=</span> <span class="number">2</span> {
+        <span class="kw">if</span> <span class="ident">data</span>[<span class="number">0</span>] <span class="op">!</span><span class="op">=</span> <span class="number">0</span> <span class="op">|</span><span class="op">|</span> <span class="ident">data</span>[<span class="number">1</span>] <span class="op">!</span><span class="op">=</span> <span class="ident">mode</span> <span class="kw">as</span> <span class="ident">u8</span> {
+            <span class="comment">// panic!(&quot;voila: {:?}&quot;, data);</span>
             <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>::<span class="ident">DecodingError</span>);
         }
 
-        <span class="ident">unpadded</span>.<span class="ident">offset</span> <span class="op">=</span> <span class="ident">data_as_bytes</span>.<span class="ident">iter</span>().<span class="ident">enumerate</span>()
-            .<span class="ident">find</span>(<span class="op">|</span>(<span class="kw">_</span>, <span class="ident">digit</span>)<span class="op">|</span> <span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">digit</span> <span class="op">!</span><span class="op">=</span> <span class="number">0</span>)
-            .<span class="ident">map</span>(<span class="op">|</span>(<span class="ident">i</span>, <span class="kw">_</span>)<span class="op">|</span> <span class="ident">i</span> <span class="op">+</span> <span class="number">1</span>)
+        <span class="kw">const</span> <span class="ident">PADDING_START</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">2</span>;
+        <span class="ident">unpadded</span>.<span class="ident">offset</span> <span class="op">=</span> <span class="ident">data</span>[<span class="ident">PADDING_START</span>..].<span class="ident">iter</span>().<span class="ident">enumerate</span>()
+            .<span class="ident">find</span>(<span class="op">|</span>(<span class="kw">_</span>, <span class="ident">byte</span>)<span class="op">|</span> <span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">byte</span> <span class="op">=</span><span class="op">=</span> <span class="number">0</span>)
+            .<span class="ident">map</span>(<span class="op">|</span>(<span class="ident">i</span>, <span class="kw">_</span>)<span class="op">|</span> <span class="ident">i</span> <span class="op">+</span> <span class="number">1</span> <span class="op">+</span> <span class="ident">PADDING_START</span>)
             .<span class="ident">ok_or</span>(<span class="ident">Error</span>::<span class="ident">DecodingError</span>)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(<span class="ident">unpadded</span>)
     }
@@ -1093,17 +1154,28 @@
     <span class="kw">const</span> <span class="ident">ASN1_PREFIX</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> [<span class="ident">u8</span>] <span class="op">=</span> <span class="ident">SHA512_PREFIX</span>;
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">H</span>: <span class="ident">Asn1Digest</span>, <span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">SignaturePadding</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Pkcs1V1_5</span><span class="op">&lt;</span><span class="ident">H</span><span class="op">&gt;</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">H</span>: <span class="ident">Asn1Digest</span>, <span class="kw">const</span> <span class="ident">D</span>: <span class="ident">usize</span><span class="op">&gt;</span> <span class="ident">SignaturePadding</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Pkcs1</span><span class="op">&lt;</span><span class="ident">H</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">pad</span>(
         <span class="ident">msg</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
         <span class="ident">_rng</span>: <span class="kw">impl</span> <span class="ident">CryptoRng</span> <span class="op">+</span> <span class="ident">RngCore</span>,
     ) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-        <span class="ident">pkcs1_v1_5_pad</span>(<span class="ident">H</span>::<span class="ident">ASN1_PREFIX</span>, <span class="ident">msg</span>, <span class="kw-2">&amp;</span>[<span class="number">0u8</span>, <span class="number">1u8</span>], <span class="op">|</span><span class="ident">byte</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">u8</span><span class="op">|</span> <span class="kw-2">*</span><span class="ident">byte</span> <span class="op">=</span> <span class="number">0xFF</span>)
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">hasher</span> <span class="op">=</span> <span class="ident">H</span>::<span class="ident">new</span>();
+        <span class="ident">hasher</span>.<span class="ident">update</span>(<span class="ident">msg</span>);
+        <span class="kw">let</span> <span class="ident">hashed_msg</span> <span class="op">=</span> <span class="ident">hasher</span>.<span class="ident">finalize</span>();
+        <span class="ident">pkcs1_v1_5_pad</span>(<span class="ident">H</span>::<span class="ident">ASN1_PREFIX</span>, <span class="kw-2">&amp;</span><span class="ident">hashed_msg</span>, <span class="ident">Pkcs1Mode</span>::<span class="ident">Signing</span>, <span class="op">|</span><span class="ident">byte</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">u8</span><span class="op">|</span> <span class="kw-2">*</span><span class="ident">byte</span> <span class="op">=</span> <span class="number">0xFF</span>)
     }
 
-    <span class="kw">fn</span> <span class="ident">verify</span>(<span class="ident">msg</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">padded</span>: <span class="kw-2">&amp;</span><span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">verify</span>(<span class="ident">msg</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">verifier</span>: <span class="kw-2">&amp;</span><span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="comment">// No Bleichenbacher06 for us!</span>
-        (<span class="op">&lt;</span><span class="self">Self</span> <span class="kw">as</span> <span class="ident">EncryptionPadding</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span><span class="op">&gt;</span>::<span class="ident">unpad</span>(<span class="ident">padded</span>)<span class="question-mark">?</span>.<span class="ident">deref</span>() <span class="op">=</span><span class="op">=</span> <span class="ident">msg</span>)
+        <span class="comment">// https://tools.ietf.org/html/rfc8017#section-8.2.2</span>
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">hasher</span> <span class="op">=</span> <span class="ident">H</span>::<span class="ident">new</span>();
+        <span class="ident">hasher</span>.<span class="ident">update</span>(<span class="ident">msg</span>);
+        <span class="kw">let</span> <span class="ident">hashed_msg</span> <span class="op">=</span> <span class="ident">hasher</span>.<span class="ident">finalize</span>();
+
+        <span class="kw">let</span> <span class="ident">padded_hashed_msg</span>: <span class="ident">Long</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">pkcs1_v1_5_pad</span>(
+            <span class="ident">H</span>::<span class="ident">ASN1_PREFIX</span>, <span class="kw-2">&amp;</span><span class="ident">hashed_msg</span>, <span class="ident">Pkcs1Mode</span>::<span class="ident">Signing</span>, <span class="op">|</span><span class="ident">byte</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">u8</span><span class="op">|</span> <span class="kw-2">*</span><span class="ident">byte</span> <span class="op">=</span> <span class="number">0xFF</span>)<span class="question-mark">?</span>;
+
+        (<span class="kw-2">*</span><span class="ident">verifier</span> <span class="op">=</span><span class="op">=</span> <span class="ident">padded_hashed_msg</span>)
             .<span class="ident">then</span>(<span class="op">|</span><span class="op">|</span> ())
             .<span class="ident">ok_or</span>(<span class="ident">Error</span>::<span class="ident">Inconsistent</span>)
     }
