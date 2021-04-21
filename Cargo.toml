@@ -18,8 +18,8 @@ digest = { version = "0.9" }
 hex-literal = { version = "0.3", optional = true }
 rand_core = { version = "0.6", default-features = false }
 ref-cast = "1"
-sha-1 = { version = "0.9", optional = true }
-sha2 = { version = "0.9", optional = true }
+sha-1 = { version = "0.9", optional = true, default-features = false }
+sha2 = { version = "0.9", optional = true, default-features = false }
 subtle = { version = "2.4", optional = true }
 zeroize = { version = "1.2.0", default-features = false, features = ["zeroize_derive"] }
 
@@ -41,4 +41,5 @@ extended-testing = []
 
 [patch.crates-io]
 # subtle = { git = "https://github.com/nickray/subtle", branch = "conditionally-select-usize" }
-subtle = { git = "https://github.com/nickray/subtle", branch = "no-copy-bound" }
+# subtle = { git = "https://github.com/nickray/subtle", branch = "no-copy-bound" }
+subtle = { git = "https://github.com/nickray/subtle", branch = "remove-copy-bound" }
